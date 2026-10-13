@@ -1,0 +1,394 @@
+// SliderUI: swipeable cards backed by Keen Slider. Persistent state is owned
+// by ReviewSessions; DOM is only a projection of that state.
+const SliderUI = {
+  name: 'SliderUI',
+  viewName: 'slider',
+
+  selectors: {
+    root: '#sliderView',
+    modeEl: '#sliderCardMode',
+    matchingEl: '#sliderOnlyMatching',
+    randomEl: '#sliderRandomOrder',
+    resetEl: '#sliderReset',
+    currentEl: '#sliderCurrentIndex',
+    totalEl: '#sliderDataCount',
+    outerEl: '#sliderOuter',
+    lapseEl: '#sliderLapse',
+    hitEl: '#sliderHit',
+    removeEl: '#sliderRemove',
+    containerEl: '#sliderContainer',
+  },
+
+  events: {
+    change: {
+      '@modeEl': 'changeMode',
+      '@matchingEl': 'changeMatching',
+      '@randomEl': 'changeRandom',
+    },
+    click: {
+      '@resetEl': 'reset',
+      '@lapseEl': 'toggleLapse',
+      '@hitEl': 'toggleHit',
+      '@removeEl': 'removeCurrent',
+      '#sliderView .js-slide-inner': 'rotateSide',
+      '#sliderView .js-slide-side, #sliderView .js-slide-side span': 'speakSide',
+      '#sliderView .slideReading, #sliderView .slideReading span': 'readReading',
+    },
+  },
+
+  compatibleMatchingModes: ['meaning', 'example', 'example_translation'],
+  slider: null,
+
+  init() {
+    this.ensureMarkup();
+    Bus.batchedMethod(this, 'render');
+    Bus.on(Bus.events.viewChanged, () => this.render());
+    Bus.on(Bus.events.originSelected, () => this.render());
+    Bus.on(Bus.events.sourcesChanged, () => this.render());
+    Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
+      if(sourceId === App.currentOrigin) {
+        ReviewSessions.resetNavigation(sourceId, this.viewName);
+        this.render();
+      }
+    });
+  },
+
+  ensureMarkup() {
+    if(this.dom?.root) return;
+    const html = `
+      <div id="sliderView" class="appView">
+        <div id="sliderActions">
+          <select id="sliderCardMode">
+            <option value="original">original</option>
+            <option value="random">random</option>
+            <option value="expression">expression</option>
+            <option value="meaning">meaning</option>
+            <option value="example">examples</option>
+            <option value="example_translation">examples' translations</option>
+          </select>
+          <label>Omm <input type="checkbox" id="sliderOnlyMatching"></label>
+          <label>R <input type="checkbox" id="sliderRandomOrder"></label>
+          <button id="sliderReset">Reset</button>
+          <div id="sliderCounters"><span id="sliderCurrentIndex"></span>/<span id="sliderDataCount"></span></div>
+        </div>
+        <div id="sliderOuter">
+          <button id="sliderLapse" class="sliderMark" aria-label="lapse">✗</button>
+          <button id="sliderHit" class="sliderMark" aria-label="hit">〇</button>
+          <button id="sliderRemove" aria-label="remove">消</button>
+          <div id="sliderContainer" class="keen-slider"></div>
+        </div>
+      </div>`;
+    document.querySelector('#appBody').insertAdjacentHTML('beforeend', html);
+    Utils.cacheComponentDom(this);
+  },
+
+  state() {
+    const state = ReviewSessions.get(App.currentOrigin, this.viewName);
+    if(!state.ui.mode) state.ui.mode = 'original';
+    if(state.ui.onlyMatching == null) state.ui.onlyMatching = false;
+    if(state.ui.random == null) state.ui.random = false;
+    if(!state.ui.sideIndexes) state.ui.sideIndexes = {};
+    return state;
+  },
+
+  render() {
+    const visible = App.currentView === this.viewName;
+    this.dom.root.style.display = visible ? '' : 'none';
+    if(!visible) {
+      this.destroySlider();
+      return;
+    }
+
+    this.destroySlider();
+    this.dom.containerEl.innerHTML = '';
+    this.dom.currentEl.textContent = '';
+    this.dom.totalEl.textContent = '0';
+
+    const originId = App.currentOrigin;
+    if(!originId || !Library.hasSource(originId)) return;
+
+    const state = this.state();
+    this.syncControls(state.ui);
+    const entries = this.visibleEntries(originId, state);
+    entries.forEach(entry => {
+      this.dom.containerEl.insertAdjacentHTML('beforeend', this.renderSlide(entry, state));
+    });
+    this.dom.totalEl.textContent = String(entries.length);
+
+    if(!entries.length || typeof KeenSlider !== 'function') return;
+
+    const initial = Math.max(0, entries.findIndex(e => e.id === state.ui.currentEntryId));
+    this.slider = new KeenSlider(this.dom.containerEl, {
+      loop: true,
+      initial,
+      created: slider => this.onSlideChanged(slider),
+      slideChanged: slider => this.onSlideChanged(slider),
+    });
+  },
+
+  visibleEntries(originId, state) {
+    let entries = App.selectedEntries(originId).filter(entry =>
+      !state.progress[entry.id]?.removed);
+
+    if(state.ui.onlyMatching && this.compatibleMatchingModes.includes(state.ui.mode)) {
+      entries = entries.filter(entry => entry.lines.some(line => line.role === state.ui.mode));
+    }
+
+    if(state.ui.random) {
+      const ids = entries.map(e => e.id);
+      let order = Array.isArray(state.ui.order)
+        ? state.ui.order.filter(id => ids.includes(id)) : [];
+      const missing = ids.filter(id => !order.includes(id));
+      if(!order.length) order = Utils.shuffle(ids);
+      else order = order.concat(Utils.shuffle(missing));
+      state.ui.order = order;
+      App.saveViews();
+      const map = Object.fromEntries(entries.map(e => [e.id, e]));
+      entries = order.map(id => map[id]).filter(Boolean);
+    }
+    return entries;
+  },
+
+  renderSlide(entry, state) {
+    const reading = entry.lines.find(line => line.role === Parser.LINE_ROLE.reading);
+    const lines = entry.lines.filter(line => line !== reading);
+    const savedSide = state.ui.sideIndexes[entry.id];
+    const ordered = this.orderLines(lines, state.ui.mode, savedSide);
+    const current = ordered.find(line => line.originalIndex === savedSide) || ordered[0];
+    const attrs = [
+      'data-entry-id="' + entry.id + '"',
+      entry.section != null ? 'data-section="' + entry.section + '"' : '',
+      entry.tag ? 'data-tag="' + Utils.escapeHtml(entry.tag) + '"' : '',
+      entry.reviewLevel ? 'data-review-level="' + Utils.escapeHtml(entry.reviewLevel) + '"' : '',
+    ].filter(Boolean).join(' ');
+    const info = entry.info
+      ? '<details class="entry-info"><summary>ⓘ</summary>' + Utils.escapeHtml(entry.info) + '</details>' : '';
+    const sides = ordered.map(line => this.renderSide(line, current)).join('');
+    const readingHtml = reading
+      ? '<button class="slideReading" data-reading="' + Utils.escapeHtml(reading.text) + '"><span>'
+        + Utils.escapeHtml(reading.text) + '</span></button>' : '';
+
+    return '<div class="keen-slider__slide js-slide" ' + attrs + '>'
+      + info
+      + '<div class="sides-count">' + ordered.length + '</div>'
+      + '<div class="current-side">' + (current ? current.originalIndex : '') + '</div>'
+      + '<div class="slide-inner js-slide-inner">' + sides + '</div>'
+      + readingHtml
+      + '</div>';
+  },
+
+  renderSide(line, current) {
+    const classes = ['slide-side', 'js-slide-side'];
+    if(line === current) classes.push('current');
+    if(line.isCompact || line.role === 'example') classes.push('compact');
+    return '<div class="' + classes.join(' ') + '" data-index="' + line.originalIndex + '"'
+      + (line.role ? ' data-role="' + line.role + '"' : '')
+      + (line.speakable ? ' data-reading="' + Utils.escapeHtml(line.text) + '"' : '')
+      + '><span>' + Utils.escapeHtml(line.text) + '</span></div>';
+  },
+
+  orderLines(lines, mode, savedSide) {
+    if(savedSide != null && lines.some(l => l.originalIndex === savedSide)) return lines.slice();
+    if(mode === 'random') return Utils.shuffle(lines);
+    const order = Parser.lineOrders?.[mode];
+    if(!order) return lines.slice();
+
+    if(mode === 'example_translation') {
+      const translations = Utils.shuffle(lines.filter(line =>
+        line.role === 'example_translation'));
+      const paired = [];
+      translations.forEach(translation => {
+        paired.push(translation);
+        const example = lines.find(line =>
+          line.translationLineIndex === translation.originalIndex);
+        if(example) paired.push(example);
+      });
+      return order.flatMap(role => {
+        if(role === 'example_translation') return paired;
+        if(role === 'example') {
+          return Utils.shuffle(lines.filter(line =>
+            line.role === role && !paired.includes(line)));
+        }
+        return lines.filter(line => line.role === role);
+      });
+    }
+
+    return order.flatMap(role => {
+      const group = lines.filter(line => line.role === role);
+      return ['example', 'example_translation'].includes(role) ? Utils.shuffle(group) : group;
+    });
+  },
+
+  syncControls(ui) {
+    this.dom.modeEl.value = ui.mode;
+    this.dom.matchingEl.checked = !!ui.onlyMatching;
+    this.dom.randomEl.checked = !!ui.random;
+  },
+
+  changeMode(el) {
+    const state = this.state();
+    state.ui.mode = el.value;
+    state.ui.sideIndexes = {};
+    App.saveViews();
+    this.render();
+  },
+
+  changeMatching(el) {
+    ReviewSessions.setUi(App.currentOrigin, this.viewName, {
+      onlyMatching: el.checked,
+      currentEntryId: null,
+    });
+    this.render();
+  },
+
+  changeRandom(el) {
+    const patch = { random: el.checked, currentEntryId: null };
+    if(el.checked) {
+      patch.order = Utils.shuffle(App.selectedEntries(App.currentOrigin).map(e => e.id));
+    } else {
+      patch.order = [];
+    }
+    ReviewSessions.setUi(App.currentOrigin, this.viewName, patch);
+    this.render();
+  },
+
+  reset() {
+    if(!App.currentOrigin || !confirm('Really reset the Slider?')) return;
+    ReviewSessions.reset(App.currentOrigin, this.viewName, {
+      mode: 'original',
+      onlyMatching: false,
+      random: false,
+      order: [],
+      sideIndexes: {},
+      currentEntryId: null,
+    });
+    this.render();
+  },
+
+  currentSlide() {
+    if(!this.slider?.slides?.length) return null;
+    const rel = this.slider.track.details ? this.slider.track.details.rel : 0;
+    return this.slider.slides[rel] || this.slider.slides[0];
+  },
+
+  rotateSide(el, e) {
+    const inner = el.classList.contains('js-slide-inner') ? el : el.closest('.js-slide-inner');
+    const slide = el.closest('.js-slide');
+    if(!inner || !slide) return;
+    e.preventDefault();
+
+    const sides = Array.from(inner.querySelectorAll('.js-slide-side'));
+    if(sides.length < 2) return;
+    const current = inner.querySelector('.current');
+    const idx = Math.max(0, sides.indexOf(current));
+    const next = sides[(idx + 1) % sides.length];
+    current?.classList.remove('current');
+    next.classList.add('current');
+    slide.querySelector('.current-side').textContent = next.dataset.index;
+
+    ReviewSessions.setSideIndex(
+      App.currentOrigin,
+      this.viewName,
+      Number(slide.dataset.entryId),
+      Number(next.dataset.index),
+    );
+    this.updateMarks();
+  },
+
+  readReading(el, e) {
+    e.stopPropagation();
+    const reading = el.closest('.slideReading');
+    const text = reading.dataset.reading;
+    if(!reading.classList.contains('listened') && !reading.classList.contains('revealed')) {
+      reading.classList.add('listened');
+      Utils.speak(text);
+    } else if(reading.classList.contains('listened')) {
+      reading.classList.remove('listened');
+      reading.classList.add('revealed');
+    } else {
+      reading.classList.remove('revealed');
+    }
+  },
+
+  speakSide(el, e) {
+    e.stopPropagation();
+    const side = el.closest('.js-slide-side');
+    if(side?.dataset.reading) Utils.speak(side.dataset.reading);
+  },
+
+  toggleLapse() {
+    this.toggleMark('lapses');
+  },
+
+  toggleHit() {
+    this.toggleMark('hits');
+  },
+
+  toggleMark(mark) {
+    const slide = this.currentSlide();
+    const side = slide?.querySelector('.js-slide-side.current');
+    if(!slide || !side) return;
+    ReviewSessions.toggleSideMark(
+      App.currentOrigin,
+      this.viewName,
+      Number(slide.dataset.entryId),
+      mark,
+      Number(side.dataset.index),
+    );
+    this.updateMarks();
+  },
+
+  removeCurrent() {
+    const slide = this.currentSlide();
+    if(!slide || this.slider.slides.length === 1) return;
+    if(!confirm('Remove the slide?')) return;
+    ReviewSessions.removeEntry(
+      App.currentOrigin,
+      this.viewName,
+      Number(slide.dataset.entryId),
+    );
+    this.render();
+  },
+
+  onSlideChanged(slider) {
+    const rel = slider.track.details ? slider.track.details.rel : 0;
+    const slide = slider.slides[rel] || slider.slides[0];
+    this.dom.currentEl.textContent = String(rel + 1);
+    if(slide) {
+      ReviewSessions.replaceUiValue(
+        App.currentOrigin,
+        this.viewName,
+        'currentEntryId',
+        Number(slide.dataset.entryId),
+      );
+    }
+    this.updateMarks();
+  },
+
+  updateMarks() {
+    const slide = this.currentSlide();
+    const side = slide?.querySelector('.js-slide-side.current');
+    if(!slide || !side) {
+      this.dom.hitEl.classList.remove('active');
+      this.dom.lapseEl.classList.remove('active');
+      return;
+    }
+    const item = ReviewSessions.entry(
+      App.currentOrigin,
+      this.viewName,
+      Number(slide.dataset.entryId),
+    ) || {};
+    const sideIndex = Number(side.dataset.index);
+    this.dom.hitEl.classList.toggle('active', item.hits?.includes(sideIndex) || false);
+    this.dom.lapseEl.classList.toggle('active', item.lapses?.includes(sideIndex) || false);
+  },
+
+  destroySlider() {
+    if(this.slider) {
+      this.slider.destroy();
+      this.slider = null;
+    }
+  },
+};
+
+Components.push(SliderUI);

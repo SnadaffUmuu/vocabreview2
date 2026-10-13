@@ -1,0 +1,143 @@
+:root {
+  --color1: #F3F2F4;
+  --color2: #720842;
+  --color3: #C6D8DE;
+  --color4: #75919C;
+  --color5: #521320;
+  --color6: #220E24;
+
+  --bg: var(--color1);
+  --text-color: var(--color2);
+
+  --button-primary: #fbf2f2;
+  --button-secondary: var(--color3);
+
+  --input-bg: #dfd8e7;
+  --overlay: rgba(42, 36, 61, 0.24);
+
+  --tagBg: #bab1c7;
+  --tagTextColor: white;
+  --paleBorder: #c9c9dc;
+  --dataItemBorder: var(--paleBorder);
+
+  --revLevelTextColor: #5800bc;
+  --revLevelMinorTextColor: #142CE6;
+  --revLevelExtraTextColor: #8A009B;
+
+  --slideInfoBg: #c4bfca;
+  --slideInfoColor: var(--text-color);
+  --slideSpeakableLineBg: #c4bfca;
+  --currentSlideIndexTextColor: var(--text-color);
+  --batsuActiveText: #a11b43;
+  --maruActiveText: #16734f;
+
+  --tagBgYoji: #d0cbff;
+  --tagBgOnoma: #a7e3ec;
+  --tagBgGrammar: #e5c1e9;
+  --tagBgGeo: #ddd4d6;
+  --tagBgName: #cde0bb;
+  --tagBgTerm: plum;
+  --tagBgPattern: #f6ceff;
+  --tagBgCounter: #afeed4;
+  --tagBgSuffix: #a7e3ec;
+  --tagBgDialect: #8274ff;
+}
+
+body.night {
+  --bg: var(--color6);
+  --text-color: var(--color4);
+
+  --button-primary: #3d4551;
+  --button-secondary: var(--color5);
+  --input-bg: #3d2f38;
+
+  --tagBg: #64203c;
+  --tagTextColor: #9a9797;
+}
+
+html {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+html, body, #appBody, .appView {
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+body, #appBody, .appView {
+  flex: 1 0 auto;
+}
+
+body {
+  margin: 0;
+  font-size: 30px;
+  background: var(--bg);
+  font-family: sans-serif;
+  color: var(--text-color);
+}
+
+#appBody {
+  padding-top: 40px;
+  box-sizing: border-box;
+  align-items: stretch;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  overflow: auto;
+}
+
+select {
+  height: 23px;
+  box-sizing: border-box;
+  background: var(--input-bg);
+  border-radius: 5px;
+}
+
+input[type="checkbox"] {
+  margin: 0;
+  width: 23px;
+  height: 23px;
+  vertical-align: middle;
+}
+
+.night input[type="checkbox"] {
+  filter: sepia(50%) brightness(60%) hue-rotate(170deg) saturate(70%) contrast(100%);
+  accent-color: var(--input-bg);
+}
+
+input[type="text"],
+input[type="search"] {
+  height: 23px;
+  box-sizing: border-box;
+  background: var(--input-bg);
+  border-radius: 5px;
+  border: 1px solid #767676;
+}
+
+button {
+  height: 25px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--button-secondary);
+  white-space: nowrap;
+  box-sizing: border-box;
+  padding: 3px 10px;
+  line-height: 19px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.tag {
+  font-size: 12px;
+  border-radius: 5px;
+  background: var(--tagBg);
+  color: var(--tagTextColor);
+  width: fit-content;
+  padding: 1px 4px;
+}

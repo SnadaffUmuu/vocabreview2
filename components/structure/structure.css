@@ -1,0 +1,34 @@
+#structure {
+  padding: 6px;
+}
+
+#structureTree ul {
+  list-style: none;
+  padding-left: 22px;
+  margin: 4px 0;
+}
+
+#structureTree li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#structureTree .treeCheckbox {
+  margin-right: 4px;
+}
+
+#structureTree .inProgress {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--color3);
+  color: var(--color2);
+  font-size: 14px;
+  font-weight: bold;
+}
+
+#structureFilter {
+  margin-right: 6px;
+}

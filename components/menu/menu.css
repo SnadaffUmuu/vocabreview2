@@ -1,0 +1,22 @@
+#menu {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+}
+
+#menuSources {
+  height: 28px;
+}
+
+#menuViewSwitcher {
+  display: flex;
+  flex-flow: row wrap;
+  gap: 4px;
+}
+
+#menuViewSwitcher .switchView.active {
+  background: var(--button-primary);
+  outline: 1px solid var(--text-color);
+}

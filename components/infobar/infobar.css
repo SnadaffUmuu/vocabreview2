@@ -1,0 +1,13 @@
+#infobar {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 6px;
+  font-size: 18px;
+}
+
+#infobarEntriesCount {
+  color: var(--text-color);
+  opacity: 0.8;
+}
