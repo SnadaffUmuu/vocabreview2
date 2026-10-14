@@ -5,6 +5,8 @@ const AppInit = {
 
   init() {
     App.load();
+    Storage.removeUnlistedSources(SOURCES_LIST);
+    App.removeUnlistedSources(SOURCES_LIST);
     Library.load();
     Events.init();
 

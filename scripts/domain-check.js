@@ -159,9 +159,88 @@ const reloadedViews = Storage.load(Storage.KEY.views, {});
 assert(reloadedViews['goshogun2']
   && reloadedViews['goshogun2']['slider'], 'views persisted and reloadable');
 
-console.log('\nDOMAIN SMOKE TEST DONE');
-
 assert(Object.keys(memStore).every(k => k.startsWith('vocabreview2.')),
   'all stored keys carry the vocabreview2. prefix');
 assert(!Object.keys(memStore).some(k => k.indexOf('knownSources') >= 0),
   'no extra knownSources key');
+
+// Large sources default to the first leaf section only when no sections are
+// selected. Explicit multi-section selections are not limited by entry count.
+function sourceWithEntries(firstCount, secondCount, nested = true) {
+  const first = Array.from({ length: firstCount }, (_, i) => 'word' + i + '\nmeaning').join('\n\n');
+  const second = Array.from({ length: secondCount }, (_, i) => 'other' + i + '\nmeaning').join('\n\n');
+  return 'Title\n====\n\n' + (nested ? '~~~~\nTop\n~~~~\n\n' : '')
+    + '[1]\n\n' + first + '\n\n[2]\n\n' + second;
+}
+
+const largeId = 'large-check';
+const largeRaw = sourceWithEntries(101, 5);
+Library.setSource(largeId, largeRaw, 'http');
+assert(Library.getSource(largeId).parsed.allEntries.length === 106,
+  'large test source parses all 106 entries');
+assert(App.getSelection(largeId).join(',') === '0.0'
+  && App.selectedEntries(largeId).length === 101,
+  'large source defaults to first child even when it exceeds 100 entries');
+assert(Storage.load(Storage.KEY.selections, {})[largeId].join(',') === '0.0',
+  'automatic selection is persisted immediately');
+
+App.setSelection(largeId, ['0.0', '0.1']);
+assert(App.selectedEntries(largeId).length === 106,
+  'explicit large selection is not capped');
+App.selectOrigin('goshogun2');
+App.selectOrigin(largeId);
+assert(App.getSelection(largeId).length === 2,
+  'switching sources preserves an explicit selection');
+App.setSelection(largeId, []);
+assert(App.getSelection(largeId).join(',') === '0.0'
+  && App.selectedEntries(largeId).length === 101,
+  'filtering with no checked boxes reapplies the large-source default');
+
+App.clearSelectionFor(largeId);
+App.selectOrigin(largeId);
+assert(App.getSelection(largeId).join(',') === '0.0',
+  'switching to a source with no selection applies the guard');
+App.setSelection(largeId, ['0.1']);
+App.load();
+Library.sources = {};
+SOURCES_LIST.push(largeId);
+Library.load();
+assert(App.getSelection(largeId).join(',') === '0.1',
+  'startup keeps a saved non-empty selection');
+App.selections[largeId] = [];
+Storage.save(Storage.KEY.selections, App.selections);
+App.load();
+Library.sources = {};
+Library.load();
+assert(App.getSelection(largeId).join(',') === '0.0',
+  'startup repairs a saved empty selection for a large source');
+App.clearSelectionFor(largeId);
+App.load();
+Library.sources = {};
+Library.load();
+assert(App.getSelection(largeId).join(',') === '0.0',
+  'startup initializes a large source with no saved selection');
+
+Library.reloadSource(largeId, sourceWithEntries(90, 11, false), 'http');
+assert(App.getSelection(largeId).join(',') === '0'
+  && App.selectedEntries(largeId).length === 90,
+  'reload resets selection and chooses first root when it has no children');
+
+const smallId = 'small-check';
+Library.setSource(smallId, sourceWithEntries(95, 5), 'http');
+assert(App.getSelection(smallId).length === 0
+  && App.selectedEntries(smallId).length === 100,
+  'exactly 100 entries load in full');
+App.setSelection(smallId, ['0.0']);
+App.setSelection(smallId, []);
+assert(App.getSelection(smallId).length === 0
+  && App.selectedEntries(smallId).length === 100,
+  'empty filter on a small source loads everything');
+
+const thresholdId = 'threshold-check';
+Library.setSource(thresholdId, sourceWithEntries(1, 100), 'http');
+assert(App.getSelection(thresholdId).join(',') === '0.0'
+  && App.selectedEntries(thresholdId).length === 1,
+  'guard applies at exactly 101 entries, based on source total');
+
+console.log('\nDOMAIN SMOKE TEST DONE');

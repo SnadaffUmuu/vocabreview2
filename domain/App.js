@@ -23,6 +23,30 @@ const App = {
     Object.assign(this.settings, Storage.load(Storage.KEY.settings, {}));
   },
 
+  // Retiring a source also retires its progress and section selection. Do not
+  // touch listed sources, even if their text has not been imported yet.
+  removeUnlistedSources(allowedIds) {
+    const allowed = new Set(allowedIds);
+    let viewsChanged = false;
+    let selectionsChanged = false;
+    Object.keys(this.views).forEach(id => {
+      if(allowed.has(id)) return;
+      delete this.views[id];
+      viewsChanged = true;
+    });
+    Object.keys(this.selections).forEach(id => {
+      if(allowed.has(id)) return;
+      delete this.selections[id];
+      selectionsChanged = true;
+    });
+    if(viewsChanged) this.saveViews();
+    if(selectionsChanged) Storage.save(Storage.KEY.selections, this.selections);
+    if(this.settings.currentOrigin && !allowed.has(this.settings.currentOrigin)) {
+      this.settings.currentOrigin = null;
+      this._saveSettings();
+    }
+  },
+
   // ---- settings ------------------------------------------------------------------
 
   get night() { return this.settings.night; },
@@ -40,6 +64,7 @@ const App = {
   },
 
   selectOrigin(id) {
+    this.ensureSelection(id);
     this.settings.currentOrigin = id;
     this._saveSettings();
     Bus.emit(Bus.events.originSelected, { id });
@@ -57,10 +82,27 @@ const App = {
     return this.selections[sourceId] || [];
   },
 
+  // An empty selection means the whole source, except when a large source
+  // defaults to its first section. An explicit selection is never capped.
+  defaultSelection(sourceId) {
+    const parsed = Library.getSource(sourceId)?.parsed;
+    if(!parsed || parsed.allEntries.length <= 100) return [];
+    const first = parsed.structure[0];
+    if(!first) return [];
+    return [first.children?.[0]?.id || first.id];
+  },
+
+  ensureSelection(sourceId) {
+    if(!sourceId || this.getSelection(sourceId).length) return;
+    const initial = this.defaultSelection(sourceId);
+    if(initial.length) this.setSelection(sourceId, initial);
+  },
+
   setSelection(sourceId, sectionIds) {
-    this.selections[sourceId] = sectionIds;
+    const selection = sectionIds.length ? sectionIds : this.defaultSelection(sourceId);
+    this.selections[sourceId] = selection;
     Storage.save(Storage.KEY.selections, this.selections);
-    Bus.emit(Bus.events.selectionChanged, { sourceId, sectionIds });
+    Bus.emit(Bus.events.selectionChanged, { sourceId, sectionIds: selection });
   },
 
   clearSelectionFor(sourceId) {

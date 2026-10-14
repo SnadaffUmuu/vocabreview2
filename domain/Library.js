@@ -13,6 +13,7 @@ const Library = {
       const saved = Storage.loadSource(id);
       if(saved && saved.raw != null) {
         this.sources[id] = this._build(id, saved.raw, saved.origin || 'file', saved.loadedAt || null);
+        App.ensureSelection(id);
       }
     });
   },
@@ -49,6 +50,7 @@ const Library = {
     const source = this._build(id, raw, origin, loadedAt);
     this.sources[id] = source;
     Storage.saveSource(id, { raw, origin, loadedAt });
+    App.ensureSelection(id);
 
     Bus.emit(Bus.events.sourceLoaded, { id });
     Bus.emit(Bus.events.sourcesChanged, { id });

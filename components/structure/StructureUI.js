@@ -1,8 +1,10 @@
 // StructureUI: renders the section tree for the current source with checkboxes
-// for selection and letter marks for "in progress" views. Reads domain state,
-// writes selection via App.setSelection.
+// for selection and letter marks for "in progress" views. Its root is mounted
+// in the menu's layout slot; it does not call or otherwise know MenuUI.
+// Reads domain state and writes selection via App.setSelection.
 const StructureUI = {
   name: 'StructureUI',
+  mountSelector: '#menuStructureSlot',
 
   selectors: {
     root: '#structure',
@@ -26,6 +28,9 @@ const StructureUI = {
     Bus.batchedMethod(this, 'render');
     Bus.on(Bus.events.originSelected, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
+    Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
+      if(sourceId === App.currentOrigin) this.render();
+    });
     Bus.on(Bus.events.viewsChanged, () => this.renderMarks());
   },
 
@@ -39,7 +44,7 @@ const StructureUI = {
         </label>
         <div id="structureTree"></div>
       </div>`;
-    document.querySelector('#appBody').insertAdjacentHTML('beforeend', html);
+    document.querySelector(this.mountSelector).insertAdjacentHTML('beforeend', html);
     Utils.cacheComponentDom(this);
   },
 

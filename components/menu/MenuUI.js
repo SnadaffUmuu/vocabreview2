@@ -58,6 +58,7 @@ const MenuUI = {
             <div id="menuViewSwitcher">${switchers}
             </div>
           </div>
+          <div id="menuStructureSlot"></div>
         </div>
       </div>`;
     document.querySelector('#appBody').insertAdjacentHTML('beforeend', html);

@@ -70,7 +70,7 @@ const SliderUI = {
           <label>Omm <input type="checkbox" id="sliderOnlyMatching"></label>
           <label>R <input type="checkbox" id="sliderRandomOrder"></label>
           <button id="sliderReset">Reset</button>
-          <div id="sliderCounters"><span id="sliderCurrentIndex"></span>/<span id="sliderDataCount"></span></div>
+          <div id="sliderCounters"><span id="sliderCurrentIndex"></span><span id="sliderCounterSep">/</span><span id="sliderDataCount"></span></div>
         </div>
         <div id="sliderOuter">
           <button id="sliderLapse" class="sliderMark" aria-label="lapse">✗</button>
@@ -342,16 +342,28 @@ const SliderUI = {
     const slide = this.currentSlide();
     if(!slide || this.slider.slides.length === 1) return;
     if(!confirm('Remove the slide?')) return;
-    SliderState.removeEntry(
-      App.currentOrigin,
-      Number(slide.dataset.entryId),
-    );
+    const originId = App.currentOrigin;
+    const rel = this.slider.track.details ? this.slider.track.details.rel : 0;
+    const entryId = Number(slide.dataset.entryId);
+    SliderState.removeEntry(originId, entryId);
+    // Preserve position: after removal, the slide at same index `rel` becomes current.
+    const state = this.state();
+    const entries = this.visibleEntries(originId, state);
+    const next = entries[rel] || entries[0];
+    ViewState.replaceUiValue(originId, this.viewName, 'currentEntryId', next ? next.id : null);
     this.render();
   },
 
   onSlideChanged(slider) {
+    this.slider = slider;
     const rel = slider.track.details ? slider.track.details.rel : 0;
     const slide = slider.slides[rel] || slider.slides[0];
+    slider.slides.forEach(other => {
+      if(other !== slide) {
+        const info = other.querySelector('.entry-info');
+        if(info) info.open = false;
+      }
+    });
     this.dom.currentEl.textContent = String(rel + 1);
     if(slide) {
       ViewState.replaceUiValue(

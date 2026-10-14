@@ -61,4 +61,21 @@ const Storage = {
   removeSource(id) {
     this.remove(this.sourceKey(id));
   },
+
+  // Source files removed from the hard-coded list must not occupy storage.
+  // Only inspect our source-key namespace; leave other app data untouched.
+  removeUnlistedSources(allowedIds) {
+    const allowed = new Set(allowedIds);
+    const prefix = this.PREFIX + 'src.';
+    try {
+      for(let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if(key && key.startsWith(prefix) && !allowed.has(key.slice(prefix.length))) {
+          this.remove(key);
+        }
+      }
+    } catch(e) {
+      console.error('Storage.removeUnlistedSources failed', e);
+    }
+  },
 };
