@@ -3,6 +3,8 @@
 // Shows/hides itself based on App.currentView === 'data'.
 const DataViewUI = {
   name: 'DataViewUI',
+  viewName: 'data',
+  viewLabel: 'D',
 
   selectors: {
     root: '#dataView',
@@ -13,7 +15,8 @@ const DataViewUI = {
   },
 
   events: {
-    keyup: { '@searchEl': 'doSearch' },
+    keydown: { '@searchEl': 'doSearch' },
+    search: { '@searchEl': 'doSearchValue' },
     change: { '@filteredEl': 'render' },
   },
 
@@ -43,19 +46,25 @@ const DataViewUI = {
 
   // ---- search -------------------------------------------------------------------
 
+  // Enter on a mobile keyboard may report keyCode 229/0, so check e.key. The
+  // 'search' event (fired by type=search on Enter or clear) is handled too.
   doSearch(el, e) {
-    if(e.keyCode === 13) {
-      this.searchValue = el.value.trim();
-      this.render();
-    }
+    if(e.key === 'Enter') this.doSearchValue(el);
+  },
+
+  doSearchValue(el) {
+    const value = el.value.trim();
+    if(value === this.searchValue) return;
+    this.searchValue = value;
+    this.render();
   },
 
   // ---- rendering -----------------------------------------------------------------
 
   render() {
     // Screen guard: only visible as the 'data' view.
-    this.dom.root.style.display = (App.currentView === 'data') ? '' : 'none';
-    if(App.currentView !== 'data') return;
+    this.dom.root.classList.toggle('hidden', App.currentView !== this.viewName);
+    if(App.currentView !== this.viewName) return;
 
     this.dom.outputEl.innerHTML = '';
     this.dom.counterEl.innerHTML = '';
@@ -112,7 +121,7 @@ const DataViewUI = {
         const border = 'border-bottom:'
           + (p < 100 ? (p - 1) : rl.substring(0, 1)) + 'px solid '
           + (p >= 100 ? 'var(--revLevelTextColor)' : 'var(--revLevelMinorTextColor)') + ';';
-        templ = '<span data-review-level="' + rl + '" class="revLevel" style="'
+        templ = '<span data-review-level="' + Utils.escapeHtml(rl) + '" class="revLevel" style="'
           + color + border + '">' + templ + '</span>';
       }
 
@@ -124,7 +133,7 @@ const DataViewUI = {
 
       const compact = line.isCompact ? 'font-size:15px;' : '';
       return '<li'
-        + (line.role ? ' data-role="' + line.role + '"' : '')
+        + (line.role ? ' data-role="' + Utils.escapeHtml(line.role) + '"' : '')
         + (compact ? ' class="compact"' : '')
         + '>' + templ + '</li>';
     }).join('') + '</ul>';
@@ -135,6 +144,7 @@ const DataViewUI = {
 
     const sourceId = entry.sourceId || fallbackSourceId;
     info += '<div class="section">'
+      + (query ? '<span class="entrySource">' + Utils.escapeHtml(sourceId) + '</span> ' : '')
       + Utils.escapeHtml(this.breadcrumbs(sourceId, entry.section))
       + '</div>';
 

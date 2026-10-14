@@ -1,30 +1,29 @@
 // Library: holds loaded sources (raw text + parsed result in memory), loads
-// and reloads them. Pure domain logic; no DOM. Emits Bus events; never touches
-// localStorage directly (it delegates to Storage).
+// and reloads them. Pure domain logic; no DOM. Emits Bus events and persists
+// only the raw text through Storage; the parsed result is never stored.
+// The set of known sources is the hard-coded SOURCES_LIST.
 const Library = {
 
-  // id -> { id, raw, origin, title, sourceName, parsed }
+  // id -> { id, raw, origin, loadedAt, title, sourceName, parsed }
   sources: {},
 
-  // Called once at startup: load each saved source from Storage and parse it.
+  // Called once at startup: load each listed source from Storage and parse it.
   load() {
-    const savedList = Storage.load(Storage.KEY.settings + '.knownSources', null)
-      || SOURCES_LIST;
-
-    savedList.forEach(id => {
+    SOURCES_LIST.forEach(id => {
       const saved = Storage.loadSource(id);
       if(saved && saved.raw != null) {
-        this.sources[id] = this._hydrate(id, saved);
+        this.sources[id] = this._build(id, saved.raw, saved.origin || 'file', saved.loadedAt || null);
       }
     });
   },
 
-  _hydrate(id, saved) {
-    const parsed = Parser.parse(saved.raw);
+  _build(id, raw, origin, loadedAt) {
+    const parsed = Parser.parse(raw);
     return {
       id,
-      raw: saved.raw,
-      origin: saved.origin || 'file',
+      raw,
+      origin,
+      loadedAt,
       title: parsed.title,
       sourceName: parsed.sourceName,
       parsed,
@@ -44,41 +43,25 @@ const Library = {
   },
 
   // Install raw text for a source (from network or a picked file). Parses,
-  // persists the raw text, and emits sourcesChanged.
+  // persists the raw text, and emits sourceLoaded + sourcesChanged.
   setSource(id, raw, origin) {
-    const parsed = Parser.parse(raw);
-    const source = {
-      id,
-      raw,
-      origin,
-      title: parsed.title,
-      sourceName: parsed.sourceName,
-      parsed,
-    };
+    const loadedAt = Date.now();
+    const source = this._build(id, raw, origin, loadedAt);
     this.sources[id] = source;
-    Storage.saveSource(id, { raw, origin, loadedAt: Date.now() });
-
-    const known = this._knownList();
-    if(!known.includes(id)) {
-      known.push(id);
-      Storage.save(Storage.KEY.settings + '.knownSources', known);
-    }
+    Storage.saveSource(id, { raw, origin, loadedAt });
 
     Bus.emit(Bus.events.sourceLoaded, { id });
     Bus.emit(Bus.events.sourcesChanged, { id });
     return source;
   },
 
-  // Reload a source: wipe its progress and selection, then re-fetch.
-  // The caller (a component) supplies the fresh raw text after confirming.
-  async reloadSource(id, raw, origin) {
-    this.setSource(id, raw, origin);
+  // Reload a source: wipe its progress and selection, then install the fresh
+  // text. No reconcile with the old data. The caller (a component) has already
+  // confirmed with the user and obtained the new raw text.
+  reloadSource(id, raw, origin) {
     App.clearViewsFor(id);
     App.clearSelectionFor(id);
+    this.setSource(id, raw, origin);
     Bus.emit(Bus.events.sourceReloaded, { id });
-  },
-
-  _knownList() {
-    return Storage.load(Storage.KEY.settings + '.knownSources', null) || SOURCES_LIST.slice();
   },
 };

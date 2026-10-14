@@ -23,11 +23,6 @@ const AppInit = {
     StructureUI.render();
     DataViewUI.render();
     SliderUI.render();
-
-    // Re-render structure once the current origin's selection is known.
-    if(App.currentOrigin && Library.hasSource(App.currentOrigin)) {
-      StructureUI.render();
-    }
   },
 };
 

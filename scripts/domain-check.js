@@ -60,7 +60,8 @@ loadRel('domain/parser/Parser.js');
 loadRel('core/Bus.js');
 loadRel('domain/Library.js');
 loadRel('domain/App.js');
-loadRel('domain/ReviewSessions.js');
+loadRel('domain/ViewState.js');
+loadRel('domain/SliderState.js');
 loadRel('domain/Progress.js');
 
 // ---- exercise --------------------------------------------------------------
@@ -92,34 +93,75 @@ App.setSelection('osarai-house', ['0.0']);
 assert(App.selectedEntries('osarai-house').length > 0
   && App.selectedEntries('osarai-house').length < 34, 'selection filters entries');
 
-ReviewSessions.setSideIndex('osarai-house', 'slider', 0, 1);
+assert(Progress.activeSessions().length === 0, 'no sessions in progress before any mark');
+
+SliderState.setSideIndex('osarai-house', 0, 1);
 assert(Object.keys(Progress.marksBySection('osarai-house')).length === 0,
   'side navigation alone is not review progress');
+assert(Progress.activeSessions().length === 0, 'side navigation alone is not a session');
 
-ReviewSessions.toggleSideMark('osarai-house', 'slider', 0, 'hits', 0);
+SliderState.toggleSideMark('osarai-house', 0, 'hits', 0);
 const marks = Progress.marksBySection('osarai-house');
-assert(marks[App.selectedEntries('osarai-house')[0].section], 'progress mark appears for section');
+const firstSection = Library.getSource('osarai-house').parsed.allEntries[0].section;
+assert(marks[firstSection] && marks[firstSection].includes('S'),
+  'progress mark S appears for the entry section');
 
-ReviewSessions.toggleSideMark('osarai-house', 'slider', 0, 'lapses', 0);
-let sliderEntry = ReviewSessions.entry('osarai-house', 'slider', 0);
+const sessions = Progress.activeSessions();
+assert(sessions.length === 1 && sessions[0].originId === 'osarai-house'
+  && sessions[0].views.length === 1 && sessions[0].views[0].name === 'slider'
+  && sessions[0].views[0].label === 'S', 'activeSessions lists origin and view letter');
+
+SliderState.toggleSideMark('osarai-house', 0, 'lapses', 0);
+let sliderEntry = ViewState.entry('osarai-house', 'slider', 0);
 assert(!sliderEntry.hits && sliderEntry.lapses.includes(0), 'hit and lapse are mutually exclusive');
 
-ReviewSessions.toggleSideMark('osarai-house', 'slider', 0, 'lapses', 0);
-assert(ReviewSessions.entry('osarai-house', 'slider', 0) === null,
+SliderState.toggleSideMark('osarai-house', 0, 'lapses', 0);
+assert(ViewState.entry('osarai-house', 'slider', 0) === null,
   'clearing the final mark removes entry progress');
-ReviewSessions.toggleSideMark('osarai-house', 'slider', 0, 'lapses', 0);
+assert(Progress.activeSessions().length === 0, 'session disappears with the last mark');
+SliderState.toggleSideMark('osarai-house', 0, 'lapses', 0);
 
 App.setSelection('osarai-house', ['0.1']);
-sliderEntry = ReviewSessions.entry('osarai-house', 'slider', 0);
+sliderEntry = ViewState.entry('osarai-house', 'slider', 0);
 assert(sliderEntry.lapses.includes(0), 'selection change does not delete progress');
 
-ReviewSessions.removeEntry('osarai-house', 'slider', 1);
-assert(ReviewSessions.entry('osarai-house', 'slider', 1).removed, 'removed entry is persisted as progress');
+SliderState.resetNavigation('osarai-house');
+assert(ViewState.entry('osarai-house', 'slider', 0).lapses.includes(0),
+  'resetNavigation keeps progress');
+
+SliderState.removeEntry('osarai-house', 1);
+assert(ViewState.entry('osarai-house', 'slider', 1).removed, 'removed entry is persisted as progress');
+
+// Reset clears only entries of the given selection, others keep progress.
+const inSel = App.selectedEntries('osarai-house').map(e => e.id);
+SliderState.toggleSideMark('osarai-house', 33, 'hits', 0);
+const outsideId = Library.getSource('osarai-house').parsed.allEntries
+  .find(e => !inSel.includes(e.id)).id;
+SliderState.toggleSideMark('osarai-house', outsideId, 'hits', 0);
+ViewState.resetEntries('osarai-house', 'slider', inSel, { mode: 'original' });
+assert(inSel.every(id => ViewState.entry('osarai-house', 'slider', id) === null),
+  'reset clears progress of selected entries');
+assert(ViewState.entry('osarai-house', 'slider', outsideId) !== null,
+  'reset keeps progress outside the selection');
+
+// Reload wipes views and selection of that source only.
+SliderState.toggleSideMark('goshogun2', 0, 'hits', 0);
+Library.reloadSource('osarai-house',
+  fs.readFileSync(path.join(vocabDir, 'osarai-house.txt'), 'utf8'), 'http');
+assert(!App.views['osarai-house'] && App.getSelection('osarai-house').length === 0,
+  'reload resets views and selection of the source');
+assert(App.views['goshogun2'], 'reload does not touch other sources');
+assert(Library.getSource('osarai-house').loadedAt > 0, 'loadedAt is kept in memory');
 
 // Persistence round-trip.
 App.saveViews();
 const reloadedViews = Storage.load(Storage.KEY.views, {});
-assert(reloadedViews['osarai-house']
-  && reloadedViews['osarai-house']['slider'], 'views persisted and reloadable');
+assert(reloadedViews['goshogun2']
+  && reloadedViews['goshogun2']['slider'], 'views persisted and reloadable');
 
 console.log('\nDOMAIN SMOKE TEST DONE');
+
+assert(Object.keys(memStore).every(k => k.startsWith('vocabreview2.')),
+  'all stored keys carry the vocabreview2. prefix');
+assert(!Object.keys(memStore).some(k => k.indexOf('knownSources') >= 0),
+  'no extra knownSources key');

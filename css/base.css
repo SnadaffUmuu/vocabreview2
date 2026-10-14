@@ -1,16 +1,15 @@
 :root {
-  --color1: #F3F2F4;
-  --color2: #720842;
-  --color3: #C6D8DE;
-  --color4: #75919C;
-  --color5: #521320;
-  --color6: #220E24;
-
-  --bg: var(--color1);
-  --text-color: var(--color2);
+  --bg: #f1e6e8;
+  --text-color: #141f76;
+  --table-text-color-reading: #2525c293;
+  --appheader-title-text-color: #1e20c0;
 
   --button-primary: #fbf2f2;
-  --button-secondary: var(--color3);
+  --button-secondary: #c4bfca;
+
+  --menuOpenedBg: rgba(85, 74, 123, 0.24);
+  --menuBg: #8a2134;
+  --menuTextColor: white;
 
   --input-bg: #dfd8e7;
   --overlay: rgba(42, 36, 61, 0.24);
@@ -28,8 +27,8 @@
   --slideInfoColor: var(--text-color);
   --slideSpeakableLineBg: #c4bfca;
   --currentSlideIndexTextColor: var(--text-color);
-  --batsuActiveText: #a11b43;
-  --maruActiveText: #16734f;
+  --batsuActiveText: #bb0c0c;
+  --maruActiveText: #0cbb4f;
 
   --tagBgYoji: #d0cbff;
   --tagBgOnoma: #a7e3ec;
@@ -44,15 +43,38 @@
 }
 
 body.night {
-  --bg: var(--color6);
-  --text-color: var(--color4);
+  --bg: #4d000e;
+  --text-color: #a6cecf;
+  --table-text-color-reading: #f7d4ff6e;
+  --appheader-title-text-color: var(--text-color);
 
-  --button-primary: #3d4551;
-  --button-secondary: var(--color5);
-  --input-bg: #3d2f38;
+  --button-primary: #320008;
+  --button-secondary: #7b848e;
+  --input-bg: #aebdcc;
+
+  --slideInfoBg: #3b0000;
+  --slideInfoColor: var(--text-color);
+  --slideSpeakableLineBg: #3b0000;
+
+  --tagBgYoji: #06096b;
+  --tagBgOnoma: #00687d;
+  --tagBgGrammar: #6c0079;
+  --tagBgGeo: #6d202f;
+  --tagBgName: #760000;
+  --tagBgTerm: #8e008e;
+  --tagBgPattern: #590280;
+  --tagBgCounter: #17597a;
+  --tagBgSuffix: #064d5b;
+  --tagBgDialect: #3e43ea;
+
+  --revLevelMinorTextColor: #B8D8D9;
+  --revLevelTextColor: #E9E9E9;
+  --revLevelExtraTextColor: #ffe7bf;
 
   --tagBg: #64203c;
   --tagTextColor: #9a9797;
+  --paleBorder: #5f4951;
+  --dataItemBorder: var(--paleBorder);
 }
 
 html {
@@ -140,4 +162,17 @@ button {
   color: var(--tagTextColor);
   width: fit-content;
   padding: 1px 4px;
+}
+
+.example::before,
+[role="example"]::before,
+[role="example_translation"]::before,
+[data-role="example"]::before,
+[data-role="example_translation"]::before,
+[data-role="example"] .line-text::before,
+[data-role="example_translation"] .line-text::before {
+  content: '✦ ';
+  font-size: 14px;
+  opacity: 0.6;
+  vertical-align: middle;
 }

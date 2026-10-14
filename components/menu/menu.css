@@ -1,22 +1,91 @@
+#menuContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+#menuContainer:has(#menu.isOpened) {
+  right: 0;
+  bottom: 0;
+  background: var(--menuOpenedBg);
+}
+
+#menuTrigger {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 400;
+  width: 45px;
+  height: 35px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
 #menu {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: 300;
+  width: 75vw;
+  box-sizing: border-box;
+  padding: 8px 10px 5px;
+  background: var(--menuBg);
+  color: var(--menuTextColor);
+  font-size: 13px;
   display: flex;
-  flex-flow: row wrap;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
+  flex-flow: column nowrap;
+  transform: translateX(-100%);
+  transition: transform 0.5s;
+}
+
+#menu.isOpened {
+  transform: translateX(0);
+}
+
+#menuSourcesRow {
+  display: flex;
+  margin: 0 0 13px 45px;
 }
 
 #menuSources {
-  height: 28px;
+  flex: 1 1 100%;
+  height: 30px;
+  min-width: 0;
+}
+
+#menuReload {
+  flex: 0 0 auto;
+  height: 30px;
+  margin-left: 5px;
+}
+
+#menuViewRow {
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+}
+
+#menuSessions {
+  flex: 0 0 auto;
+  margin-right: 15px;
 }
 
 #menuViewSwitcher {
   display: flex;
   flex-flow: row wrap;
-  gap: 4px;
+  justify-content: flex-end;
+}
+
+#menuViewSwitcher .switchView {
+  flex: 0 1 auto;
+  padding: 3px 9px;
+}
+
+#menuViewSwitcher .switchView:not(:first-child) {
+  margin-left: 7px;
 }
 
 #menuViewSwitcher .switchView.active {
-  background: var(--button-primary);
-  outline: 1px solid var(--text-color);
+  background: red;
 }

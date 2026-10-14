@@ -26,7 +26,7 @@ const StructureUI = {
     Bus.batchedMethod(this, 'render');
     Bus.on(Bus.events.originSelected, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
-    Bus.on(Bus.events.viewsChanged, () => this.render());
+    Bus.on(Bus.events.viewsChanged, () => this.renderMarks());
   },
 
   ensureMarkup() {
@@ -110,17 +110,35 @@ const StructureUI = {
     }
   },
 
+  // Progress changed (e.g. a mark was set in a view): refresh only the letter
+  // marks, leaving the tree and any not-yet-applied checkbox state untouched.
+  renderMarks() {
+    const sourceId = App.currentOrigin;
+    if(!sourceId || !Library.hasSource(sourceId)) return;
+    const marks = Progress.marksBySection(sourceId);
+    Array.from(this.dom.treeEl.querySelectorAll('li[data-tree-id]')).forEach(li => {
+      const old = li.querySelector(':scope > .inProgress');
+      if(old) old.remove();
+      const letters = marks[li.dataset.treeId];
+      if(letters) {
+        li.insertAdjacentHTML('afterbegin',
+          '<span class="inProgress">' + letters.map(Utils.escapeHtml).join('&nbsp;') + '</span>');
+      }
+    });
+  },
+
   buildTree(nodes, selectedSet, marks) {
     const items = nodes.map(node => {
-      const mark = marks[node.id] ? marks[node.id].join('&nbsp;') : '';
+      const mark = marks[node.id] ? marks[node.id].map(Utils.escapeHtml).join('&nbsp;') : '';
       const childHtml = node.children && node.children.length
         ? '<ul>' + this.buildTree(node.children, selectedSet, marks) + '</ul>'
         : '';
       const name = Utils.escapeHtml(node.name);
       const markHtml = mark ? '<span class="inProgress">' + mark + '</span>' : '';
-      return '<li data-tree-id="' + node.id + '">'
+      const id = Utils.escapeHtml(node.id);
+      return '<li data-tree-id="' + id + '">'
         + markHtml
-        + '<input class="treeCheckbox" type="checkbox" value="' + node.id + '">'
+        + '<input class="treeCheckbox" type="checkbox" value="' + id + '">'
         + '&nbsp;' + name
         + childHtml
         + '</li>';

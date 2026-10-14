@@ -1,8 +1,9 @@
 // SliderUI: swipeable cards backed by Keen Slider. Persistent state is owned
-// by ReviewSessions; DOM is only a projection of that state.
+// by ViewState/SliderState; DOM is only a projection of that state.
 const SliderUI = {
   name: 'SliderUI',
   viewName: 'slider',
+  viewLabel: 'S',
 
   selectors: {
     root: '#sliderView',
@@ -47,7 +48,7 @@ const SliderUI = {
     Bus.on(Bus.events.sourcesChanged, () => this.render());
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
       if(sourceId === App.currentOrigin) {
-        ReviewSessions.resetNavigation(sourceId, this.viewName);
+        SliderState.resetNavigation(sourceId);
         this.render();
       }
     });
@@ -83,7 +84,7 @@ const SliderUI = {
   },
 
   state() {
-    const state = ReviewSessions.get(App.currentOrigin, this.viewName);
+    const state = ViewState.get(App.currentOrigin, this.viewName);
     if(!state.ui.mode) state.ui.mode = 'original';
     if(state.ui.onlyMatching == null) state.ui.onlyMatching = false;
     if(state.ui.random == null) state.ui.random = false;
@@ -93,7 +94,7 @@ const SliderUI = {
 
   render() {
     const visible = App.currentView === this.viewName;
-    this.dom.root.style.display = visible ? '' : 'none';
+    this.dom.root.classList.toggle('hidden', !visible);
     if(!visible) {
       this.destroySlider();
       return;
@@ -156,8 +157,8 @@ const SliderUI = {
     const ordered = this.orderLines(lines, state.ui.mode, savedSide);
     const current = ordered.find(line => line.originalIndex === savedSide) || ordered[0];
     const attrs = [
-      'data-entry-id="' + entry.id + '"',
-      entry.section != null ? 'data-section="' + entry.section + '"' : '',
+      'data-entry-id="' + Utils.escapeHtml(entry.id) + '"',
+      entry.section != null ? 'data-section="' + Utils.escapeHtml(entry.section) + '"' : '',
       entry.tag ? 'data-tag="' + Utils.escapeHtml(entry.tag) + '"' : '',
       entry.reviewLevel ? 'data-review-level="' + Utils.escapeHtml(entry.reviewLevel) + '"' : '',
     ].filter(Boolean).join(' ');
@@ -181,8 +182,8 @@ const SliderUI = {
     const classes = ['slide-side', 'js-slide-side'];
     if(line === current) classes.push('current');
     if(line.isCompact || line.role === 'example') classes.push('compact');
-    return '<div class="' + classes.join(' ') + '" data-index="' + line.originalIndex + '"'
-      + (line.role ? ' data-role="' + line.role + '"' : '')
+    return '<div class="' + classes.join(' ') + '" data-index="' + Utils.escapeHtml(line.originalIndex) + '"'
+      + (line.role ? ' data-role="' + Utils.escapeHtml(line.role) + '"' : '')
       + (line.speakable ? ' data-reading="' + Utils.escapeHtml(line.text) + '"' : '')
       + '><span>' + Utils.escapeHtml(line.text) + '</span></div>';
   },
@@ -234,7 +235,7 @@ const SliderUI = {
   },
 
   changeMatching(el) {
-    ReviewSessions.setUi(App.currentOrigin, this.viewName, {
+    ViewState.setUi(App.currentOrigin, this.viewName, {
       onlyMatching: el.checked,
       currentEntryId: null,
     });
@@ -248,13 +249,14 @@ const SliderUI = {
     } else {
       patch.order = [];
     }
-    ReviewSessions.setUi(App.currentOrigin, this.viewName, patch);
+    ViewState.setUi(App.currentOrigin, this.viewName, patch);
     this.render();
   },
 
   reset() {
     if(!App.currentOrigin || !confirm('Really reset the Slider?')) return;
-    ReviewSessions.reset(App.currentOrigin, this.viewName, {
+    const ids = App.selectedEntries(App.currentOrigin).map(e => e.id);
+    ViewState.resetEntries(App.currentOrigin, this.viewName, ids, {
       mode: 'original',
       onlyMatching: false,
       random: false,
@@ -286,9 +288,8 @@ const SliderUI = {
     next.classList.add('current');
     slide.querySelector('.current-side').textContent = next.dataset.index;
 
-    ReviewSessions.setSideIndex(
+    SliderState.setSideIndex(
       App.currentOrigin,
-      this.viewName,
       Number(slide.dataset.entryId),
       Number(next.dataset.index),
     );
@@ -328,9 +329,8 @@ const SliderUI = {
     const slide = this.currentSlide();
     const side = slide?.querySelector('.js-slide-side.current');
     if(!slide || !side) return;
-    ReviewSessions.toggleSideMark(
+    SliderState.toggleSideMark(
       App.currentOrigin,
-      this.viewName,
       Number(slide.dataset.entryId),
       mark,
       Number(side.dataset.index),
@@ -342,9 +342,8 @@ const SliderUI = {
     const slide = this.currentSlide();
     if(!slide || this.slider.slides.length === 1) return;
     if(!confirm('Remove the slide?')) return;
-    ReviewSessions.removeEntry(
+    SliderState.removeEntry(
       App.currentOrigin,
-      this.viewName,
       Number(slide.dataset.entryId),
     );
     this.render();
@@ -355,7 +354,7 @@ const SliderUI = {
     const slide = slider.slides[rel] || slider.slides[0];
     this.dom.currentEl.textContent = String(rel + 1);
     if(slide) {
-      ReviewSessions.replaceUiValue(
+      ViewState.replaceUiValue(
         App.currentOrigin,
         this.viewName,
         'currentEntryId',
@@ -373,7 +372,7 @@ const SliderUI = {
       this.dom.lapseEl.classList.remove('active');
       return;
     }
-    const item = ReviewSessions.entry(
+    const item = ViewState.entry(
       App.currentOrigin,
       this.viewName,
       Number(slide.dataset.entryId),

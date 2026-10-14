@@ -221,9 +221,13 @@
   background: repeating-linear-gradient(90deg, var(--tagBgName), var(--tagBgName) 1px, transparent 1px, transparent 7px);
 }
 
-.keen-slider__slide[data-tag="term"],
-.keen-slider__slide[data-tag="dialect"] {
+.keen-slider__slide[data-tag="term"] {
   background-image: radial-gradient(var(--tagBgTerm) 1px, transparent 0);
+  background-size: 10px 10px;
+}
+
+.keen-slider__slide[data-tag="dialect"] {
+  background-image: radial-gradient(var(--tagBgDialect) 1px, transparent 0);
   background-size: 10px 10px;
 }
 
@@ -239,6 +243,12 @@
 
 .keen-slider__slide[data-tag="suffix"] {
   background: repeating-linear-gradient(0deg, var(--tagBgSuffix), var(--tagBgSuffix) 1px, transparent 1px, transparent 7px);
+}
+
+.keen-slider__slide[data-tag="yojijukugo"] {
+  background:
+    repeating-linear-gradient(30deg, var(--tagBgYoji), var(--tagBgYoji) 1px, transparent 1px, transparent 10px),
+    repeating-linear-gradient(150deg, var(--tagBgYoji), var(--tagBgYoji) 1px, transparent 1px, transparent 10px);
 }
 
 .keen-slider__slide[data-review-level="1"] .slide-side[data-role="expression"] span,

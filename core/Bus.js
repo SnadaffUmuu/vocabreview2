@@ -12,7 +12,9 @@ const Bus = {
     selectionChanged: 'selectionChanged',
     viewChanged: 'viewChanged',
     viewsChanged: 'viewsChanged',
+    sessionsRequested: 'sessionsRequested',
     collectionsChanged: 'collectionsChanged',
+    settingsChanged: 'settingsChanged',
   },
 
   listeners: {},

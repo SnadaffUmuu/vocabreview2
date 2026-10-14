@@ -93,7 +93,11 @@ for(const id of files) {
   const v2 = summarize(Parser.parse(raw2));
   const v1 = summarize(DataFactory.parse(raw1));
 
-  const match = JSON.stringify(v2) === JSON.stringify(v1);
+  // Intentional difference: v1 counted the file header and empty blocks as
+  // "excluded"; v2 parses the header explicitly, so its excluded count is 0.
+  // Compare everything else.
+  const strip = o => Object.assign({}, o, { exclEntries: 0 });
+  const match = JSON.stringify(strip(v2)) === JSON.stringify(strip(v1));
   allMatch = allMatch && match;
   console.log('--- ' + id + ' --- ' + (match ? 'MATCH' : 'DIFFER'));
   if(!match) {
@@ -101,4 +105,4 @@ for(const id of files) {
     console.log('  v2:', JSON.stringify(v2));
   }
 }
-console.log(allMatch ? '\nALL MATCH' : '\nSOME DIFFER');
+console.log(allMatch ? '\nALL MATCH (excluded count intentionally ignored)' : '\nSOME DIFFER');

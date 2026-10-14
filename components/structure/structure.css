@@ -1,32 +1,46 @@
 #structure {
   padding: 6px;
+  overflow: auto;
 }
 
 #structureTree ul {
   list-style: none;
-  padding-left: 22px;
-  margin: 4px 0;
+  padding: 0 0 10px 50px;
+  margin: 0;
+  line-height: 180%;
+  box-sizing: border-box;
+}
+
+#structureTree ul ul {
+  flex: 1 0 100%;
+  display: flex;
+  flex-flow: column nowrap;
+  gap: 5px;
+  padding-top: 10px;
 }
 
 #structureTree li {
   display: flex;
+  flex-flow: row wrap;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  position: relative;
 }
 
 #structureTree .treeCheckbox {
   margin-right: 4px;
+  width: 20px;
+  height: 20px;
 }
 
 #structureTree .inProgress {
-  display: inline-block;
-  margin-right: 4px;
-  padding: 0 4px;
-  border-radius: 4px;
-  background: var(--color3);
-  color: var(--color2);
-  font-size: 14px;
-  font-weight: bold;
+  position: absolute;
+  top: 0;
+  left: -45px;
+  width: 40px;
+  text-align: right;
+  font-size: 12px;
+  opacity: 0.5;
 }
 
 #structureFilter {

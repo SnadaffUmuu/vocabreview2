@@ -1,61 +1,53 @@
 // App: owns current selection state (current origin, current view, theme),
 // per-source selections (which sections are checked), and per-origin/per-view
-// progress. Coordinates saves via Storage. No DOM.
+// progress. The single point that writes views/selections/settings to Storage.
+// No DOM.
 //
-// Data model (see plan in AGENTS.md discussion):
+// Data model:
 //   views[originId][viewName] = { progress: { [entryId]: {...} }, ui: {...} }
 //   selections[sourceId] = [sectionIds]
 //   settings = { currentOrigin, currentView, night }
 const App = {
 
-  selected: null,
   views: {},
   selections: {},
-  settings: null,
+  settings: {
+    currentOrigin: null,
+    currentView: 'data',
+    night: false,
+  },
 
   load() {
     this.views = Storage.load(Storage.KEY.views, {});
     this.selections = Storage.load(Storage.KEY.selections, {});
-    this.settings = Storage.load(Storage.KEY.settings, {
-      currentOrigin: null,
-      currentView: 'data',
-      night: false,
-    });
-    this.selected = this.settings.currentOrigin;
-  },
-
-  // Ensure settings is initialized (so domain ops are safe before/without load).
-  _ensureSettings() {
-    if(!this.settings) {
-      this.settings = { currentOrigin: null, currentView: 'data', night: false };
-    }
+    Object.assign(this.settings, Storage.load(Storage.KEY.settings, {}));
   },
 
   // ---- settings ------------------------------------------------------------------
 
-  get night() { this._ensureSettings(); return this.settings.night; },
-  setNight(val) {
-    this._ensureSettings();
-    this.settings.night = !!val;
+  get night() { return this.settings.night; },
+  get currentOrigin() { return this.settings.currentOrigin; },
+  get currentView() { return this.settings.currentView; },
+
+  _saveSettings() {
     Storage.save(Storage.KEY.settings, this.settings);
-    Bus.emit(Bus.events.viewChanged); // cheap way to let theme-reactive UI update
   },
 
-  get currentOrigin() { this._ensureSettings(); return this.settings.currentOrigin; },
-  get currentView() { this._ensureSettings(); return this.settings.currentView; },
+  setNight(val) {
+    this.settings.night = !!val;
+    this._saveSettings();
+    Bus.emit(Bus.events.settingsChanged, { night: this.settings.night });
+  },
 
   selectOrigin(id) {
-    this._ensureSettings();
     this.settings.currentOrigin = id;
-    this.selected = id;
-    Storage.save(Storage.KEY.settings, this.settings);
+    this._saveSettings();
     Bus.emit(Bus.events.originSelected, { id });
   },
 
   setView(name) {
-    this._ensureSettings();
     this.settings.currentView = name;
-    Storage.save(Storage.KEY.settings, this.settings);
+    this._saveSettings();
     Bus.emit(Bus.events.viewChanged, { name });
   },
 
@@ -87,7 +79,7 @@ const App = {
     return source.parsed.allEntries.filter(e => set.has(e.section));
   },
 
-  // ---- progress (per origin, per view) -------------------------------------------
+  // ---- view state (per origin, per view) -----------------------------------------
 
   getViewState(originId, viewName) {
     if(!this.views[originId]) this.views[originId] = {};
@@ -104,14 +96,5 @@ const App = {
   clearViewsFor(originId) {
     delete this.views[originId];
     this.saveViews();
-  },
-
-  // Set a progress patch for one entry within a view state, then persist.
-  markProgress(originId, viewName, entryId, patch) {
-    const state = this.getViewState(originId, viewName);
-    if(!state.progress[entryId]) state.progress[entryId] = {};
-    Object.assign(state.progress[entryId], patch);
-    this.saveViews();
-    Bus.emit(Bus.events.viewsChanged, { originId, viewName, entryId });
   },
 };

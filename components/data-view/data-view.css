@@ -59,7 +59,7 @@
 }
 
 #dataView .dataEntry [data-role="reading"] {
-  color: #2525c293;
+  color: var(--table-text-color-reading);
   font-size: 15px;
 }
 
@@ -100,4 +100,8 @@
   font-style: italic;
   opacity: 0.7;
   padding-top: 3px;
+}
+.dataEntry .entrySource {
+  font-weight: bold;
+  margin-right: 4px;
 }
