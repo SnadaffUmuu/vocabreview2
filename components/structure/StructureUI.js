@@ -55,7 +55,8 @@ const StructureUI = {
     if(!sourceId) return;
     const checked = Array.from(this.dom.treeEl.querySelectorAll('input.treeCheckbox:checked'))
       .map(cb => cb.value);
-    App.setSelection(sourceId, checked);
+    // Selection change re-renders every view; show the indicator across it.
+    Busy.beginAndRun(() => App.setSelection(sourceId, checked));
   },
 
   toggleAll(e, ev) {
@@ -168,13 +169,15 @@ const StructureUI = {
       .forEach(child => {
         if(child.checked) {
           const li = child.closest('ul').closest('li');
-          const parent = li.querySelector(':scope > input.treeCheckbox');
-          const siblings = Array.from(child.closest('ul').querySelectorAll('input.treeCheckbox'));
-          const every = siblings.every(s => s.checked);
-          const some = siblings.some(s => s.checked);
-          if(parent) {
-            parent.checked = every;
-            parent.indeterminate = !every && some;
+          if (li) {
+            const parent = li.querySelector(':scope > input.treeCheckbox');
+            const siblings = Array.from(child.closest('ul').querySelectorAll('input.treeCheckbox'));
+            const every = siblings.every(s => s.checked);
+            const some = siblings.some(s => s.checked);
+            if(parent) {
+              parent.checked = every;
+              parent.indeterminate = !every && some;
+            }
           }
         }
       });

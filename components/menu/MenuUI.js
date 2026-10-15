@@ -85,6 +85,15 @@ const MenuUI = {
     this.setMenuOpened(false);
   },
 
+  async _installSource(id, raw, origin) {
+    if(Library.hasSource(id)) {
+      Library.reloadSource(id, raw, origin);
+    } else {
+      Library.setSource(id, raw, origin);
+    }
+    App.selectOrigin(id);
+  },
+
   render() {
     // Sources dropdown: always the hard-coded list, loaded or not.
     const current = App.currentOrigin;
@@ -109,23 +118,27 @@ const MenuUI = {
   async loadSource(id) {
     if(!id) return;
     if(Library.hasSource(id)) {
-      App.selectOrigin(id);
+      Busy.beginAndRun(() => App.selectOrigin(id));
       return;
     }
 
     // Try http first (works when served over http://); fall back to picker.
-    const raw = await this.tryHttpFetch(id);
+    Busy.begin();
+    let raw = null;
+    try {
+      raw = await this.tryHttpFetch(id);
+    } finally {
+      Busy.end();
+    }
     if(raw != null) {
-      Library.setSource(id, raw, 'http');
-      App.selectOrigin(id);
+      Busy.beginAndRun(() => this._installSource(id, raw, 'http'));
       return;
     }
     // The select shows the requested id already; restore it to the real current
     // origin in case the picker is cancelled.
     this.render();
     this.pickFile(id, picked => {
-      Library.setSource(id, picked, 'file');
-      App.selectOrigin(id);
+      Busy.beginAndRun(() => this._installSource(id, picked, 'file'));
     });
   },
 
@@ -168,17 +181,27 @@ const MenuUI = {
     if(!id) return;
     if(!confirm('Reload source "' + id + '"? Its progress and selection will be reset.')) return;
 
-    const raw = await this.tryHttpFetch(id);
+    Busy.begin();
+    let raw = null;
+    try {
+      raw = await this.tryHttpFetch(id);
+    } finally {
+      Busy.end();
+    }
     if(raw != null) {
-      Library.reloadSource(id, raw, 'http');
+      Busy.beginAndRun(() => this._installSource(id, raw, 'http'));
       return;
     }
-    this.pickFile(id, picked => Library.reloadSource(id, picked, 'file'));
+    this.pickFile(id, picked => {
+      Busy.beginAndRun(() => this._installSource(id, picked, 'file'));
+    });
   },
 
   switchView(el) {
-    App.setView(el.dataset.appType);
-    this.setMenuOpened(false);
+    Busy.beginAndRun(() => {
+      App.setView(el.dataset.appType);
+      this.setMenuOpened(false);
+    });
   },
 };
 

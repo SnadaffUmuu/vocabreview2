@@ -80,14 +80,18 @@ const SessionsUI = {
   pickOrigin(el, e) {
     // A letter tag also carries data-session-origin; it is handled by pickOriginAndView.
     if(el.dataset.sessionView) return;
-    App.selectOrigin(el.dataset.sessionOrigin);
-    this.close();
+    Busy.beginAndRun(() => {
+      App.selectOrigin(el.dataset.sessionOrigin);
+      this.close();
+    });
   },
 
   pickOriginAndView(el) {
-    App.selectOrigin(el.dataset.sessionOrigin);
-    App.setView(el.dataset.sessionView);
-    this.close();
+    Busy.beginAndRun(() => {
+      App.selectOrigin(el.dataset.sessionOrigin);
+      App.setView(el.dataset.sessionView);
+      this.close();
+    });
   },
 };
 

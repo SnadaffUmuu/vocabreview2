@@ -23,6 +23,9 @@
   --revLevelMinorTextColor: #142CE6;
   --revLevelExtraTextColor: #8A009B;
 
+  --preloader-color: #2525c2;
+  --preloader-bg: #9899c244;
+
   --slideInfoBg: #c4bfca;
   --slideInfoColor: var(--text-color);
   --slideSpeakableLineBg: #c4bfca;

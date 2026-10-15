@@ -19,12 +19,17 @@ const AppInit = {
       document.body.classList.add('night');
     }
 
-    // Explicit initial renders.
-    MenuUI.render();
-    InfobarUI.render();
-    StructureUI.render();
-    DataViewUI.render();
-    SliderUI.render();
+    // Explicit initial renders, wrapped in the preloader so the user sees the
+    // indicator while the first (potentially large) render is painted. Busy is
+    // begun before PreloaderUI has seen any event, so the indicator appears
+    // once the flag is emitted and is hidden from beginAndRun's tail.
+    Busy.beginAndRun(() => {
+      MenuUI.render();
+      InfobarUI.render();
+      StructureUI.render();
+      DataViewUI.render();
+      SliderUI.render();
+    });
   },
 };
 

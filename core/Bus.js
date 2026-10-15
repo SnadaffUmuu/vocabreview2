@@ -15,6 +15,7 @@ const Bus = {
     sessionsRequested: 'sessionsRequested',
     collectionsChanged: 'collectionsChanged',
     settingsChanged: 'settingsChanged',
+    busyChanged: 'busyChanged',
   },
 
   listeners: {},

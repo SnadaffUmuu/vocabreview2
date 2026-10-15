@@ -1,0 +1,47 @@
+/* Preloader overlay and spinner. Fixed position covers the entire viewport.
+   Colors come from --preloader-* in base.css. */
+#preloaderView {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 9000;
+  background: var(--preloader-bg);
+}
+
+#preloaderView.hidden {
+  display: none;
+}
+
+#preloader {
+  display: inline-block;
+  width: 80px;
+  height: 80px;
+  position: absolute;
+  left: calc(50% - 40px);
+  top: calc(50% - 40px);
+  box-sizing: border-box;
+}
+
+#preloader:after {
+  content: " ";
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 8px;
+  border-radius: 50%;
+  border: 6.4px solid var(--preloader-color);
+  border-color: var(--preloader-color) transparent var(--preloader-color) transparent;
+  animation: review-ring 1.2s linear infinite;
+  box-sizing: border-box;
+}
+
+@keyframes review-ring {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

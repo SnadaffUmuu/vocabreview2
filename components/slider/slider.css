@@ -208,13 +208,26 @@
   flex: 0 0 60px;
   font-size: 15px;
   padding: 10px;
-  background: var(--slideSpeakableLineBg);
+  position:relative;
+  /* background: var(--slideSpeakableLineBg); */
   position: relative;
   box-sizing: border-box;
   display: flex;
   flex-flow: column nowrap;
   justify-content: center;
   align-items: center;  
+}
+
+.slideReading::after {
+  content: '';
+  position: absolute;
+  top:0;left:0;right:0;bottom:0;
+  background: var(--slideSpeakableLineBg);
+  cursor:pointer;
+}
+
+.slideReading.revealed::after {
+  opacity:0;
 }
 
 .slideReading span {

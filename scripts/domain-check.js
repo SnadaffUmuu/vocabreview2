@@ -12,6 +12,7 @@ const memStore = {};
 
 // ---- globals ---------------------------------------------------------------
 global.queueMicrotask = global.queueMicrotask || ((cb) => Promise.resolve().then(cb));
+global.requestAnimationFrame = global.requestAnimationFrame || ((cb) => setTimeout(cb, 0));
 global.Bus = null; // set below by loading core/Bus.js
 global.regex = {
   hasKanji: /[\p{Script=Han}]+/u,
@@ -243,4 +244,61 @@ assert(App.getSelection(thresholdId).join(',') === '0.0'
   && App.selectedEntries(thresholdId).length === 1,
   'guard applies at exactly 101 entries, based on source total');
 
-console.log('\nDOMAIN SMOKE TEST DONE');
+// ---- Busy: reference-counted busy flag ------------------------------------
+// Loaded last so it can be exercised independently of the parser fixtures.
+// Bus.emit() delivers to handlers in a macrotask, so observed transitions are
+// recorded and checked once all pending timers have drained (not on a fixed
+// timeout, which would race Bus.emit's own 1ms timer).
+loadRel('domain/Busy.js');
+
+const busyEvents = [];
+Bus.on(Bus.events.busyChanged, ({ busy }) => busyEvents.push(busy));
+
+// Transitions observed synchronously (before any handler flush).
+assert(!Busy.isBusy, 'not busy before any producer runs');
+Busy.begin();
+assert(Busy.isBusy, 'busy after first begin');
+Busy.begin();
+assert(Busy.count === 2, 'begin is reference-counted');
+assert(busyEvents.length === 0,
+  'emission is deferred, not delivered synchronously');
+Busy.end();
+assert(Busy.isBusy, 'inner end does not clear the flag while an outer operation runs');
+Busy.end();
+assert(!Busy.isBusy, 'not busy after the last end');
+Busy.end();
+assert(Busy.count === 0, 'end without a matching begin is a no-op');
+
+// beginAndRun waits for rAF before running the callback, allowing the overlay
+// to paint. Race: Bus.emit delivers events via setTimeout, so if callbacks modify
+// state synchronously, rAF may fire before the flag is emitted and painted.
+let ranAfterBegin = null;
+let endAtRunTime = null;
+Busy.beginAndRun(() => {
+  ranAfterBegin = Busy.isBusy;
+  endAtRunTime = Busy.count;
+});
+assert(ranAfterBegin === null, 'beginAndRun defers the callback past multiple timers');
+
+// Wait for all macrotasks/timers started above to complete before asserting on
+// the emitted transitions, so the check itself never races Bus.emit's timer.
+(function drain(remaining) {
+  if(remaining.busyEvents.length === 4 && !Busy.isBusy) {
+    assert(busyEvents.join(',') === 'true,false,true,false',
+      'two balanced begin/end pairs emit exactly true,false,true,false');
+    assert(ranAfterBegin === true && endAtRunTime === 1,
+      'beginAndRun runs the callback while the flag is held (paint first)');
+    assert(!Busy.isBusy && Busy.count === 0,
+      'beginAndRun releases the flag after the callback');
+    console.log('\nDOMAIN SMOKE TEST DONE');
+    return;
+  }
+  if(remaining.tries <= 0) {
+    console.error('FAIL: busy events did not settle: ' + JSON.stringify(busyEvents));
+    process.exitCode = 1;
+    console.log('\nDOMAIN SMOKE TEST DONE');
+    return;
+  }
+  remaining.tries--;
+  setTimeout(() => drain(remaining), 0);
+})({ busyEvents, tries: 200 });

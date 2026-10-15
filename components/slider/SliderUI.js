@@ -166,8 +166,11 @@ const SliderUI = {
       ? '<details class="entry-info"><summary>ⓘ</summary>' + Utils.escapeHtml(entry.info) + '</details>' : '';
     const sides = ordered.map(line => this.renderSide(line, current)).join('');
     const readingHtml = reading
-      ? '<div class="slideReading" data-reading="' + Utils.escapeHtml(reading.text) + '" role="button" tabindex="0"><span>'
-        + Utils.escapeHtml(reading.text) + '</span></div>' : '';
+      ? '<div class="slideReading" data-reading="' + Utils.escapeHtml(reading.text) + '" role="button" tabindex="0">'
+        + Utils.escapeHtml(reading.text) + '</div>' : '';
+    // const readingHtml = reading
+    //   ? '<div class="slideReading" data-reading="' + Utils.escapeHtml(reading.text) + '" role="button" tabindex="0"><span>'
+    //     + Utils.escapeHtml(reading.text) + '</span></div>' : '';
 
     return '<div class="keen-slider__slide js-slide" ' + attrs + '>'
       + info
