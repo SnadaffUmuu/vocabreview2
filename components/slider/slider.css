@@ -25,6 +25,13 @@
   width: 100px;
 }
 
+#sliderCardMode .sliderCardModeButton {
+  flex: 1 1 auto;
+  font-size: 15px;
+  height: 25px;
+  line-height: 24px;  
+}
+
 #sliderCounters {
   display: flex;
   align-items: center;

@@ -1,6 +1,7 @@
 /* Single gate for all component stylesheets. Each component lives in its own
    folder with a matching .css next to its .js; add a new @import line here when
    a component is added. index.html links only base.css and this file. */
+@import url("../components/dropdown/dropdown.css");
 @import url("../components/menu/menu.css");
 @import url("../components/infobar/infobar.css");
 @import url("../components/structure/structure.css");
@@ -8,4 +9,5 @@
 @import url("../components/slider/slider.css");
 @import url("../components/sessions/sessions.css");
 @import url("../components/preloader/preloader.css");
+@import url("../components/prompt/prompt.css");
 

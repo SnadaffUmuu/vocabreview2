@@ -7,7 +7,6 @@ const SliderUI = {
 
   selectors: {
     root: '#sliderView',
-    modeEl: '#sliderCardMode',
     matchingEl: '#sliderOnlyMatching',
     randomEl: '#sliderRandomOrder',
     resetEl: '#sliderReset',
@@ -22,7 +21,6 @@ const SliderUI = {
 
   events: {
     change: {
-      '@modeEl': 'changeMode',
       '@matchingEl': 'changeMatching',
       '@randomEl': 'changeRandom',
     },
@@ -44,6 +42,7 @@ const SliderUI = {
     this.ensureMarkup();
     Bus.batchedMethod(this, 'render');
     Bus.on(Bus.events.viewChanged, () => this.render());
+    DropdownUI.on('sliderCardMode', mode => this.changeMode(mode));
     Bus.on(Bus.events.originSelected, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
@@ -59,14 +58,18 @@ const SliderUI = {
     const html = `
       <div id="sliderView" class="appView">
         <div id="sliderActions">
-          <select id="sliderCardMode">
-            <option value="original">original</option>
-            <option value="random">random</option>
-            <option value="expression">expression</option>
-            <option value="meaning">meaning</option>
-            <option value="example">examples</option>
-            <option value="example_translation">examples' translations</option>
-          </select>
+          ${DropdownUI.select({
+            id: 'sliderCardMode',
+            items: [
+              { value: 'original', label: 'original' },
+              { value: 'random', label: 'random' },
+              { value: 'expression', label: 'expression' },
+              { value: 'meaning', label: 'meaning' },
+              { value: 'example', label: 'examples' },
+              { value: 'example_translation', label: "examples' translations" },
+            ],
+            cls: 'sliderCardModeButton',
+          })}
           <label>Omm <input type="checkbox" id="sliderOnlyMatching"></label>
           <label>R <input type="checkbox" id="sliderRandomOrder"></label>
           <button id="sliderReset">Reset</button>
@@ -224,14 +227,14 @@ const SliderUI = {
   },
 
   syncControls(ui) {
-    this.dom.modeEl.value = ui.mode;
+    DropdownUI.setValue('sliderCardMode', ui.mode);
     this.dom.matchingEl.checked = !!ui.onlyMatching;
     this.dom.randomEl.checked = !!ui.random;
   },
 
-  changeMode(el) {
+  changeMode(mode) {
     const state = this.state();
-    state.ui.mode = el.value;
+    state.ui.mode = mode;
     state.ui.sideIndexes = {};
     App.saveViews();
     this.render();
@@ -257,7 +260,15 @@ const SliderUI = {
   },
 
   reset() {
-    if(!App.currentOrigin || !confirm('Really reset the Slider?')) return;
+    if(!App.currentOrigin) return;
+    Prompt.ask({
+      text: 'Really reset the Slider?',
+      onConfirm: () => this.doReset(),
+    });
+  },
+
+  doReset() {
+    if(!App.currentOrigin) return;
     const ids = App.selectedEntries(App.currentOrigin).map(e => e.id);
     ViewState.resetEntries(App.currentOrigin, this.viewName, ids, {
       mode: 'original',
@@ -344,7 +355,15 @@ const SliderUI = {
   removeCurrent() {
     const slide = this.currentSlide();
     if(!slide || this.slider.slides.length === 1) return;
-    if(!confirm('Remove the slide?')) return;
+    Prompt.ask({
+      text: 'Remove the slide?',
+      onConfirm: () => this.doRemoveCurrent(),
+    });
+  },
+
+  doRemoveCurrent() {
+    const slide = this.currentSlide();
+    if(!slide || this.slider.slides.length === 1) return;
     const originId = App.currentOrigin;
     const rel = this.slider.track.details ? this.slider.track.details.rel : 0;
     const entryId = Number(slide.dataset.entryId);

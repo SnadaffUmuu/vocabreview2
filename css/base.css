@@ -26,6 +26,10 @@
   --preloader-color: #2525c2;
   --preloader-bg: #9899c244;
 
+  --promptOverlay: #f1e6e8a3;
+  --promptShadow: #2d234169;
+  --promptText: var(--text-color);
+
   --slideInfoBg: #c4bfca;
   --slideInfoColor: var(--text-color);
   --slideSpeakableLineBg: #c4bfca;
@@ -43,6 +47,12 @@
   --tagBgCounter: #afeed4;
   --tagBgSuffix: #a7e3ec;
   --tagBgDialect: #8274ff;
+
+  --viewActionsDropdownShadow: #4546838f;
+  --viewActionDropdownText: var(--text-color);
+  --viewActionDropdownItemBorder: #3e36558f;
+  --viewActionDropdownItemSelected: #f1e6e896;
+  --burgerButtonLine: var(--text-color);
 }
 
 body.night {
@@ -54,6 +64,10 @@ body.night {
   --button-primary: #320008;
   --button-secondary: #7b848e;
   --input-bg: #aebdcc;
+
+  --promptOverlay: #4d000e94;
+  --promptShadow: #1e0000b0;
+  --promptText: var(--button-primary);
 
   --slideInfoBg: #3b0000;
   --slideInfoColor: var(--text-color);
@@ -79,6 +93,11 @@ body.night {
   --tagTextColor: #9a9797;
   --paleBorder: #5f4951;
   --dataItemBorder: var(--paleBorder);
+
+  --viewActionsDropdownShadow: #250106;
+  --viewActionDropdownText: var(--button-primary);
+  --viewActionDropdownItemSelected: #aca9b780;
+  --burgerButtonLine: var(--button-primary);
 }
 
 html {
@@ -146,13 +165,13 @@ input[type="search"] {
 
 button {
   height: 25px;
+  line-height: 19px;
   border: 0;
   border-radius: 5px;
   background: var(--button-secondary);
   white-space: nowrap;
   box-sizing: border-box;
   padding: 3px 10px;
-  line-height: 19px;
 }
 
 .hidden {

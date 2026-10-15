@@ -10,14 +10,12 @@ const MenuUI = {
     root: '#menu',
     containerEl: '#menuContainer',
     triggerEl: '#menuTrigger',
-    sourcesEl: '#menuSources',
     viewSwitcherEl: '#menuViewSwitcher',
     reloadEl: '#menuReload',
     sessionsEl: '#menuSessions',
   },
 
   events: {
-    change: { '@sourcesEl': 'changeSource' },
     click: {
       '@containerEl': 'closeFromOverlay',
       '@triggerEl': 'toggleMenu',
@@ -33,6 +31,7 @@ const MenuUI = {
     Bus.on(Bus.events.originSelected, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
     Bus.on(Bus.events.viewChanged, () => this.render());
+    DropdownUI.on('menuSources', id => this.loadSource(id));
   },
 
   // Components that present themselves as a view (declare viewName/viewLabel).
@@ -50,8 +49,25 @@ const MenuUI = {
         <button id="menuTrigger" type="button" aria-label="Open menu" aria-expanded="false">&gt;&gt;</button>
         <div id="menu">
           <div id="menuSourcesRow">
-            <select id="menuSources"></select>
+            ${DropdownUI.select({
+              id: 'menuSources',
+              items: SOURCES_LIST.map(id => ({ value: id })),
+              placeholder: 'source…',
+              cls: 'menuSourcesButton',
+              menuCls: 'sourcesList',
+            })}
             <button id="menuReload" type="button" aria-label="Reload current source">⟳</button>
+            ${DropdownUI.burger({
+              id: 'menuActions',
+              cls: 'menuActionsButton v2',
+              items: [
+                { value: 'loadAllSources', label: 'Load all', disabled: true },
+                { value: 'resetSpeech', label: 'reset speech', disabled: true },
+                { value: 'resetApp', label: 'reset App', disabled: true },
+                { value: 'exportState', label: 'export state', disabled: true },
+                { value: 'importState', label: 'import state', disabled: true },
+              ],
+            })}
           </div>
           <div id="menuViewRow">
             <button id="menuSessions" type="button" aria-label="Sessions">A</button>
@@ -96,12 +112,7 @@ const MenuUI = {
 
   render() {
     // Sources dropdown: always the hard-coded list, loaded or not.
-    const current = App.currentOrigin;
-    this.dom.sourcesEl.innerHTML = `<option value=""${!current ? ' selected' : ''}>source…</option>`
-      + SOURCES_LIST.map(id => {
-        const safe = Utils.escapeHtml(id);
-        return `<option value="${safe}"${id === current ? ' selected' : ''}>${safe}</option>`;
-      }).join('');
+    DropdownUI.setValue('menuSources', App.currentOrigin);
 
     // View highlight.
     Array.from(this.dom.viewSwitcherEl.querySelectorAll('.switchView')).forEach(btn => {
@@ -110,10 +121,6 @@ const MenuUI = {
   },
 
   // ---- source loading ------------------------------------------------------------
-
-  changeSource(el) {
-    this.loadSource(el.value);
-  },
 
   async loadSource(id) {
     if(!id) return;
@@ -134,7 +141,7 @@ const MenuUI = {
       Busy.beginAndRun(() => this._installSource(id, raw, 'http'));
       return;
     }
-    // The select shows the requested id already; restore it to the real current
+    // The dropdown shows the requested id already; restore it to the real current
     // origin in case the picker is cancelled.
     this.render();
     this.pickFile(id, picked => {
@@ -149,7 +156,7 @@ const MenuUI = {
   async tryHttpFetch(id) {
     if(!this.isHttp()) return null;
     try {
-      const response = await fetch('./vocab/' + encodeURIComponent(id) + '.txt?' + Date.now());
+      const response = await fetch(`./vocab/${encodeURIComponent(id)}.txt?${Date.now()}`);
       if(response.ok) return await response.text();
     } catch(e) {
       console.warn('http fetch failed for', id, e);
@@ -168,7 +175,7 @@ const MenuUI = {
       if(!file) return;
       const pickedId = file.name.replace(/\.txt$/i, '');
       if(pickedId !== id) {
-        alert('Wrong file: expected "' + id + '.txt" but got "' + file.name + '".');
+        Prompt.notify(`Wrong file: expected "${id}.txt" but got "${file.name}".`);
         return;
       }
       file.text().then(onRaw);
@@ -176,11 +183,16 @@ const MenuUI = {
     input.click();
   },
 
-  async reloadCurrent() {
+  reloadCurrent() {
     const id = App.currentOrigin;
     if(!id) return;
-    if(!confirm('Reload source "' + id + '"? Its progress and selection will be reset.')) return;
+    Prompt.ask({
+      text: `Reload source "${id}"? Its progress and selection will be reset.`,
+      onConfirm: () => this.doReload(id),
+    });
+  },
 
+  async doReload(id) {
     Busy.begin();
     let raw = null;
     try {

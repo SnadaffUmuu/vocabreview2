@@ -60,6 +60,7 @@ Do not preserve legacy features or conventions merely for compatibility with Ver
 - Direct DOM manipulation is reserved for drag-and-drop effects.
 - Each JavaScript file exposes one global `const` as its public entry point; keep implementation details scoped within it.
 - Component CSS lives next to the component. The shared component stylesheet contains imports only.
+- Confirmations and user-facing messages go through the `Prompt` domain object (`ask`/`notify`) rendered by PromptUI; never use system `confirm()`/`alert()`. Prompt callbacks run synchronously (not via Bus) so follow-ups keep the user gesture, e.g. opening a file picker.
 - Producers mark only user-perceived waits as busy (source load/reload, startup render, selection change, View switch); do not wrap trivial or purely internal work.
 
 ### Views and State

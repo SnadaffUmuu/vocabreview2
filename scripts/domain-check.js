@@ -244,6 +244,27 @@ assert(App.getSelection(thresholdId).join(',') === '0.0'
   && App.selectedEntries(thresholdId).length === 1,
   'guard applies at exactly 101 entries, based on source total');
 
+// ---- Prompt: confirm / notify state ---------------------------------------
+loadRel('domain/Prompt.js');
+{
+  const log = [];
+  Prompt.ask({ text: 'q', onConfirm: () => log.push('yes'), onCancel: () => log.push('no') });
+  assert(Prompt.isOpen && Prompt.current.notify === false, 'ask opens a confirm prompt');
+  Prompt.ask({ text: 'other', onConfirm: () => log.push('other') });
+  assert(Prompt.current.text === 'q', 'ask while open is ignored');
+  Prompt.confirm();
+  assert(!Prompt.isOpen && log.join() === 'yes', 'confirm closes and runs onConfirm synchronously');
+  Prompt.ask({ text: 'q', onConfirm: () => log.push('yes'), onCancel: () => log.push('no') });
+  Prompt.cancel();
+  assert(!Prompt.isOpen && log.join() === 'yes,no', 'cancel closes and runs onCancel');
+  Prompt.confirm();
+  assert(log.length === 2, 'confirm without an open prompt is a no-op');
+  Prompt.notify('msg', () => log.push('closed'));
+  assert(Prompt.current.notify === true, 'notify opens a notify prompt');
+  Prompt.cancel();
+  assert(!Prompt.isOpen && log[2] === 'closed', 'notify closes through either path');
+}
+
 // ---- Busy: reference-counted busy flag ------------------------------------
 // Loaded last so it can be exercised independently of the parser fixtures.
 // Bus.emit() delivers to handlers in a macrotask, so observed transitions are

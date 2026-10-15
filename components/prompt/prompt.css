@@ -1,0 +1,54 @@
+/* Confirm/notify dialog. Colors come from --prompt* in base.css. Sits above
+   the menu and below the preloader. */
+.prompt {
+  background: var(--button-secondary);
+  padding: 30px 15px;
+  border-radius: 5px;
+  box-shadow: 8px 8px 0 var(--promptShadow);
+  font-size: 15px;
+  min-width: 30vw;
+  max-width:70vw;
+  margin-top: 10vh;
+  color: var(--promptText);
+  font-weight: bold;
+}
+
+.prompt-overlay {
+  z-index: 6000;
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  left: 0;
+  background: var(--promptOverlay);
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 10px;
+}
+
+.prompt-text {
+  text-align: center;
+}
+
+.prompt-buttons {
+  margin-top: 20px;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-around;
+}
+
+.prompt-buttons button {
+  margin: 0 10px;
+  font-size: 15px;
+  padding: 10px 15px;
+  height: auto;
+  background: var(--button-primary);
+  color: var(--text-color);
+  font-weight: bold;
+}
+
+.prompt-buttons button#promptConfirm {
+  opacity: 0.7;
+}

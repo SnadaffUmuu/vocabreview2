@@ -16,6 +16,8 @@ const Bus = {
     collectionsChanged: 'collectionsChanged',
     settingsChanged: 'settingsChanged',
     busyChanged: 'busyChanged',
+    promptChanged: 'promptChanged',
+    dropdownSelected: 'dropdownSelected',
   },
 
   listeners: {},
