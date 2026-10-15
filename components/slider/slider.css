@@ -29,11 +29,11 @@
   display: flex;
   align-items: center;
   font-size: 16px;
-  color: var(--currentSlideIndexTextColor);
 }
 
 #sliderCurrentIndex {
   font-size: 20px;
+  color: var(--currentSlideIndexTextColor);
 }
 
 #sliderCounterSep {
@@ -44,6 +44,7 @@
 
 #sliderDataCount {
   opacity: 0.5;
+  color: var(--currentSlideIndexTextColor);
 }
 
 #sliderOuter {
@@ -62,11 +63,10 @@
   z-index: 3;
   width: 60px;
   height: 100px;
-  padding: 0;
-  border: 0;
-  background: transparent;
   opacity: 0.2;
   line-height: 100px;
+  text-align: center;
+  user-select: none;
 }
 
 #sliderOuter:has(.entry-info[open]) #sliderLapse,
@@ -75,20 +75,14 @@
 }
 
 #sliderLapse {
+  right: 16px;
   font-size: 40px;
 }
 
 #sliderHit {
+  left: 16px;
   font-size: 30px;
   font-weight: bold;
-}
-
-#sliderLapse {
-  right: 16px;
-}
-
-#sliderHit {
-  left: 16px;
 }
 
 #sliderLapse.active {
@@ -214,10 +208,13 @@
   flex: 0 0 60px;
   font-size: 15px;
   padding: 10px;
-  border: 0;
-  border-radius: 0;
   background: var(--slideSpeakableLineBg);
   position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;  
 }
 
 .slideReading span {

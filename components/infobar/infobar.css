@@ -41,11 +41,6 @@
   cursor: pointer;
 }
 
-#infobarNightMode.nightMode {
-  background: #cecece;
-  border-color: #cecece;
-}
-
 #infobarNightMode svg {
   pointer-events: none;
 }

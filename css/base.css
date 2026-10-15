@@ -55,6 +55,7 @@ body.night {
   --slideInfoBg: #3b0000;
   --slideInfoColor: var(--text-color);
   --slideSpeakableLineBg: #3b0000;
+  --currentSlideIndexTextColor: var(--text-color);
 
   --tagBgYoji: #06096b;
   --tagBgOnoma: #00687d;

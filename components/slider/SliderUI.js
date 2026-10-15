@@ -73,8 +73,8 @@ const SliderUI = {
           <div id="sliderCounters"><span id="sliderCurrentIndex"></span><span id="sliderCounterSep">/</span><span id="sliderDataCount"></span></div>
         </div>
         <div id="sliderOuter">
-          <button id="sliderLapse" class="sliderMark" aria-label="lapse">✗</button>
-          <button id="sliderHit" class="sliderMark" aria-label="hit">〇</button>
+          <div id="sliderLapse" class="sliderMark" aria-label="lapse" role="button" tabindex="0">✗</div>
+          <div id="sliderHit" class="sliderMark" aria-label="hit" role="button" tabindex="0">〇</div>
           <button id="sliderRemove" aria-label="remove">消</button>
           <div id="sliderContainer" class="keen-slider"></div>
         </div>
@@ -166,8 +166,8 @@ const SliderUI = {
       ? '<details class="entry-info"><summary>ⓘ</summary>' + Utils.escapeHtml(entry.info) + '</details>' : '';
     const sides = ordered.map(line => this.renderSide(line, current)).join('');
     const readingHtml = reading
-      ? '<button class="slideReading" data-reading="' + Utils.escapeHtml(reading.text) + '"><span>'
-        + Utils.escapeHtml(reading.text) + '</span></button>' : '';
+      ? '<div class="slideReading" data-reading="' + Utils.escapeHtml(reading.text) + '" role="button" tabindex="0"><span>'
+        + Utils.escapeHtml(reading.text) + '</span></div>' : '';
 
     return '<div class="keen-slider__slide js-slide" ' + attrs + '>'
       + info

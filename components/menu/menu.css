@@ -28,7 +28,6 @@
   bottom: 0;
   z-index: 300;
   width: 75vw;
-  box-sizing: border-box;
   padding: 8px 10px 5px;
   background: var(--menuBg);
   color: var(--menuTextColor);
@@ -64,6 +63,7 @@
   display: flex;
   flex-flow: row nowrap;
   justify-content: space-between;
+  margin-bottom:15px;
 }
 
 #menuSessions {

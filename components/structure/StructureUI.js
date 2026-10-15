@@ -38,11 +38,13 @@ const StructureUI = {
     if(this.dom?.root) return;
     const html = `
       <div id="structure">
-        <button id="structureFilter">filter</button>
-        <label for="structureToggleAll">All:
-          <input type="checkbox" id="structureToggleAll">
-        </label>
-        <div id="structureTree"></div>
+        <div id="structureActions">
+          <button id="structureFilter">filter</button>
+          <label for="structureToggleAll" style="padding-left:5px">All<br>
+            <input type="checkbox" id="structureToggleAll">
+          </label>
+        </div>
+        <ul id="structureTree"></ul>
       </div>`;
     document.querySelector(this.mountSelector).insertAdjacentHTML('beforeend', html);
     Utils.cacheComponentDom(this);
@@ -59,7 +61,10 @@ const StructureUI = {
   toggleAll(e, ev) {
     const checked = ev.target.checked;
     Array.from(this.dom.treeEl.querySelectorAll('input.treeCheckbox[type=checkbox]'))
-      .forEach(cb => { cb.checked = checked; });
+      .forEach(cb => {
+        cb.checked = checked;
+        cb.indeterminate = false;
+      });
   },
 
   onCheckboxChange(el, e) {
@@ -71,17 +76,20 @@ const StructureUI = {
   cascade(check) {
     const selectors = this.treeCheckboxSelector;
     const children = Array.from(check.parentNode.querySelectorAll(selectors));
-    children.forEach(child => { child.checked = check.checked; });
+    children.forEach(child => {
+      child.checked = check.checked;
+      child.indeterminate = false;
+    });
 
     let c = check;
     while(c) {
       const ul = c.closest('ul');
       if(!ul) break;
-      const li = ul.parentNode;
+      const li = ul.parentElement.closest('li');
+      if(!li) break;
       const parent = li.querySelector(':scope > ' + selectors);
-      const childList = li.querySelector('ul');
-      if(childList && parent) {
-        const siblings = Array.from(childList.querySelectorAll(selectors));
+      if(parent) {
+        const siblings = Array.from(ul.querySelectorAll(selectors));
         const every = siblings.every(s => s.checked);
         const some = siblings.some(s => s.checked);
         parent.checked = every;
@@ -127,7 +135,7 @@ const StructureUI = {
       const letters = marks[li.dataset.treeId];
       if(letters) {
         li.insertAdjacentHTML('afterbegin',
-          '<span class="inProgress">' + letters.map(Utils.escapeHtml).join('&nbsp;') + '</span>');
+          `<span class="inProgress">${letters.map(Utils.escapeHtml).join('&nbsp;')}</span>`);
       }
     });
   },
@@ -135,25 +143,28 @@ const StructureUI = {
   buildTree(nodes, selectedSet, marks) {
     const items = nodes.map(node => {
       const mark = marks[node.id] ? marks[node.id].map(Utils.escapeHtml).join('&nbsp;') : '';
-      const childHtml = node.children && node.children.length
-        ? '<ul>' + this.buildTree(node.children, selectedSet, marks) + '</ul>'
-        : '';
       const name = Utils.escapeHtml(node.name);
-      const markHtml = mark ? '<span class="inProgress">' + mark + '</span>' : '';
+      const markHtml = mark ? `<span class="inProgress">${mark}</span>` : '';
       const id = Utils.escapeHtml(node.id);
-      return '<li data-tree-id="' + id + '">'
-        + markHtml
-        + '<input class="treeCheckbox" type="checkbox" value="' + id + '">'
-        + '&nbsp;' + name
-        + childHtml
-        + '</li>';
+      const hasChildren = node.children && node.children.length;
+      const open = hasChildren && this.hasSelectedSection(node, selectedSet);
+      const content = hasChildren
+        ? `<details class="treeBranch"${open ? ' open' : ''}><summary>${name}</summary>
+           <ul>${this.buildTree(node.children, selectedSet, marks)}</ul></details>`
+        : `<span class="treeName">${name}</span>`;
+      return `<li data-tree-id="${id}">${markHtml}<input class="treeCheckbox" type="checkbox" value="${id}">${content}</li>`;
     }).join('');
     return items;
   },
 
+  hasSelectedSection(node, selectedSet) {
+    return selectedSet.has(node.id)
+      || (node.children || []).some(child => this.hasSelectedSection(child, selectedSet));
+  },
+
   updateParents() {
     // Set parent tri-state from children after an explicit programmatic change.
-    Array.from(this.dom.treeEl.querySelectorAll('ul ul input.treeCheckbox'))
+    Array.from(this.dom.treeEl.querySelectorAll('ul input.treeCheckbox'))
       .forEach(child => {
         if(child.checked) {
           const li = child.closest('ul').closest('li');

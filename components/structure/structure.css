@@ -1,38 +1,54 @@
 #structure {
   flex: 1 1 auto;
   min-height: 0;
-  padding: 6px;
   overflow: auto;
 }
 
-#structureTree ul {
+#structureTree {
   list-style: none;
+  margin: 13px 0 0;
   padding: 0 0 10px 50px;
-  margin: 0;
   line-height: 180%;
   box-sizing: border-box;
 }
 
-#structureTree ul ul {
-  flex: 1 0 100%;
-  display: flex;
-  flex-flow: column nowrap;
-  gap: 5px;
-  padding-top: 10px;
+#structureTree ul {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0 10px 20px;
+  box-sizing: border-box;
 }
 
 #structureTree li {
   display: flex;
-  flex-flow: row wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 5px;
   position: relative;
+  margin-bottom: 5px;
 }
 
 #structureTree .treeCheckbox {
-  margin-right: 4px;
-  width: 20px;
-  height: 20px;
+  flex: 0 1 auto;
+}
+
+#structureTree .treeBranch {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#structureTree .treeName {
+  padding-left:3px;
+}
+
+#structureTree .treeBranch summary {
+  display: block;
+  cursor: pointer;
+  padding:0 0 5px 5px;
+}
+
+#structureTree .treeBranch:not([open]) > ul {
+  display: none;
 }
 
 #structureTree .inProgress {
@@ -45,6 +61,18 @@
   opacity: 0.5;
 }
 
+#structureActions {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+
 #structureFilter {
-  margin-right: 6px;
+  height: auto;
+  flex: 1 0 auto;
+}
+
+#structureActions label[for="structureToggleAll"] {
+  text-align: center;
 }
