@@ -52,7 +52,7 @@ const Library = {
     Storage.saveSource(id, { raw, origin, loadedAt });
     App.ensureSelection(id);
 
-    Bus.emit(Bus.events.sourceLoaded, { id });
+    Bus.emit(Bus.events.sourceLoaded, { id }); 
     Bus.emit(Bus.events.sourcesChanged, { id });
     return source;
   },

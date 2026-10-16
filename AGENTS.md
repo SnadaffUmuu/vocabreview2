@@ -63,6 +63,46 @@ Do not preserve legacy features or conventions merely for compatibility with Ver
 - Confirmations and user-facing messages go through the `Prompt` domain object (`ask`/`notify`) rendered by PromptUI; never use system `confirm()`/`alert()`. Prompt callbacks run synchronously (not via Bus) so follow-ups keep the user gesture, e.g. opening a file picker.
 - Producers mark only user-perceived waits as busy (source load/reload, startup render, selection change, View switch); do not wrap trivial or purely internal work.
 
+### Component Rendering
+
+A component renders a snapshot of its state into markup. `render()` must be idempotent: given the same state it must produce the same DOM, and it must never read the current DOM to decide what to draw.
+
+#### Structure
+
+`ensureMarkup()` mounts only the stable shell: the root element, containers that need CSS transitions, and elements whose presence does not change. Everything that depends on state is written by `render()` unconditionally, every time — `classList.toggle(cls, bool)`, `setAttribute` and `removeAttribute` by condition, `textContent`. If a class or attribute can appear under one condition and disappear under another, `render()` must handle both branches. “Forgot to remove the attribute” is not a valid state.
+
+#### Dynamic regions
+
+Lists, trees, slides, tables and similar repeatable regions are built by a pure `template(viewModel)` function that returns an HTML string, written into a container via `innerHTML`. After that the region is not patched piece by piece. One fragment has exactly one source of markup; the same snippet is not built in two different methods.
+
+`viewModel()` derives a plain object from domain/App state and component state; it is the single place where a component reads the domain. `template()` receives that object and knows nothing about Bus, domain or App; it may use `Utils.escapeHtml` and sub-templates. This makes `viewModel` helpers and `template` testable with Node scripts without a browser (see `scripts/render-check.js`).
+
+State that is not applied yet (a draft selection, opened branches) is component state (`this.draft`, `this.expanded`), not DOM. Such state is reset on the Bus events that invalidate it.
+
+#### Event handlers
+
+Handlers split into two kinds:
+- **Clean**: change state (via domain/App) and emit a Bus event. They never touch DOM.
+- **DOM-touching**: handle ephemeral interaction that cannot be represented in state yet — draft checkboxes, drag-and-drop visuals, caret position. These are exceptions, not the norm, and must be commented.
+
+#### Allowed exceptions to full re-render
+
+Full re-render is not mandatory where it is impossible or harmful:
+- DOM properties with no attribute equivalent: `indeterminate` on checkboxes, `open` on `<details>` when a transition must be preserved, scroll position, focus.
+- Third-party widget lifecycle (Keen Slider `destroy` / `new`).
+- Focus and caret restoration after a re-render.
+
+These exceptions are local and documented in the component. They do not justify making the whole render imperative.
+
+#### Verification criteria for a view
+
+Before considering a view converted to this model, check:
+1. `render()` does not read `classList`, `checked`, `value`, `textContent` or any other DOM property to decide output. It reads only state.
+2. Every class and attribute that can appear or disappear is set unconditionally in `render()` for both branches.
+3. No method other than `render()` writes into the component’s owned regions, except the listed exceptions.
+4. `viewModel()` and `template()` are pure functions of input data.
+5. Opening/closing, toggling and similar UI modes live in component state (`this.isOpen`, etc.), not in DOM classes read back by logic.
+
 ### Views and State
 
 - Views are independent components. There is no Router or central View registry.

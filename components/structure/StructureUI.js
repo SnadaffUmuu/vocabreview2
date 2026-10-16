@@ -1,7 +1,14 @@
 // StructureUI: renders the section tree for the current source with checkboxes
 // for selection and letter marks for "in progress" views. Its root is mounted
 // in the menu's layout slot; it does not call or otherwise know MenuUI.
-// Reads domain state and writes selection via App.setSelection.
+// Writes selection via App.setSelection.
+//
+// Not-yet-applied UI state lives in the component, not in the DOM:
+//   draft    - Set of checked section ids, or null while it equals the applied
+//              selection. Applied by the "filter" button.
+//   expanded - Set of opened branch ids, or null for the default (branches that
+//              contain selected sections).
+// Both are dropped when the origin, sources or the applied selection change.
 const StructureUI = {
   name: 'StructureUI',
   mountSelector: '#menuStructureSlot',
@@ -14,24 +21,30 @@ const StructureUI = {
   },
 
   events: {
-    click: { '@filterEl': 'applyFilter' },
+    click: {
+      '@filterEl': 'applyFilter',
+      '#structureTree .treeBranch > summary': 'toggleBranch',
+    },
     change: {
       '@toggleAllEl': 'toggleAll',
-      // Delegate checkbox changes: checkboxes are rendered dynamically.
+      // Delegated: checkboxes are rendered dynamically.
       '#structureTree .treeCheckbox': 'onCheckboxChange',
     },
   },
 
+  draft: null,
+  expanded: null,
+
   init() {
     this.ensureMarkup();
-    this.treeCheckboxSelector = '.treeCheckbox';
     Bus.batchedMethod(this, 'render');
-    Bus.on(Bus.events.originSelected, () => this.render());
-    Bus.on(Bus.events.sourcesChanged, () => this.render());
+    Bus.on(Bus.events.originSelected, () => this.resetAndRender());
+    Bus.on(Bus.events.sourcesChanged, () => this.resetAndRender());
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
-      if(sourceId === App.currentOrigin) this.render();
+      if(sourceId === App.currentOrigin) this.resetAndRender();
     });
-    Bus.on(Bus.events.viewsChanged, () => this.renderMarks());
+    // A progress mark changed: the draft and open branches are kept.
+    Bus.on(Bus.events.viewsChanged, () => this.render());
   },
 
   ensureMarkup() {
@@ -45,142 +58,185 @@ const StructureUI = {
           </label>
         </div>
         <ul id="structureTree"></ul>
-      </div>`;
+      </div>
+      `;
     document.querySelector(this.mountSelector).insertAdjacentHTML('beforeend', html);
     Utils.cacheComponentDom(this);
   },
 
+  // ---- state -----------------------------------------------------------------------
+
+  resetAndRender() {
+    this.draft = null;
+    this.expanded = null;
+    this.render();
+  },
+
+  structure() {
+    const sourceId = App.currentOrigin;
+    if(!sourceId || !Library.hasSource(sourceId)) return [];
+    return Library.getSource(sourceId).parsed.structure;
+  },
+
+  // ---- handlers (clean: change component state, then render) ------------------------
+
   applyFilter() {
     const sourceId = App.currentOrigin;
     if(!sourceId) return;
-    const checked = Array.from(this.dom.treeEl.querySelectorAll('input.treeCheckbox:checked'))
-      .map(cb => cb.value);
+    const checked = this.collectChecked(this.viewModel().nodes);
     // Selection change re-renders every view; show the indicator across it.
     Busy.beginAndRun(() => App.setSelection(sourceId, checked));
   },
 
-  toggleAll(e, ev) {
-    const checked = ev.target.checked;
-    Array.from(this.dom.treeEl.querySelectorAll('input.treeCheckbox[type=checkbox]'))
-      .forEach(cb => {
-        cb.checked = checked;
-        cb.indeterminate = false;
-      });
+  toggleAll(el) {
+    this.draft = el.checked ? this.allIds(this.structure()) : new Set();
+    this.render();
   },
 
-  onCheckboxChange(el, e) {
-    // Propagate checked state to children and update parent tri-state.
-    this.cascade(e.target);
+  onCheckboxChange(el) {
+    const current = new Set(this.collectChecked(this.viewModel().nodes));
+    this.draft = this.toggled(this.structure(), current, el.value, el.checked);
+    this.render();
   },
 
-  // Mirror Version 1's toggleTreeCheckboxes behaviour.
-  cascade(check) {
-    const selectors = this.treeCheckboxSelector;
-    const children = Array.from(check.parentNode.querySelectorAll(selectors));
-    children.forEach(child => {
-      child.checked = check.checked;
-      child.indeterminate = false;
+  toggleBranch(el, e) {
+    // Stop the native <details> toggle: the open attribute is written by render().
+    e.preventDefault();
+    const id = el.closest('li').dataset.treeId;
+    const open = new Set(this.collectOpen(this.viewModel().nodes));
+    if(open.has(id)) open.delete(id);
+    else open.add(id);
+    this.expanded = open;
+    this.render();
+  },
+
+  // ---- view model (pure over its arguments, except viewModel() itself) -------------
+
+  // The only place that reads domain state.
+  viewModel() {
+    const sourceId = App.currentOrigin;
+    const structure = this.structure();
+    const applied = new Set(App.getSelection(sourceId));
+    const checked = this.draft || applied;
+    const expanded = this.expanded || this.expandedByDefault(structure, applied);
+    const marks = structure.length ? Progress.marksBySection(sourceId) : {};
+    const nodes = this.buildNodes(structure, checked, expanded, marks);
+    return {
+      nodes,
+      allChecked: nodes.length > 0 && nodes.every(node => node.checked),
+    };
+  },
+
+  // A parent is checked when it is in the set or all its children are checked;
+  // it is indeterminate when not checked but something below it is.
+  buildNodes(structure, checkedSet, expandedSet, marks) {
+    return structure.map(node => {
+      const children = this.buildNodes(node.children || [], checkedSet, expandedSet, marks);
+      const hasChildren = children.length > 0;
+      const every = hasChildren && children.every(child => child.checked);
+      const some = children.some(child => child.checked || child.indeterminate);
+      const checked = checkedSet.has(node.id) || every;
+      return {
+        id: node.id,
+        name: node.name,
+        marks: marks[node.id] || [],
+        hasChildren,
+        open: hasChildren && expandedSet.has(node.id),
+        checked,
+        indeterminate: !checked && some,
+        children,
+      };
     });
+  },
 
-    let c = check;
-    while(c) {
-      const ul = c.closest('ul');
-      if(!ul) break;
-      const li = ul.parentElement.closest('li');
-      if(!li) break;
-      const parent = li.querySelector(':scope > ' + selectors);
-      if(parent) {
-        const siblings = Array.from(ul.querySelectorAll(selectors));
-        const every = siblings.every(s => s.checked);
-        const some = siblings.some(s => s.checked);
-        parent.checked = every;
-        parent.indeterminate = !every && some;
+  expandedByDefault(structure, selectedSet) {
+    const result = new Set();
+    const hasSelected = node => {
+      const inChildren = (node.children || []).map(hasSelected).some(Boolean);
+      const selected = selectedSet.has(node.id) || inChildren;
+      if(selected && node.children?.length) result.add(node.id);
+      return selected;
+    };
+    structure.forEach(hasSelected);
+    return result;
+  },
+
+  collectChecked(nodes) {
+    return nodes.flatMap(node =>
+      [...(node.checked ? [node.id] : []), ...this.collectChecked(node.children)]);
+  },
+
+  collectOpen(nodes) {
+    return nodes.flatMap(node =>
+      [...(node.open ? [node.id] : []), ...this.collectOpen(node.children)]);
+  },
+
+  allIds(structure) {
+    return new Set(structure.flatMap(node =>
+      [node.id, ...this.allIds(node.children || [])]));
+  },
+
+  // Returns a new set with the node and all its descendants checked/unchecked;
+  // ancestors become checked exactly when all their children are.
+  toggled(structure, checkedSet, id, checked) {
+    const next = new Set(checkedSet);
+    const setSubtree = node => {
+      if(checked) next.add(node.id);
+      else next.delete(node.id);
+      (node.children || []).forEach(setSubtree);
+    };
+    const walk = nodes => nodes.some(node => {
+      if(node.id === id) {
+        setSubtree(node);
+        return true;
       }
-      c = (c !== parent) ? parent : 0;
-    }
+      if(!node.children || !walk(node.children)) return false;
+      if(node.children.every(child => next.has(child.id))) next.add(node.id);
+      else next.delete(node.id);
+      return true;
+    });
+    walk(structure);
+    return next;
+  },
+
+  // ---- markup ----------------------------------------------------------------------
+
+  template(vm) {
+    return vm.nodes.map(node => this.nodeTemplate(node)).join('');
+  },
+
+  nodeTemplate(node) {
+    const id = Utils.escapeHtml(node.id);
+    const name = Utils.escapeHtml(node.name);
+    const marks = node.marks.map(mark => Utils.escapeHtml(mark)).join('&nbsp;');
+    return `
+      <li data-tree-id="${id}">
+        ${marks ? `
+        <span class="inProgress">${marks}</span>` : ''}
+        <input class="treeCheckbox" type="checkbox" value="${id}"
+          ${node.checked ? 'checked' : ''}
+          ${node.indeterminate ? 'data-indeterminate' : ''}
+          >
+        ${node.hasChildren ? `
+        <details class="treeBranch" ${node.open ? 'open' : ''}>
+          <summary>${name}</summary>
+          <ul>${node.children.map(child => this.nodeTemplate(child)).join('')}</ul>
+        </details>` : `
+        <span class="treeName">${name}</span>`}
+      </li>
+      `;
   },
 
   render() {
-    this.dom.treeEl.innerHTML = '';
-
-    const sourceId = App.currentOrigin;
-    if(!sourceId || !Library.hasSource(sourceId)) return;
-
-    const parsed = Library.getSource(sourceId).parsed;
-    const selected = App.getSelection(sourceId);
-    const selectedSet = new Set(selected);
-    const marks = Progress.marksBySection(sourceId);
-
-    const list = this.buildTree(parsed.structure, selectedSet, marks);
-    this.dom.treeEl.insertAdjacentHTML('afterbegin', list);
-
-    // Reflect selection: if selection exists, check matching boxes.
-    if(selected.length) {
-      Array.from(this.dom.treeEl.querySelectorAll('input.treeCheckbox'))
-        .forEach(cb => {
-          if(selectedSet.has(cb.value)) cb.checked = true;
-        });
-      this.updateParents();
-    }
-  },
-
-  // Progress changed (e.g. a mark was set in a view): refresh only the letter
-  // marks, leaving the tree and any not-yet-applied checkbox state untouched.
-  renderMarks() {
-    const sourceId = App.currentOrigin;
-    if(!sourceId || !Library.hasSource(sourceId)) return;
-    const marks = Progress.marksBySection(sourceId);
-    Array.from(this.dom.treeEl.querySelectorAll('li[data-tree-id]')).forEach(li => {
-      const old = li.querySelector(':scope > .inProgress');
-      if(old) old.remove();
-      const letters = marks[li.dataset.treeId];
-      if(letters) {
-        li.insertAdjacentHTML('afterbegin',
-          `<span class="inProgress">${letters.map(Utils.escapeHtml).join('&nbsp;')}</span>`);
-      }
+    const vm = this.viewModel();
+    this.dom.toggleAllEl.checked = vm.allChecked;
+    this.dom.treeEl.innerHTML = this.template(vm);
+    // Exception: `indeterminate` has no HTML attribute, so it is applied as a
+    // DOM property from the data-indeterminate marker written by the template.
+    // Scroll position is not lost: the scroll container (#structure) is not rewritten.
+    this.dom.treeEl.querySelectorAll('[data-indeterminate]').forEach(checkbox => {
+      checkbox.indeterminate = true;
     });
-  },
-
-  buildTree(nodes, selectedSet, marks) {
-    const items = nodes.map(node => {
-      const mark = marks[node.id] ? marks[node.id].map(Utils.escapeHtml).join('&nbsp;') : '';
-      const name = Utils.escapeHtml(node.name);
-      const markHtml = mark ? `<span class="inProgress">${mark}</span>` : '';
-      const id = Utils.escapeHtml(node.id);
-      const hasChildren = node.children && node.children.length;
-      const open = hasChildren && this.hasSelectedSection(node, selectedSet);
-      const content = hasChildren
-        ? `<details class="treeBranch"${open ? ' open' : ''}><summary>${name}</summary>
-           <ul>${this.buildTree(node.children, selectedSet, marks)}</ul></details>`
-        : `<span class="treeName">${name}</span>`;
-      return `<li data-tree-id="${id}">${markHtml}<input class="treeCheckbox" type="checkbox" value="${id}">${content}</li>`;
-    }).join('');
-    return items;
-  },
-
-  hasSelectedSection(node, selectedSet) {
-    return selectedSet.has(node.id)
-      || (node.children || []).some(child => this.hasSelectedSection(child, selectedSet));
-  },
-
-  updateParents() {
-    // Set parent tri-state from children after an explicit programmatic change.
-    Array.from(this.dom.treeEl.querySelectorAll('ul input.treeCheckbox'))
-      .forEach(child => {
-        if(child.checked) {
-          const li = child.closest('ul').closest('li');
-          if (li) {
-            const parent = li.querySelector(':scope > input.treeCheckbox');
-            const siblings = Array.from(child.closest('ul').querySelectorAll('input.treeCheckbox'));
-            const every = siblings.every(s => s.checked);
-            const some = siblings.some(s => s.checked);
-            if(parent) {
-              parent.checked = every;
-              parent.indeterminate = !every && some;
-            }
-          }
-        }
-      });
   },
 };
 

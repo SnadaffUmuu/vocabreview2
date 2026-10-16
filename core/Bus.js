@@ -6,7 +6,7 @@ const Bus = {
   // Canonical event names. Refer to these; do not hardcode strings elsewhere.
   events: {
     sourcesChanged: 'sourcesChanged',
-    sourceLoaded: 'sourceLoaded',
+    //sourceLoaded: 'sourceLoaded',
     sourceReloaded: 'sourceReloaded',
     originSelected: 'originSelected',
     selectionChanged: 'selectionChanged',

@@ -22,6 +22,7 @@ const SessionsUI = {
 
   init() {
     this.ensureMarkup();
+    this.isOpen = false;
     Bus.batchedMethod(this, 'render');
     Bus.on(Bus.events.sessionsRequested, () => this.open());
     Bus.on(Bus.events.viewsChanged, () => this.render());
@@ -44,12 +45,13 @@ const SessionsUI = {
   },
 
   open() {
-    this.dom.root.classList.remove('hidden');
+    this.isOpen = true;
     this.render();
   },
 
   close() {
-    this.dom.root.classList.add('hidden');
+    this.isOpen = false;
+    this.render();
   },
 
   closeFromOverlay(el, e) {
@@ -58,31 +60,50 @@ const SessionsUI = {
     if(e.target === this.dom.root) this.close();
   },
 
-  render() {
-    if(this.dom.root.classList.contains('hidden')) return;
+  // The only place that reads domain state. Sessions are not computed while
+  // the dialog is closed: viewsChanged fires on every mark.
+  viewModel() {
+    return {
+      isOpen: this.isOpen,
+      sessions: this.isOpen ? Progress.activeSessions() : [],
+    };
+  },
 
-    const sessions = Progress.activeSessions();
-    if(!sessions.length) {
-      this.dom.listEl.innerHTML = `<div class="sessionsEmpty">No sessions in progress</div>`;
-      return;
-    }
-
-    const rows = sessions.map(s => {
-      const origin = Utils.escapeHtml(s.originId);
-      const letters = s.views.map(v =>
-        `<div class="tag" 
-          data-session-origin="${origin}" 
-          data-session-view="${Utils.escapeHtml(v.name)}">
-            ${Utils.escapeHtml(v.label)}
-         </div>`
-      ).join('');
+  template(vm) {
+    if(!vm.sessions.length) {
       return `
-        <tr>
-          <td data-session-origin="${origin}">${origin}</td>
-          <td>${letters}</td>
-        </tr>`;
-    }).join('');
-    this.dom.listEl.innerHTML = `<table class="sessionsData">${rows}</table>`;
+        <div class="sessionsEmpty">No sessions in progress</div>
+        `;
+    }
+    return `
+      <table class="sessionsData">
+        ${vm.sessions.map(session => this.rowTemplate(session)).join('')}
+      </table>
+      `;
+  },
+
+  rowTemplate(session) {
+    const origin = Utils.escapeHtml(session.originId);
+    return `
+      <tr>
+        <td data-session-origin="${origin}">${origin}</td>
+        <td>
+          ${session.views.map(view => `
+          <div class="tag"
+            data-session-origin="${origin}"
+            data-session-view="${Utils.escapeHtml(view.name)}"
+            >
+            ${Utils.escapeHtml(view.label)}
+          </div>`).join('')}
+        </td>
+      </tr>
+      `;
+  },
+
+  render() {
+    const vm = this.viewModel();
+    this.dom.root.classList.toggle('hidden', !vm.isOpen);
+    this.dom.listEl.innerHTML = vm.isOpen ? this.template(vm) : '';
   },
 
   pickOrigin(el, e) {

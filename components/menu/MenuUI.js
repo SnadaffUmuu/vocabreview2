@@ -27,6 +27,7 @@ const MenuUI = {
 
   init() {
     this.ensureMarkup();
+    this.isOpened = false;
     Bus.batchedMethod(this, 'render');
     Bus.on(Bus.events.originSelected, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
@@ -82,14 +83,12 @@ const MenuUI = {
   },
 
   toggleMenu() {
-    this.setMenuOpened(!this.dom.root.classList.contains('isOpened'));
+    this.setMenuOpened(!this.isOpened);
   },
 
   setMenuOpened(opened) {
-    this.dom.root.classList.toggle('isOpened', opened);
-    this.dom.triggerEl.textContent = opened ? '<<' : '>>';
-    this.dom.triggerEl.setAttribute('aria-expanded', String(opened));
-    this.dom.triggerEl.setAttribute('aria-label', opened ? 'Close menu' : 'Open menu');
+    this.isOpened = opened;
+    this.render();
   },
 
   closeFromOverlay() {
@@ -111,6 +110,12 @@ const MenuUI = {
   },
 
   render() {
+    // Menu open state: DOM only reflects component state.
+    this.dom.root.classList.toggle('isOpened', this.isOpened);
+    this.dom.triggerEl.textContent = this.isOpened ? '<<' : '>>';
+    this.dom.triggerEl.setAttribute('aria-expanded', String(this.isOpened));
+    this.dom.triggerEl.setAttribute('aria-label', this.isOpened ? 'Close menu' : 'Open menu');
+
     // Sources dropdown: always the hard-coded list, loaded or not.
     DropdownUI.setValue('menuSources', App.currentOrigin);
 
