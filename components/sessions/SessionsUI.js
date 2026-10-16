@@ -63,16 +63,24 @@ const SessionsUI = {
 
     const sessions = Progress.activeSessions();
     if(!sessions.length) {
-      this.dom.listEl.innerHTML = '<div class="sessionsEmpty">No sessions in progress</div>';
+      this.dom.listEl.innerHTML = `<div class="sessionsEmpty">No sessions in progress</div>`;
       return;
     }
 
     const rows = sessions.map(s => {
       const origin = Utils.escapeHtml(s.originId);
       const letters = s.views.map(v =>
-        `<div class="tag" data-session-origin="${origin}" data-session-view="${Utils.escapeHtml(v.name)}">${Utils.escapeHtml(v.label)}</div>`
+        `<div class="tag" 
+          data-session-origin="${origin}" 
+          data-session-view="${Utils.escapeHtml(v.name)}">
+            ${Utils.escapeHtml(v.label)}
+         </div>`
       ).join('');
-      return `<tr><td data-session-origin="${origin}">${origin}</td><td>${letters}</td></tr>`;
+      return `
+        <tr>
+          <td data-session-origin="${origin}">${origin}</td>
+          <td>${letters}</td>
+        </tr>`;
     }).join('');
     this.dom.listEl.innerHTML = `<table class="sessionsData">${rows}</table>`;
   },

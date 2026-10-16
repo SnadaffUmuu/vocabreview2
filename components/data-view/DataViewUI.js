@@ -109,55 +109,56 @@ const DataViewUI = {
     let info = '';
 
     if(entry.tag) {
-      info += '<div class="tag">' + Utils.escapeHtml(entry.tag) + '</div>';
+      info += `<div class="tag">${Utils.escapeHtml(entry.tag)}</div>`;
     }
 
-    info += '<ul class="linesList">' + entry.lines.map((line, i) => {
+    info += `<ul class="linesList">${entry.lines.map((line, i) => {
       let templ = this.highlight(line.text, query);
 
       if(i === 0 && entry.reviewLevel) {
         const p = parseInt(rl, 10);
-        const color = 'color:' + (p >= 100 ? 'var(--revLevelTextColor)' : 'var(--revLevelMinorTextColor)') + ';';
-        const border = 'border-bottom:'
-          + (p < 100 ? (p - 1) : rl.substring(0, 1)) + 'px solid '
-          + (p >= 100 ? 'var(--revLevelTextColor)' : 'var(--revLevelMinorTextColor)') + ';';
-        templ = '<span data-review-level="' + Utils.escapeHtml(rl) + '" class="revLevel" style="'
-          + color + border + '">' + templ + '</span>';
+        const color = `color:${p >= 100 ? 'var(--revLevelTextColor)' : 'var(--revLevelMinorTextColor)'};`;
+        const border = `border-bottom:${p < 100 ? (p - 1) : rl.substring(0, 1)}px solid ${p >= 100 ? 'var(--revLevelTextColor)' : 'var(--revLevelMinorTextColor)'};`;
+        templ = `
+        <span 
+          data-review-level="${Utils.escapeHtml(rl)}" 
+          class="revLevel" 
+          style="${color}${border}">${templ}
+        </span>`;
       }
 
       if(line.role) {
-        templ += '<span class="lineRole"> ......' + Utils.escapeHtml(line.role)
-          + (line.translationLineIndex != null ? ' (trans.l.index: ' + line.translationLineIndex + ')' : '')
-          + '</span>';
+        templ += `<span class="lineRole"> ......${Utils.escapeHtml(line.role)}${line.translationLineIndex != null ? ` (trans.l.index: ${line.translationLineIndex})` : ''}</span>`;
       }
 
       const compact = line.isCompact ? 'font-size:15px;' : '';
-      return '<li'
-        + (line.role ? ' data-role="' + Utils.escapeHtml(line.role) + '"' : '')
-        + (compact ? ' class="compact"' : '')
-        + '>' + templ + '</li>';
-    }).join('') + '</ul>';
+      return `<li${line.role ? ` data-role="${Utils.escapeHtml(line.role)}"` : ''}${compact ? ' class="compact"' : ''}>${templ}</li>`;
+    }).join('')}</ul>`;
 
     if(entry.info) {
-      info += '<div class="entryInfo">ⓘ&nbsp;' + Utils.escapeHtml(entry.info) + '</div>';
+      info += `<div class="entryInfo">ⓘ&nbsp;${Utils.escapeHtml(entry.info)}</div>`;
     }
 
     const sourceId = entry.sourceId || fallbackSourceId;
-    info += '<div class="section">'
-      + (query ? '<span class="entrySource">' + Utils.escapeHtml(sourceId) + '</span> ' : '')
-      + Utils.escapeHtml(this.breadcrumbs(sourceId, entry.section))
-      + '</div>';
+    info += `
+      <div class="section">${query ? `
+        <span class="entrySource">${Utils.escapeHtml(sourceId)}</span> ` : ''}
+        ${Utils.escapeHtml(this.breadcrumbs(sourceId, entry.section))}
+      </div>`;
 
-    return '<article class="dataEntry">'
-      + (rl ? '<div class="reviewLevel tag">' + Utils.escapeHtml(rl) + '</div>' : '')
-      + info
-      + '</article>';
+    return `
+    <article class="dataEntry">${rl ? `
+      <div class="reviewLevel tag">
+        ${Utils.escapeHtml(rl)}
+      </div>` : ''}
+      ${info}
+    </article>`;
   },
 
   highlight(text, query) {
     if(!query) return Utils.escapeHtml(text);
     const parts = String(text).split(query);
-    return parts.map(Utils.escapeHtml).join('<strong>' + Utils.escapeHtml(query) + '</strong>');
+    return parts.map(Utils.escapeHtml).join(`<strong>${Utils.escapeHtml(query)}</strong>`);
   },
 
   breadcrumbs(sourceId, sectionId) {

@@ -160,38 +160,46 @@ const SliderUI = {
     const ordered = this.orderLines(lines, state.ui.mode, savedSide);
     const current = ordered.find(line => line.originalIndex === savedSide) || ordered[0];
     const attrs = [
-      'data-entry-id="' + Utils.escapeHtml(entry.id) + '"',
-      entry.section != null ? 'data-section="' + Utils.escapeHtml(entry.section) + '"' : '',
-      entry.tag ? 'data-tag="' + Utils.escapeHtml(entry.tag) + '"' : '',
-      entry.reviewLevel ? 'data-review-level="' + Utils.escapeHtml(entry.reviewLevel) + '"' : '',
+      `data-entry-id="${Utils.escapeHtml(entry.id)}"`,
+      entry.section != null ? `data-section="${Utils.escapeHtml(entry.section)}"` : '',
+      entry.tag ? `data-tag="${Utils.escapeHtml(entry.tag)}"` : '',
+      entry.reviewLevel ? `data-review-level="${Utils.escapeHtml(entry.reviewLevel)}"` : '',
     ].filter(Boolean).join(' ');
     const info = entry.info
-      ? '<details class="entry-info"><summary>ⓘ</summary>' + Utils.escapeHtml(entry.info) + '</details>' : '';
+      ? `<details class="entry-info"><summary>ⓘ</summary>${Utils.escapeHtml(entry.info)}</details>` : '';
     const sides = ordered.map(line => this.renderSide(line, current)).join('');
     const readingHtml = reading
-      ? '<div class="slideReading" data-reading="' + Utils.escapeHtml(reading.text) + '" role="button" tabindex="0">'
-        + Utils.escapeHtml(reading.text) + '</div>' : '';
+      ? `<div class="slideReading" data-reading="${Utils.escapeHtml(reading.text)}" role="button" tabindex="0">${Utils.escapeHtml(reading.text)}</div>` : '';
     // const readingHtml = reading
     //   ? '<div class="slideReading" data-reading="' + Utils.escapeHtml(reading.text) + '" role="button" tabindex="0"><span>'
     //     + Utils.escapeHtml(reading.text) + '</span></div>' : '';
 
-    return '<div class="keen-slider__slide js-slide" ' + attrs + '>'
-      + info
-      + '<div class="sides-count">' + ordered.length + '</div>'
-      + '<div class="current-side">' + (current ? current.originalIndex : '') + '</div>'
-      + '<div class="slide-inner js-slide-inner">' + sides + '</div>'
-      + readingHtml
-      + '</div>';
+    return `
+      <div class="keen-slider__slide js-slide" ${attrs}>
+        ${info}
+        <div class="sides-count">${ordered.length}</div>
+        <div class="current-side">${current ? current.originalIndex : ''}</div>
+        <div class="slide-inner js-slide-inner">${sides}</div>
+        ${readingHtml}
+      </div>
+      `;
   },
 
   renderSide(line, current) {
     const classes = ['slide-side', 'js-slide-side'];
     if(line === current) classes.push('current');
     if(line.isCompact || line.role === 'example') classes.push('compact');
-    return '<div class="' + classes.join(' ') + '" data-index="' + Utils.escapeHtml(line.originalIndex) + '"'
-      + (line.role ? ' data-role="' + Utils.escapeHtml(line.role) + '"' : '')
-      + (line.speakable ? ' data-reading="' + Utils.escapeHtml(line.text) + '"' : '')
-      + '><span>' + Utils.escapeHtml(line.text) + '</span></div>';
+    return `
+      <div class="${classes.join(' ')}"
+        data-index="${Utils.escapeHtml(line.originalIndex)}"
+        ${line.role ? `
+        data-role="${Utils.escapeHtml(line.role)}"` : ''}
+        ${line.speakable ? `
+        data-reading="${Utils.escapeHtml(line.text)}"` : ''}
+        >
+        <span>${Utils.escapeHtml(line.text)}</span>
+      </div>
+      `;
   },
 
   orderLines(lines, mode, savedSide) {
