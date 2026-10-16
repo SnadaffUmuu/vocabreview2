@@ -8,7 +8,7 @@
 //              selection. Applied by the "filter" button.
 //   expanded - Set of opened branch ids, or null for the default (branches that
 //              contain selected sections).
-// Both are dropped when the origin, sources or the applied selection change.
+// Both are dropped when the source, sources or the applied selection change.
 const StructureUI = {
   name: 'StructureUI',
   mountSelector: '#menuStructureSlot',
@@ -38,10 +38,10 @@ const StructureUI = {
   init() {
     this.ensureMarkup();
     Bus.batchedMethod(this, 'render');
-    Bus.on(Bus.events.originSelected, () => this.resetAndRender());
+    Bus.on(Bus.events.sourceSelected, () => this.resetAndRender());
     Bus.on(Bus.events.sourcesChanged, () => this.resetAndRender());
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
-      if(sourceId === App.currentOrigin) this.resetAndRender();
+      if(sourceId === App.currentSource) this.resetAndRender();
     });
     // A progress mark changed: the draft and open branches are kept.
     Bus.on(Bus.events.viewsChanged, () => this.render());
@@ -73,7 +73,7 @@ const StructureUI = {
   },
 
   structure() {
-    const sourceId = App.currentOrigin;
+    const sourceId = App.currentSource;
     if(!sourceId || !Library.hasSource(sourceId)) return [];
     return Library.getSource(sourceId).parsed.structure;
   },
@@ -81,7 +81,7 @@ const StructureUI = {
   // ---- handlers (clean: change component state, then render) ------------------------
 
   applyFilter() {
-    const sourceId = App.currentOrigin;
+    const sourceId = App.currentSource;
     if(!sourceId) return;
     const checked = this.collectChecked(this.viewModel().nodes);
     // Selection change re-renders every view; show the indicator across it.
@@ -114,7 +114,7 @@ const StructureUI = {
 
   // The only place that reads domain state.
   viewModel() {
-    const sourceId = App.currentOrigin;
+    const sourceId = App.currentSource;
     const structure = this.structure();
     const applied = new Set(App.getSelection(sourceId));
     const checked = this.draft || applied;

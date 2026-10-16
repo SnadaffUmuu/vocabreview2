@@ -88,8 +88,8 @@ function assert(cond, msg) {
 assert(Library.listIds().length === 3, 'three sources loaded');
 assert(Library.getSource('goshogun2').parsed.allEntries.length === 15, 'goshogun2 has 15 entries');
 
-App.selectOrigin('osarai-house');
-assert(App.currentOrigin === 'osarai-house', 'origin selected');
+App.selectSource('osarai-house');
+assert(App.currentSource === 'osarai-house', 'source selected');
 
 const struct = Library.getSource('osarai-house').parsed.structure;
 const sections = [];
@@ -116,9 +116,9 @@ assert(marks[firstSection] && marks[firstSection].includes('S'),
   'progress mark S appears for the entry section');
 
 const sessions = Progress.activeSessions();
-assert(sessions.length === 1 && sessions[0].originId === 'osarai-house'
+assert(sessions.length === 1 && sessions[0].sourceId === 'osarai-house'
   && sessions[0].views.length === 1 && sessions[0].views[0].name === 'slider'
-  && sessions[0].views[0].label === 'S', 'activeSessions lists origin and view letter');
+  && sessions[0].views[0].label === 'S', 'activeSessions lists source and view letter');
 
 SliderState.toggleSideMark('osarai-house', 0, 'lapses', 0);
 let sliderEntry = ViewState.entry('osarai-house', 'slider', 0);
@@ -196,8 +196,8 @@ assert(Storage.load(Storage.KEY.selections, {})[largeId].join(',') === '0.0',
 App.setSelection(largeId, ['0.0', '0.1']);
 assert(App.selectedEntries(largeId).length === 106,
   'explicit large selection is not capped');
-App.selectOrigin('goshogun2');
-App.selectOrigin(largeId);
+App.selectSource('goshogun2');
+App.selectSource(largeId);
 assert(App.getSelection(largeId).length === 2,
   'switching sources preserves an explicit selection');
 App.setSelection(largeId, []);
@@ -206,7 +206,7 @@ assert(App.getSelection(largeId).join(',') === '0.0'
   'filtering with no checked boxes reapplies the large-source default');
 
 App.clearSelectionFor(largeId);
-App.selectOrigin(largeId);
+App.selectSource(largeId);
 assert(App.getSelection(largeId).join(',') === '0.0',
   'switching to a source with no selection applies the guard');
 App.setSelection(largeId, ['0.1']);
@@ -282,47 +282,47 @@ loadRel('domain/Prompt.js');
 
 // ---- SliderState: ui defaults and visible entries --------------------------
 {
-  const origin = 'osarai-house';
-  const allIds = Library.getSource(origin).parsed.allEntries.map(e => e.id);
-  ViewState.resetEntries(origin, 'slider', allIds, {});
-  App.setSelection(origin, ['0.0']);
+  const source = 'osarai-house';
+  const allIds = Library.getSource(source).parsed.allEntries.map(e => e.id);
+  ViewState.resetEntries(source, 'slider', allIds, {});
+  App.setSelection(source, ['0.0']);
 
-  const before = JSON.stringify(App.views[origin].slider);
-  const ui = SliderState.uiOf(origin);
+  const before = JSON.stringify(App.views[source].slider);
+  const ui = SliderState.uiOf(source);
   assert(ui.mode === 'original' && ui.onlyMatching === false && ui.random === false
     && ui.currentEntryId === null && Array.isArray(ui.order), 'uiOf applies defaults');
-  assert(JSON.stringify(App.views[origin].slider) === before, 'uiOf does not write to the state');
+  assert(JSON.stringify(App.views[source].slider) === before, 'uiOf does not write to the state');
 
-  const selected = App.selectedEntries(origin);
-  assert(SliderState.visibleEntries(origin).length === selected.length,
+  const selected = App.selectedEntries(source);
+  assert(SliderState.visibleEntries(source).length === selected.length,
     'all selected entries are visible by default');
-  assert(JSON.stringify(App.views[origin].slider) === before, 'visibleEntries without random does not write');
+  assert(JSON.stringify(App.views[source].slider) === before, 'visibleEntries without random does not write');
 
-  SliderState.removeEntry(origin, selected[0].id);
-  assert(SliderState.visibleEntries(origin).length === selected.length - 1, 'removed entries are hidden');
+  SliderState.removeEntry(source, selected[0].id);
+  assert(SliderState.visibleEntries(source).length === selected.length - 1, 'removed entries are hidden');
 
-  ViewState.setUi(origin, 'slider', { mode: 'meaning', onlyMatching: true });
-  assert(SliderState.visibleEntries(origin).every(e => e.lines.some(l => l.role === 'meaning')),
+  ViewState.setUi(source, 'slider', { mode: 'meaning', onlyMatching: true });
+  assert(SliderState.visibleEntries(source).every(e => e.lines.some(l => l.role === 'meaning')),
     'only matching keeps entries with a line of the mode role');
-  ViewState.setUi(origin, 'slider', { mode: 'original' });
-  assert(SliderState.visibleEntries(origin).length === selected.length - 1,
+  ViewState.setUi(source, 'slider', { mode: 'original' });
+  assert(SliderState.visibleEntries(source).length === selected.length - 1,
     'only matching is ignored for incompatible modes');
 
-  ViewState.setUi(origin, 'slider', { onlyMatching: false, random: true, order: [] });
-  const first = SliderState.visibleEntries(origin).map(e => e.id);
-  const second = SliderState.visibleEntries(origin).map(e => e.id);
+  ViewState.setUi(source, 'slider', { onlyMatching: false, random: true, order: [] });
+  const first = SliderState.visibleEntries(source).map(e => e.id);
+  const second = SliderState.visibleEntries(source).map(e => e.id);
   assert(first.length === selected.length - 1 && first.join() === second.join(),
     'random order is stored and stable between calls');
-  assert(App.views[origin].slider.ui.order.join() === first.join(), 'random order is persisted in ui.order');
+  assert(App.views[source].slider.ui.order.join() === first.join(), 'random order is persisted in ui.order');
   assert(new Set(first).size === first.length, 'random order has no duplicates');
 
-  ViewState.setUi(origin, 'slider', { sideIndexes: { 5: 2 } });
-  SliderState.setMode(origin, 'example');
-  const afterMode = SliderState.uiOf(origin);
+  ViewState.setUi(source, 'slider', { sideIndexes: { 5: 2 } });
+  SliderState.setMode(source, 'example');
+  const afterMode = SliderState.uiOf(source);
   assert(afterMode.mode === 'example' && Object.keys(afterMode.sideIndexes).length === 0,
     'setMode stores the mode and forgets side positions');
 
-  ViewState.resetEntries(origin, 'slider', allIds, {});
+  ViewState.resetEntries(source, 'slider', allIds, {});
 }
 
 // ---- Busy: reference-counted busy flag ------------------------------------

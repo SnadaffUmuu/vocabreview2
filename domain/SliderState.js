@@ -23,8 +23,8 @@ const SliderState = {
   },
 
   // Persisted ui with defaults applied. Reading never writes to the state.
-  uiOf(originId) {
-    const ui = ViewState.get(originId, this.viewName).ui;
+  uiOf(sourceId) {
+    const ui = ViewState.get(sourceId, this.viewName).ui;
     const defaults = this.defaultUi();
     return {
       mode: ui.mode || defaults.mode,
@@ -40,10 +40,10 @@ const SliderState = {
   // narrowed by "only matching", in the stored random order when "random" is on.
   // The random order is kept in ui.order and only extended/trimmed to follow
   // the entries, so it is stable between calls.
-  visibleEntries(originId) {
-    const progress = ViewState.get(originId, this.viewName).progress;
-    const ui = this.uiOf(originId);
-    let entries = App.selectedEntries(originId).filter(entry =>
+  visibleEntries(sourceId) {
+    const progress = ViewState.get(sourceId, this.viewName).progress;
+    const ui = this.uiOf(sourceId);
+    let entries = App.selectedEntries(sourceId).filter(entry =>
       !progress[entry.id]?.removed);
 
     if(ui.onlyMatching && this.compatibleMatchingModes.includes(ui.mode)) {
@@ -56,7 +56,7 @@ const SliderState = {
       const missing = ids.filter(id => !known.includes(id));
       const order = known.length ? known.concat(Utils.shuffle(missing)) : Utils.shuffle(ids);
       if(order.length !== ui.order.length || order.some((id, i) => id !== ui.order[i])) {
-        ViewState.setUi(originId, this.viewName, { order });
+        ViewState.setUi(sourceId, this.viewName, { order });
       }
       const byId = Object.fromEntries(entries.map(entry => [entry.id, entry]));
       entries = order.map(id => byId[id]).filter(Boolean);
@@ -65,8 +65,8 @@ const SliderState = {
   },
 
   // A new card mode starts every card from its first side.
-  setMode(originId, mode) {
-    ViewState.setUi(originId, this.viewName, { mode, sideIndexes: {} });
+  setMode(sourceId, mode) {
+    ViewState.setUi(sourceId, this.viewName, { mode, sideIndexes: {} });
   },
 
   isEntryInProgress(item) {
@@ -78,8 +78,8 @@ const SliderState = {
   },
 
   // Toggle a hit/lapse on one side. Returns true when the mark was set.
-  toggleSideMark(originId, entryId, mark, sideIndex) {
-    const item = Object.assign({}, ViewState.entry(originId, this.viewName, entryId));
+  toggleSideMark(sourceId, entryId, mark, sideIndex) {
+    const item = Object.assign({}, ViewState.entry(sourceId, this.viewName, entryId));
     const other = mark === 'hits' ? 'lapses' : 'hits';
     const values = Array.isArray(item[mark]) ? item[mark].slice() : [];
     const idx = values.indexOf(sideIndex);
@@ -97,31 +97,31 @@ const SliderState = {
       if(!item[other].length) delete item[other];
     }
 
-    ViewState.setEntry(originId, this.viewName, entryId, item);
+    ViewState.setEntry(sourceId, this.viewName, entryId, item);
     return active;
   },
 
-  removeEntry(originId, entryId) {
-    const item = Object.assign({}, ViewState.entry(originId, this.viewName, entryId));
+  removeEntry(sourceId, entryId) {
+    const item = Object.assign({}, ViewState.entry(sourceId, this.viewName, entryId));
     item.removed = true;
     delete item.hits;
     delete item.lapses;
-    ViewState.setEntry(originId, this.viewName, entryId, item);
+    ViewState.setEntry(sourceId, this.viewName, entryId, item);
   },
 
   // Remember which side is open. Not progress, so no event and no mark.
-  setSideIndex(originId, entryId, sideIndex) {
-    const state = ViewState.get(originId, this.viewName);
+  setSideIndex(sourceId, entryId, sideIndex) {
+    const state = ViewState.get(sourceId, this.viewName);
     const sideIndexes = Object.assign({}, state.ui.sideIndexes || {}, {
       [entryId]: sideIndex,
     });
-    ViewState.setUi(originId, this.viewName, { sideIndexes });
+    ViewState.setUi(sourceId, this.viewName, { sideIndexes });
   },
 
   // Selection changes reset navigation only, exactly as Slider v1 did. Review
   // marks and removed entries stay available when the old scope is restored.
-  resetNavigation(originId) {
-    const state = ViewState.get(originId, this.viewName);
+  resetNavigation(sourceId) {
+    const state = ViewState.get(sourceId, this.viewName);
     delete state.ui.order;
     delete state.ui.currentEntryId;
     delete state.ui.sideIndexes;

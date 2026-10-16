@@ -1,7 +1,7 @@
 // SessionsUI: modal list of sources that have review progress, with one letter
 // tag per view in progress. Click a source name to switch to it; click a letter
 // to switch to that source and view. It only reads Progress.activeSessions()
-// and changes state through App.selectOrigin / App.setView.
+// and changes state through App.selectSource / App.setView.
 const SessionsUI = {
   name: 'SessionsUI',
 
@@ -15,8 +15,8 @@ const SessionsUI = {
     click: {
       '#sessions': 'closeFromOverlay',
       '@closeEl': 'close',
-      '#sessionsList [data-session-origin]': 'pickOrigin',
-      '#sessionsList [data-session-view]': 'pickOriginAndView',
+      '#sessionsList [data-session-source]': 'pickSource',
+      '#sessionsList [data-session-view]': 'pickSourceAndView',
     },
   },
 
@@ -83,14 +83,14 @@ const SessionsUI = {
   },
 
   rowTemplate(session) {
-    const origin = Utils.escapeHtml(session.originId);
+    const source = Utils.escapeHtml(session.sourceId);
     return `
       <tr>
-        <td data-session-origin="${origin}">${origin}</td>
+        <td data-session-source="${source}">${source}</td>
         <td>
           ${session.views.map(view => `
           <div class="tag"
-            data-session-origin="${origin}"
+            data-session-source="${source}"
             data-session-view="${Utils.escapeHtml(view.name)}"
             >
             ${Utils.escapeHtml(view.label)}
@@ -106,18 +106,18 @@ const SessionsUI = {
     this.dom.listEl.innerHTML = vm.isOpen ? this.template(vm) : '';
   },
 
-  pickOrigin(el, e) {
-    // A letter tag also carries data-session-origin; it is handled by pickOriginAndView.
+  pickSource(el, e) {
+    // A letter tag also carries data-session-source; it is handled by pickSourceAndView.
     if(el.dataset.sessionView) return;
     Busy.beginAndRun(() => {
-      App.selectOrigin(el.dataset.sessionOrigin);
+      App.selectSource(el.dataset.sessionSource);
       this.close();
     });
   },
 
-  pickOriginAndView(el) {
+  pickSourceAndView(el) {
     Busy.beginAndRun(() => {
-      App.selectOrigin(el.dataset.sessionOrigin);
+      App.selectSource(el.dataset.sessionSource);
       App.setView(el.dataset.sessionView);
       this.close();
     });

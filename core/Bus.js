@@ -8,7 +8,7 @@ const Bus = {
     sourcesChanged: 'sourcesChanged',
     //sourceLoaded: 'sourceLoaded',
     sourceReloaded: 'sourceReloaded',
-    originSelected: 'originSelected',
+    sourceSelected: 'sourceSelected',
     selectionChanged: 'selectionChanged',
     viewChanged: 'viewChanged',
     viewsChanged: 'viewsChanged',

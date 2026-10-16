@@ -2,7 +2,7 @@
 // by ViewState/SliderState; DOM is only a projection of that state.
 //
 // Component state that is not persisted (dropped by rebuild(): on a view,
-// origin, source or selection change and on actions that rebuild the slides):
+// source or selection change and on actions that rebuild the slides):
 //   entries    - domain entries the slides are built from, in slide order
 //   entryIds   - their ids; a position in Keen maps to an id through it
 //   sideOrders - { [entryId]: lines } order of the sides of a card. It can be
@@ -63,10 +63,10 @@ const SliderUI = {
     Bus.batchedMethod(this, 'render');
     Bus.on(Bus.events.viewChanged, () => this.rebuild());
     DropdownUI.on('sliderCardMode', mode => this.changeMode(mode));
-    Bus.on(Bus.events.originSelected, () => this.rebuild());
+    Bus.on(Bus.events.sourceSelected, () => this.rebuild());
     Bus.on(Bus.events.sourcesChanged, () => this.rebuild());
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
-      if(sourceId !== App.currentOrigin) return;
+      if(sourceId !== App.currentSource) return;
       SliderState.resetNavigation(sourceId);
       this.rebuild();
     });
@@ -113,14 +113,14 @@ const SliderUI = {
   // ---- state -----------------------------------------------------------------------
 
   // The loaded current source, or null.
-  origin() {
-    const originId = App.currentOrigin;
-    return originId && Library.hasSource(originId) ? originId : null;
+  sliderSource() {
+    const sourceId = App.currentSource;
+    return sourceId && Library.hasSource(sourceId) ? sourceId : null;
   },
 
   persistedUi() {
-    const originId = this.origin();
-    return originId ? SliderState.uiOf(originId) : SliderState.defaultUi();
+    const sourceId = this.sliderSource();
+    return sourceId ? SliderState.uiOf(sourceId) : SliderState.defaultUi();
   },
 
   // Drops the non-persisted card state and renders the slides from scratch.
@@ -134,9 +134,9 @@ const SliderUI = {
   // Entries are loaded only while the slider is the visible view: selection
   // changes fire for every view.
   loadEntries() {
-    const originId = this.origin();
-    const active = App.currentView === this.viewName && originId;
-    this.entries = active ? SliderState.visibleEntries(originId) : [];
+    const sourceId = this.sliderSource();
+    const active = App.currentView === this.viewName && sourceId;
+    this.entries = active ? SliderState.visibleEntries(sourceId) : [];
     this.entryIds = this.entries.map(entry => entry.id);
   },
 
@@ -232,11 +232,11 @@ const SliderUI = {
   // Counters, controls and hit/lapse marks depend on the widget position, so
   // they are rendered after the widget is created and on every slide change.
   controlsViewModel() {
-    const originId = this.origin();
+    const sourceId = this.sliderSource();
     const ui = this.persistedUi();
     const entryId = this.currentEntryId();
-    const item = originId && entryId != null
-      ? ViewState.entry(originId, this.viewName, entryId) : null;
+    const item = sourceId && entryId != null
+      ? ViewState.entry(sourceId, this.viewName, entryId) : null;
     const side = entryId != null ? this.currentSideIndex(entryId, ui) : null;
     return {
       mode: ui.mode,
@@ -380,14 +380,14 @@ const SliderUI = {
   // ---- handlers (clean: change state or domain, then render) -----------------------
 
   changeMode(mode) {
-    const originId = this.origin();
-    if(!originId) return;
-    SliderState.setMode(originId, mode);
+    const sourceId = this.sliderSource();
+    if(!sourceId) return;
+    SliderState.setMode(sourceId, mode);
     this.rebuild();
   },
 
   changeMatching(el) {
-    ViewState.setUi(App.currentOrigin, this.viewName, {
+    ViewState.setUi(App.currentSource, this.viewName, {
       onlyMatching: el.checked,
       currentEntryId: null,
     });
@@ -396,7 +396,7 @@ const SliderUI = {
 
   // The random order itself is created by SliderState.visibleEntries().
   changeRandom(el) {
-    ViewState.setUi(App.currentOrigin, this.viewName, {
+    ViewState.setUi(App.currentSource, this.viewName, {
       random: el.checked,
       order: [],
       currentEntryId: null,
@@ -405,7 +405,7 @@ const SliderUI = {
   },
 
   reset() {
-    if(!App.currentOrigin) return;
+    if(!App.currentSource) return;
     Prompt.ask({
       text: 'Really reset the Slider?',
       onConfirm: () => this.doReset(),
@@ -413,9 +413,9 @@ const SliderUI = {
   },
 
   doReset() {
-    if(!App.currentOrigin) return;
-    const ids = App.selectedEntries(App.currentOrigin).map(e => e.id);
-    ViewState.resetEntries(App.currentOrigin, this.viewName, ids, SliderState.defaultUi());
+    if(!App.currentSource) return;
+    const ids = App.selectedEntries(App.currentSource).map(e => e.id);
+    ViewState.resetEntries(App.currentSource, this.viewName, ids, SliderState.defaultUi());
     this.rebuild();
   },
 
@@ -431,7 +431,7 @@ const SliderUI = {
     if(indexes.length < 2) return;
     const ui = this.persistedUi();
     const next = this.nextSideIndex(indexes, this.currentSideIndex(entryId, ui));
-    SliderState.setSideIndex(App.currentOrigin, entryId, next);
+    SliderState.setSideIndex(App.currentSource, entryId, next);
     this.renderSlide(entryId);
     this.renderControls();
   },
@@ -475,7 +475,7 @@ const SliderUI = {
     if(entryId == null) return;
     const side = this.currentSideIndex(entryId, this.persistedUi());
     if(side == null) return;
-    SliderState.toggleSideMark(App.currentOrigin, entryId, mark, side);
+    SliderState.toggleSideMark(App.currentSource, entryId, mark, side);
     this.renderControls();
   },
 
@@ -490,13 +490,13 @@ const SliderUI = {
   doRemoveCurrent() {
     const entryId = this.currentEntryId();
     if(entryId == null || this.entryIds.length === 1) return;
-    const originId = App.currentOrigin;
+    const sourceId = App.currentSource;
     const position = this.currentIndex();
-    SliderState.removeEntry(originId, entryId);
+    SliderState.removeEntry(sourceId, entryId);
     // Preserve position: the slide that takes the removed one's place becomes current.
-    const entries = SliderState.visibleEntries(originId);
+    const entries = SliderState.visibleEntries(sourceId);
     const next = entries[position] || entries[0];
-    ViewState.replaceUiValue(originId, this.viewName, 'currentEntryId', next ? next.id : null);
+    ViewState.replaceUiValue(sourceId, this.viewName, 'currentEntryId', next ? next.id : null);
     this.rebuild();
   },
 
@@ -509,7 +509,7 @@ const SliderUI = {
       this.renderSlide(previous);
     }
     if(entryId != null) {
-      ViewState.replaceUiValue(App.currentOrigin, this.viewName, 'currentEntryId', entryId);
+      ViewState.replaceUiValue(App.currentSource, this.viewName, 'currentEntryId', entryId);
     }
     this.renderControls();
   },

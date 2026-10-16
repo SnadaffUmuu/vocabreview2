@@ -4,9 +4,9 @@
 // ViewState.isEntryInProgress(viewName, item).
 const Progress = {
 
-  // View names that have at least one entry with real progress for an origin.
-  viewsInProgress(originId) {
-    const viewStates = App.views[originId] || {};
+  // View names that have at least one entry with real progress for a source.
+  viewsInProgress(sourceId) {
+    const viewStates = App.views[sourceId] || {};
     return Object.keys(viewStates).filter(viewName => {
       const progress = viewStates[viewName].progress || {};
       return Object.keys(progress).some(entryId =>
@@ -14,16 +14,16 @@ const Progress = {
     });
   },
 
-  // [{ originId, views: [{ name, label }] }] for loaded origins that have a
+  // [{ sourceId, views: [{ name, label }] }] for loaded sources that have a
   // view in progress. Backs the sessions dialog.
   activeSessions() {
     const result = [];
-    Object.keys(App.views).forEach(originId => {
-      if(!Library.hasSource(originId)) return;
-      const views = this.viewsInProgress(originId)
+    Object.keys(App.views).forEach(sourceId => {
+      if(!Library.hasSource(sourceId)) return;
+      const views = this.viewsInProgress(sourceId)
         .map(name => ({ name, label: ViewState.labelOf(name) }))
         .sort((a, b) => a.label.localeCompare(b.label));
-      if(views.length) result.push({ originId, views });
+      if(views.length) result.push({ sourceId, views });
     });
     return result;
   },

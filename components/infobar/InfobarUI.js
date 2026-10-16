@@ -17,7 +17,7 @@ const InfobarUI = {
   init() {
     this.ensureMarkup();
     Bus.batchedMethod(this, 'render');
-    Bus.on(Bus.events.originSelected, () => this.render());
+    Bus.on(Bus.events.sourceSelected, () => this.render());
     Bus.on(Bus.events.selectionChanged, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
     Bus.on(Bus.events.settingsChanged, () => this.render());
@@ -47,11 +47,11 @@ const InfobarUI = {
 
   // The only place that reads domain state.
   viewModel() {
-    const originId = App.currentOrigin;
-    const loaded = !!originId && Library.hasSource(originId);
+    const sourceId = App.currentSource;
+    const loaded = !!sourceId && Library.hasSource(sourceId);
     return {
-      source: loaded ? originId : '',
-      count: loaded ? String(App.selectedEntries(originId).length) : '',
+      source: loaded ? sourceId : '',
+      count: loaded ? String(App.selectedEntries(sourceId).length) : '',
       night: App.night,
     };
   },

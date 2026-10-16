@@ -29,7 +29,7 @@ const MenuUI = {
     this.ensureMarkup();
     this.isOpened = false;
     Bus.batchedMethod(this, 'render');
-    Bus.on(Bus.events.originSelected, () => this.render());
+    Bus.on(Bus.events.sourceSelected, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
     Bus.on(Bus.events.viewChanged, () => this.render());
     DropdownUI.on('menuSources', id => this.loadSource(id));
@@ -106,7 +106,7 @@ const MenuUI = {
     } else {
       Library.setSource(id, raw, origin);
     }
-    App.selectOrigin(id);
+    App.selectSource(id);
   },
 
   render() {
@@ -117,7 +117,7 @@ const MenuUI = {
     this.dom.triggerEl.setAttribute('aria-label', this.isOpened ? 'Close menu' : 'Open menu');
 
     // Sources dropdown: always the hard-coded list, loaded or not.
-    DropdownUI.setValue('menuSources', App.currentOrigin);
+    DropdownUI.setValue('menuSources', App.currentSource);
 
     // View highlight.
     Array.from(this.dom.viewSwitcherEl.querySelectorAll('.switchView')).forEach(btn => {
@@ -130,7 +130,7 @@ const MenuUI = {
   async loadSource(id) {
     if(!id) return;
     if(Library.hasSource(id)) {
-      Busy.beginAndRun(() => App.selectOrigin(id));
+      Busy.beginAndRun(() => App.selectSource(id));
       return;
     }
 
@@ -147,7 +147,7 @@ const MenuUI = {
       return;
     }
     // The dropdown shows the requested id already; restore it to the real current
-    // origin in case the picker is cancelled.
+    // source in case the picker is cancelled.
     this.render();
     this.pickFile(id, picked => {
       Busy.beginAndRun(() => this._installSource(id, picked, 'file'));
@@ -189,7 +189,7 @@ const MenuUI = {
   },
 
   reloadCurrent() {
-    const id = App.currentOrigin;
+    const id = App.currentSource;
     if(!id) return;
     Prompt.ask({
       text: `Reload source "${id}"? Its progress and selection will be reset.`,

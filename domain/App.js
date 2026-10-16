@@ -1,18 +1,18 @@
-// App: owns current selection state (current origin, current view, theme),
-// per-source selections (which sections are checked), and per-origin/per-view
+// App: owns current selection state (current source, current view, theme),
+// per-source selections (which sections are checked), and per-source/per-view
 // progress. The single point that writes views/selections/settings to Storage.
 // No DOM.
 //
 // Data model:
-//   views[originId][viewName] = { progress: { [entryId]: {...} }, ui: {...} }
+//   views[sourceId][viewName] = { progress: { [entryId]: {...} }, ui: {...} }
 //   selections[sourceId] = [sectionIds]
-//   settings = { currentOrigin, currentView, night }
+//   settings = { currentSource, currentView, night }
 const App = {
 
   views: {},
   selections: {},
   settings: {
-    currentOrigin: null,
+    currentSource: null,
     currentView: 'data',
     night: false,
   },
@@ -41,8 +41,8 @@ const App = {
     });
     if(viewsChanged) this.saveViews();
     if(selectionsChanged) Storage.save(Storage.KEY.selections, this.selections);
-    if(this.settings.currentOrigin && !allowed.has(this.settings.currentOrigin)) {
-      this.settings.currentOrigin = null;
+    if(this.settings.currentSource && !allowed.has(this.settings.currentSource)) {
+      this.settings.currentSource = null;
       this._saveSettings();
     }
   },
@@ -50,7 +50,7 @@ const App = {
   // ---- settings ------------------------------------------------------------------
 
   get night() { return this.settings.night; },
-  get currentOrigin() { return this.settings.currentOrigin; },
+  get currentSource() { return this.settings.currentSource; },
   get currentView() { return this.settings.currentView; },
 
   _saveSettings() {
@@ -63,11 +63,11 @@ const App = {
     Bus.emit(Bus.events.settingsChanged, { night: this.settings.night });
   },
 
-  selectOrigin(id) {
+  selectSource(id) {
     this.ensureSelection(id);
-    this.settings.currentOrigin = id;
+    this.settings.currentSource = id;
     this._saveSettings();
-    Bus.emit(Bus.events.originSelected, { id });
+    Bus.emit(Bus.events.sourceSelected, { id });
   },
 
   setView(name) {
@@ -121,22 +121,22 @@ const App = {
     return source.parsed.allEntries.filter(e => set.has(e.section));
   },
 
-  // ---- view state (per origin, per view) -----------------------------------------
+  // ---- view state (per source, per view) -----------------------------------------
 
-  getViewState(originId, viewName) {
-    if(!this.views[originId]) this.views[originId] = {};
-    if(!this.views[originId][viewName]) {
-      this.views[originId][viewName] = { progress: {}, ui: {} };
+  getViewState(sourceId, viewName) {
+    if(!this.views[sourceId]) this.views[sourceId] = {};
+    if(!this.views[sourceId][viewName]) {
+      this.views[sourceId][viewName] = { progress: {}, ui: {} };
     }
-    return this.views[originId][viewName];
+    return this.views[sourceId][viewName];
   },
 
   saveViews() {
     Storage.save(Storage.KEY.views, this.views);
   },
 
-  clearViewsFor(originId) {
-    delete this.views[originId];
+  clearViewsFor(sourceId) {
+    delete this.views[sourceId];
     this.saveViews();
   },
 };

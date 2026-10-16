@@ -6,9 +6,9 @@
 //
 //   vocabreview2.src.<id>   one key per source: {raw, origin, loadedAt}
 //   vocabreview2.collections custom collections (full entry copies)
-//   vocabreview2.views       progress per origin per view (written often)
+//   vocabreview2.views       progress per source per view (written often)
 //   vocabreview2.selections  selected section ids per source
-//   vocabreview2.settings    theme, current origin, current view
+//   vocabreview2.settings    theme, current source, current view
 const Storage = {
 
   PREFIX: 'vocabreview2.',

@@ -34,7 +34,7 @@ const DataViewUI = {
     this.ensureMarkup();
     Bus.batchedMethod(this, 'render');
     Bus.on(Bus.events.viewChanged, () => this.render());
-    Bus.on(Bus.events.originSelected, () => this.render());
+    Bus.on(Bus.events.sourceSelected, () => this.render());
     Bus.on(Bus.events.selectionChanged, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
   },
@@ -82,7 +82,7 @@ const DataViewUI = {
   // is hidden: selection changes fire for every view.
   viewModel() {
     const visible = App.currentView === this.viewName;
-    const sourceId = App.currentOrigin;
+    const sourceId = App.currentSource;
     const vm = {
       visible,
       onlyFiltered: this.onlyFiltered,

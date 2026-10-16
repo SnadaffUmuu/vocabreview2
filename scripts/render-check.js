@@ -17,9 +17,9 @@ const StructureUI = make('components/structure/StructureUI.js', 'StructureUI');
 // SessionsUI.template
 assert(SessionsUI.template({ sessions: [] }).includes('No sessions in progress'));
 const sessionsHtml = SessionsUI.template({
-  sessions: [{ originId: 'a"b', views: [{ name: 's', label: '<S>' }] }],
+  sessions: [{ sourceId: 'a"b', views: [{ name: 's', label: '<S>' }] }],
 });
-assert(sessionsHtml.includes('data-session-origin="a&quot;b"'));
+assert(sessionsHtml.includes('data-session-source="a&quot;b"'));
 assert(sessionsHtml.includes('data-session-view="s"'));
 assert(!sessionsHtml.includes('<S>') && sessionsHtml.includes('&lt;S&gt;'));
 
@@ -56,11 +56,11 @@ assert(html.includes('data-indeterminate') && html.includes('<details class="tre
 assert(html.includes('A&lt;b&gt;') && !html.includes('A<b>'));
 
 // InfobarUI.viewModel
-let App = { currentOrigin: 'src', night: true, selectedEntries: () => [1, 2, 3] };
+let App = { currentSource: 'src', night: true, selectedEntries: () => [1, 2, 3] };
 let Library = { hasSource: id => id === 'src' };
 let InfobarUI = make('components/infobar/InfobarUI.js', 'InfobarUI', { App, Library });
 assert.deepStrictEqual(InfobarUI.viewModel(), { source: 'src', count: '3', night: true });
-App.currentOrigin = 'missing';
+App.currentSource = 'missing';
 assert.deepStrictEqual(InfobarUI.viewModel(), { source: '', count: '', night: true });
 
 // PromptUI.viewModel
@@ -74,9 +74,9 @@ assert.strictEqual(PromptUI.viewModel().confirmLabel, 'Confirm');
 // DataViewUI: pure helpers and templates
 const DataViewUI = make('components/data-view/DataViewUI.js', 'DataViewUI');
 assert.strictEqual(DataViewUI.reviewLevelStyle('2'),
-  'color:var(--revLevelMinorTextColor);border-bottom:1px solid var(--revLevelMinorTextColor);');
+  'color:var(--revLevelMinorTextColor); border-bottom:1px solid var(--revLevelMinorTextColor);');
 assert.strictEqual(DataViewUI.reviewLevelStyle('200'),
-  'color:var(--revLevelTextColor);border-bottom:2px solid var(--revLevelTextColor);');
+  'color:var(--revLevelTextColor); border-bottom:2px solid var(--revLevelTextColor);');
 const tree = [{ name: 'A', children: [{ name: 'a1' }] }, { name: 'B' }];
 assert.strictEqual(DataViewUI.breadcrumbs(tree, '0.0'), 'A / a1');
 assert.strictEqual(DataViewUI.breadcrumbs(tree, '1'), 'B');

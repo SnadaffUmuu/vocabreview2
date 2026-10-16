@@ -32,7 +32,7 @@ Storage.save(Storage.KEY.views, {
   'not-imported': { slider: { progress: {} } },
 });
 Storage.save(Storage.KEY.selections, { [listed]: ['0'], [retired]: ['1'] });
-Storage.save(Storage.KEY.settings, { currentOrigin: retired, currentView: 'slider', night: true });
+Storage.save(Storage.KEY.settings, { currentSource: retired, currentView: 'slider', night: true });
 localStorage.setItem('vocabreview.src.legacy', 'leave alone');
 localStorage.setItem('vocabreview2.collections', 'leave alone');
 
@@ -45,8 +45,8 @@ assert.equal(Storage.loadSource(retired), null);
 assert.equal(Storage.loadSource('another-retired-book'), null);
 assert.deepEqual(Object.keys(Storage.load(Storage.KEY.views, {})), [listed]);
 assert.deepEqual(Object.keys(Storage.load(Storage.KEY.selections, {})), [listed]);
-assert.equal(App.currentOrigin, null);
-assert.equal(Storage.load(Storage.KEY.settings, {}).currentOrigin, null);
+assert.equal(App.currentSource, null);
+assert.equal(Storage.load(Storage.KEY.settings, {}).currentSource, null);
 assert.equal(App.currentView, 'slider');
 assert.equal(App.night, true);
 assert.equal(localStorage.getItem('vocabreview.src.legacy'), 'leave alone');
@@ -57,7 +57,7 @@ Storage.removeUnlistedSources(SOURCES_LIST);
 App.removeUnlistedSources(SOURCES_LIST);
 assert.deepEqual(Array.from(data), once);
 
-App.settings.currentOrigin = listed;
+App.settings.currentSource = listed;
 App.removeUnlistedSources(SOURCES_LIST);
-assert.equal(App.currentOrigin, listed);
+assert.equal(App.currentSource, listed);
 console.log('storage cleanup check passed');
