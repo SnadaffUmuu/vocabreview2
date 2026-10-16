@@ -16,6 +16,14 @@ const Prompt = {
     return this.current !== null;
   },
 
+  // What a projection needs; callbacks never leave this object.
+  get state() {
+    const prompt = this.current;
+    return prompt
+      ? { open: true, text: prompt.text, notify: prompt.notify }
+      : { open: false, text: '', notify: false };
+  },
+
   ask({ text, onConfirm = () => {}, onCancel = () => {} }) {
     this._open({ text, notify: false, onConfirm, onCancel });
   },
@@ -36,14 +44,14 @@ const Prompt = {
   _open(prompt) {
     if(this.current) return;
     this.current = prompt;
-    Bus.emit(Bus.events.promptChanged, { open: true, text: prompt.text, notify: prompt.notify });
+    Bus.emit(Bus.events.promptChanged);
   },
 
   _close(callbackName) {
     const prompt = this.current;
     if(!prompt) return;
     this.current = null;
-    Bus.emit(Bus.events.promptChanged, { open: false, text: '', notify: false });
+    Bus.emit(Bus.events.promptChanged);
     prompt[callbackName]();
   },
 };

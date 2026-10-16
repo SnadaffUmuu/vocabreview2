@@ -1,6 +1,13 @@
 // DataViewUI: read-only, maximally detailed dump of the selected collection
 // for the current source, plus a search box. No tests/editor (not wanted).
 // Shows/hides itself based on App.currentView === 'data'.
+//
+// Component state:
+//   onlyFiltered - the "only selection" checkbox
+//   searchValue  - the applied search query
+// The text typed into the search input is an uncommitted draft that lives in
+// the input itself (caret, IME); render() never writes it back. It becomes
+// state when the user commits it (Enter / the search event).
 const DataViewUI = {
   name: 'DataViewUI',
   viewName: 'data',
@@ -17,8 +24,11 @@ const DataViewUI = {
   events: {
     keydown: { '@searchEl': 'doSearch' },
     search: { '@searchEl': 'doSearchValue' },
-    change: { '@filteredEl': 'render' },
+    change: { '@filteredEl': 'changeFiltered' },
   },
+
+  onlyFiltered: true,
+  searchValue: '',
 
   init() {
     this.ensureMarkup();
@@ -34,17 +44,23 @@ const DataViewUI = {
     const html = `
       <div id="dataView" class="appView">
         <div id="dataViewActions">
-          <label>only selection <input type="checkbox" id="dataFiltered" checked></label>
+          <label>only selection <input type="checkbox" id="dataFiltered"></label>
           <input type="search" id="dataSearch" placeholder="search">
           <div id="dataResCounter" class="tag"></div>
         </div>
         <div id="dataOutput"></div>
-      </div>`;
+      </div>
+      `;
     document.querySelector('#appBody').insertAdjacentHTML('beforeend', html);
     Utils.cacheComponentDom(this);
   },
 
-  // ---- search -------------------------------------------------------------------
+  // ---- handlers (clean: change component state, then render) ------------------------
+
+  changeFiltered(el) {
+    this.onlyFiltered = el.checked;
+    this.render();
+  },
 
   // Enter on a mobile keyboard may report keyCode 229/0, so check e.key. The
   // 'search' event (fired by type=search on Enter or clear) is handled too.
@@ -52,6 +68,7 @@ const DataViewUI = {
     if(e.key === 'Enter') this.doSearchValue(el);
   },
 
+  // DOM-touching: commits the input draft (see the header) into state.
   doSearchValue(el) {
     const value = el.value.trim();
     if(value === this.searchValue) return;
@@ -59,32 +76,33 @@ const DataViewUI = {
     this.render();
   },
 
-  // ---- rendering -----------------------------------------------------------------
+  // ---- view model ----------------------------------------------------------------
 
-  render() {
-    // Screen guard: only visible as the 'data' view.
-    this.dom.root.classList.toggle('hidden', App.currentView !== this.viewName);
-    if(App.currentView !== this.viewName) return;
-
-    this.dom.outputEl.innerHTML = '';
-    this.dom.counterEl.innerHTML = '';
-
+  // The only place that reads domain state. Nothing is computed while the view
+  // is hidden: selection changes fire for every view.
+  viewModel() {
+    const visible = App.currentView === this.viewName;
     const sourceId = App.currentOrigin;
-    if(!sourceId || !Library.hasSource(sourceId)) return;
+    const vm = {
+      visible,
+      onlyFiltered: this.onlyFiltered,
+      query: this.searchValue,
+      count: '',
+      entries: [],
+    };
+    if(!visible || !sourceId || !Library.hasSource(sourceId)) return vm;
 
-    let entries;
-    if(this.searchValue) {
-      entries = this.searchAllSources(this.searchValue);
-    } else {
-      entries = this.dom.filteredEl.checked
-        ? App.selectedEntries(sourceId)
-        : Library.getSource(sourceId).parsed.allEntries;
-    }
+    const entries = this.entriesToShow(sourceId);
+    vm.count = String(entries.length);
+    vm.entries = entries.map(entry => this.entryViewModel(entry, sourceId));
+    return vm;
+  },
 
-    const html = entries.map(en =>
-      this.renderEntry(en, sourceId, this.searchValue)).join('');
-    this.dom.outputEl.innerHTML = html;
-    this.dom.counterEl.innerHTML = String(entries.length);
+  entriesToShow(sourceId) {
+    if(this.searchValue) return this.searchAllSources(this.searchValue);
+    return this.onlyFiltered
+      ? App.selectedEntries(sourceId)
+      : Library.getSource(sourceId).parsed.allEntries;
   },
 
   searchAllSources(query) {
@@ -104,70 +122,40 @@ const DataViewUI = {
     return results;
   },
 
-  renderEntry(entry, fallbackSourceId, query) {
-    const rl = entry.reviewLevel;
-    let info = '';
-
-    if(entry.tag) {
-      info += `<div class="tag">${Utils.escapeHtml(entry.tag)}</div>`;
-    }
-
-    info += `<ul class="linesList">${entry.lines.map((line, i) => {
-      let templ = this.highlight(line.text, query);
-
-      if(i === 0 && entry.reviewLevel) {
-        const p = parseInt(rl, 10);
-        const color = `color:${p >= 100 ? 'var(--revLevelTextColor)' : 'var(--revLevelMinorTextColor)'};`;
-        const border = `border-bottom:${p < 100 ? (p - 1) : rl.substring(0, 1)}px solid ${p >= 100 ? 'var(--revLevelTextColor)' : 'var(--revLevelMinorTextColor)'};`;
-        templ = `
-        <span 
-          data-review-level="${Utils.escapeHtml(rl)}" 
-          class="revLevel" 
-          style="${color}${border}">${templ}
-        </span>`;
-      }
-
-      if(line.role) {
-        templ += `<span class="lineRole"> ......${Utils.escapeHtml(line.role)}${line.translationLineIndex != null ? ` (trans.l.index: ${line.translationLineIndex})` : ''}</span>`;
-      }
-
-      const compact = line.isCompact ? 'font-size:15px;' : '';
-      return `<li${line.role ? ` data-role="${Utils.escapeHtml(line.role)}"` : ''}${compact ? ' class="compact"' : ''}>${templ}</li>`;
-    }).join('')}</ul>`;
-
-    if(entry.info) {
-      info += `<div class="entryInfo">ⓘ&nbsp;${Utils.escapeHtml(entry.info)}</div>`;
-    }
-
+  // Plain data for one entry; template() needs neither Library nor App.
+  entryViewModel(entry, fallbackSourceId) {
     const sourceId = entry.sourceId || fallbackSourceId;
-    info += `
-      <div class="section">${query ? `
-        <span class="entrySource">${Utils.escapeHtml(sourceId)}</span> ` : ''}
-        ${Utils.escapeHtml(this.breadcrumbs(sourceId, entry.section))}
-      </div>`;
-
-    return `
-    <article class="dataEntry">${rl ? `
-      <div class="reviewLevel tag">
-        ${Utils.escapeHtml(rl)}
-      </div>` : ''}
-      ${info}
-    </article>`;
-  },
-
-  highlight(text, query) {
-    if(!query) return Utils.escapeHtml(text);
-    const parts = String(text).split(query);
-    return parts.map(Utils.escapeHtml).join(`<strong>${Utils.escapeHtml(query)}</strong>`);
-  },
-
-  breadcrumbs(sourceId, sectionId) {
-    if(sectionId == null) return '';
     const source = Library.getSource(sourceId);
-    if(!source) return '';
+    return {
+      sourceId,
+      tag: entry.tag,
+      info: entry.info,
+      reviewLevel: entry.reviewLevel,
+      lines: entry.lines.map((line, i) => ({
+        text: line.text,
+        role: line.role,
+        compact: !!line.isCompact,
+        translationLineIndex: line.translationLineIndex,
+        // Only the first line of an entry carries the review level.
+        level: i === 0 && entry.reviewLevel ? entry.reviewLevel : '',
+        levelStyle: i === 0 && entry.reviewLevel
+          ? this.reviewLevelStyle(entry.reviewLevel) : '',
+      })),
+      breadcrumbs: this.breadcrumbs(source ? source.parsed.structure : [], entry.section),
+    };
+  },
 
+  reviewLevelStyle(rl) {
+    const p = parseInt(rl, 10);
+    const color = p >= 100 ? 'var(--revLevelTextColor)' : 'var(--revLevelMinorTextColor)';
+    const width = p < 100 ? (p - 1) : rl.substring(0, 1);
+    return `color:${color}; border-bottom:${width}px solid ${color};`;
+  },
+
+  breadcrumbs(structure, sectionId) {
+    if(sectionId == null) return '';
     const parts = sectionId.split('.');
-    let nodes = source.parsed.structure;
+    let nodes = structure;
     const names = [];
     for(let i = 0; i < parts.length; i++) {
       const node = nodes[parseInt(parts[i], 10)];
@@ -176,6 +164,61 @@ const DataViewUI = {
       nodes = node.children || [];
     }
     return names.join(' / ');
+  },
+
+  // ---- markup --------------------------------------------------------------------
+
+  template(vm) {
+    return vm.entries.map(entry => this.entryTemplate(entry, vm.query)).join('');
+  },
+
+  entryTemplate(entry, query) {
+    return `
+      <article class="dataEntry">
+        ${entry.reviewLevel ? `
+        <div class="reviewLevel tag">${Utils.escapeHtml(entry.reviewLevel)}</div>` : ''}
+        ${entry.tag ? `
+        <div class="tag">${Utils.escapeHtml(entry.tag)}</div>` : ''}
+        <ul class="linesList">${entry.lines.map(line => this.lineTemplate(line, query)).join('')}</ul>
+        ${entry.info ? `
+        <div class="entryInfo">ⓘ&nbsp;${Utils.escapeHtml(entry.info)}</div>` : ''}
+        <div class="section">${query ? `
+          <span class="entrySource">${Utils.escapeHtml(entry.sourceId)}</span> ` : ''}
+          ${Utils.escapeHtml(entry.breadcrumbs)}
+        </div>
+      </article>
+      `;
+  },
+
+  // Inline content stays on the tag lines on purpose: whitespace inside <li>
+  // would change how the line looks.
+  lineTemplate(line, query) {
+    const text = this.highlight(line.text, query);
+    const roleSuffix = line.translationLineIndex != null
+      ? ` (trans.l.index: ${Utils.escapeHtml(line.translationLineIndex)})` : '';
+    return `
+      <li
+        ${line.role ? `data-role="${Utils.escapeHtml(line.role)}"` : ''}
+        ${line.compact ? 'class="compact"' : ''}
+        >${line.level ? `<span class="revLevel"
+          data-review-level="${Utils.escapeHtml(line.level)}"
+          style="${Utils.escapeHtml(line.levelStyle)}"
+          >${text}</span>` : text}${line.role ? `<span class="lineRole"> ......${Utils.escapeHtml(line.role)}${roleSuffix}</span>` : ''}</li>
+      `;
+  },
+
+  highlight(text, query) {
+    if(!query) return Utils.escapeHtml(text);
+    const parts = String(text).split(query);
+    return parts.map(Utils.escapeHtml).join(`<strong>${Utils.escapeHtml(query)}</strong>`);
+  },
+
+  render() {
+    const vm = this.viewModel();
+    this.dom.root.classList.toggle('hidden', !vm.visible);
+    this.dom.filteredEl.checked = vm.onlyFiltered;
+    this.dom.counterEl.textContent = vm.count;
+    this.dom.outputEl.innerHTML = this.template(vm);
   },
 };
 

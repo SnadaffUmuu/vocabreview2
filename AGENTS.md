@@ -90,6 +90,7 @@ Handlers split into two kinds:
 Full re-render is not mandatory where it is impossible or harmful:
 - DOM properties with no attribute equivalent: `indeterminate` on checkboxes, `open` on `<details>` when a transition must be preserved, scroll position, focus.
 - Third-party widget lifecycle (Keen Slider `destroy` / `new`).
+- Re-rendering the content of a single element of a region (never the element itself) when the region's container is owned by a third-party widget and rebuilding it would destroy the widget state, e.g. one Slider card after a tap. The content still comes from the same template.
 - Focus and caret restoration after a re-render.
 
 These exceptions are local and documented in the component. They do not justify making the whole render imperative.

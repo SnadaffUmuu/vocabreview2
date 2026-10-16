@@ -21,7 +21,8 @@ const PromptUI = {
 
   init() {
     this.ensureMarkup();
-    Bus.on(Bus.events.promptChanged, state => this.render(state));
+    Bus.batchedMethod(this, 'render');
+    Bus.on(Bus.events.promptChanged, () => this.render());
   },
 
   ensureMarkup() {
@@ -40,11 +41,24 @@ const PromptUI = {
     Utils.cacheComponentDom(this);
   },
 
-  render({ open, text, notify }) {
-    this.dom.textEl.textContent = text;
-    this.dom.confirmEl.textContent = notify ? 'OK' : 'Confirm';
-    this.dom.cancelEl.classList.toggle('hidden', !!notify);
-    this.dom.root.classList.toggle('hidden', !open);
+  // The only place that reads domain state. The event is only a notification:
+  // callbacks of a closing prompt may open the next one before this render runs.
+  viewModel() {
+    const { open, text, notify } = Prompt.state;
+    return {
+      open,
+      text,
+      notify,
+      confirmLabel: notify ? 'OK' : 'Confirm',
+    };
+  },
+
+  render() {
+    const vm = this.viewModel();
+    this.dom.textEl.textContent = vm.text;
+    this.dom.confirmEl.textContent = vm.confirmLabel;
+    this.dom.cancelEl.classList.toggle('hidden', vm.notify);
+    this.dom.root.classList.toggle('hidden', !vm.open);
   },
 
   // Events matches by e.target, so this fires only for the overlay itself.

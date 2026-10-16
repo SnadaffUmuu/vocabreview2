@@ -14,10 +14,9 @@ const AppInit = {
       component.init && component.init();
     });
 
-    // Apply persisted night mode.
-    if(App.night) {
-      document.body.classList.add('night');
-    }
+    // Infobar projects the persisted theme onto <body>; render it right away
+    // (a microtask, before the first paint) so there is no flash of the other theme.
+    InfobarUI.render();
 
     // Explicit initial renders, wrapped in the preloader so the user sees the
     // indicator while the first (potentially large) render is painted. Busy is
@@ -25,7 +24,6 @@ const AppInit = {
     // once the flag is emitted and is hidden from beginAndRun's tail.
     Busy.beginAndRun(() => {
       MenuUI.render();
-      InfobarUI.render();
       StructureUI.render();
       DataViewUI.render();
       SliderUI.render();

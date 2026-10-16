@@ -7,6 +7,68 @@ const SliderState = {
   viewName: 'slider',
   label: 'S',
 
+  // "Only matching" applies to these card modes only: an entry matches when it
+  // has a line with the role of the mode.
+  compatibleMatchingModes: ['meaning', 'example', 'example_translation'],
+
+  defaultUi() {
+    return {
+      mode: 'original',
+      onlyMatching: false,
+      random: false,
+      order: [],
+      sideIndexes: {},
+      currentEntryId: null,
+    };
+  },
+
+  // Persisted ui with defaults applied. Reading never writes to the state.
+  uiOf(originId) {
+    const ui = ViewState.get(originId, this.viewName).ui;
+    const defaults = this.defaultUi();
+    return {
+      mode: ui.mode || defaults.mode,
+      onlyMatching: !!ui.onlyMatching,
+      random: !!ui.random,
+      order: Array.isArray(ui.order) ? ui.order : defaults.order,
+      sideIndexes: ui.sideIndexes || defaults.sideIndexes,
+      currentEntryId: ui.currentEntryId ?? defaults.currentEntryId,
+    };
+  },
+
+  // Entries the slider shows, in slide order: selection minus removed entries,
+  // narrowed by "only matching", in the stored random order when "random" is on.
+  // The random order is kept in ui.order and only extended/trimmed to follow
+  // the entries, so it is stable between calls.
+  visibleEntries(originId) {
+    const progress = ViewState.get(originId, this.viewName).progress;
+    const ui = this.uiOf(originId);
+    let entries = App.selectedEntries(originId).filter(entry =>
+      !progress[entry.id]?.removed);
+
+    if(ui.onlyMatching && this.compatibleMatchingModes.includes(ui.mode)) {
+      entries = entries.filter(entry => entry.lines.some(line => line.role === ui.mode));
+    }
+
+    if(ui.random) {
+      const ids = entries.map(entry => entry.id);
+      const known = ui.order.filter(id => ids.includes(id));
+      const missing = ids.filter(id => !known.includes(id));
+      const order = known.length ? known.concat(Utils.shuffle(missing)) : Utils.shuffle(ids);
+      if(order.length !== ui.order.length || order.some((id, i) => id !== ui.order[i])) {
+        ViewState.setUi(originId, this.viewName, { order });
+      }
+      const byId = Object.fromEntries(entries.map(entry => [entry.id, entry]));
+      entries = order.map(id => byId[id]).filter(Boolean);
+    }
+    return entries;
+  },
+
+  // A new card mode starts every card from its first side.
+  setMode(originId, mode) {
+    ViewState.setUi(originId, this.viewName, { mode, sideIndexes: {} });
+  },
+
   isEntryInProgress(item) {
     return !!(item && (
       item.removed

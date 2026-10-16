@@ -1,5 +1,5 @@
 // InfobarUI: shows the current source name and selected-entry count, plus a
-// night-mode toggle. Renders from domain state; no data of its own.
+// night-mode toggle. Renders from domain state; no state of its own.
 const InfobarUI = {
   name: 'InfobarUI',
 
@@ -40,23 +40,31 @@ const InfobarUI = {
     Utils.cacheComponentDom(this);
   },
 
+  // Clean handler: the theme is applied by render() after settingsChanged.
   toggleNight() {
-    const night = !document.body.classList.contains('night');
-    document.body.classList.toggle('night', night);
-    App.setNight(night);
+    App.setNight(!App.night);
+  },
+
+  // The only place that reads domain state.
+  viewModel() {
+    const originId = App.currentOrigin;
+    const loaded = !!originId && Library.hasSource(originId);
+    return {
+      source: loaded ? originId : '',
+      count: loaded ? String(App.selectedEntries(originId).length) : '',
+      night: App.night,
+    };
   },
 
   render() {
-    const originId = App.currentOrigin;
-    if(originId && Library.hasSource(originId)) {
-      this.dom.sourceEl.textContent = originId;
-      const entries = App.selectedEntries(originId);
-      this.dom.countEl.textContent = entries.length;
-    } else {
-      this.dom.sourceEl.textContent = '';
-      this.dom.countEl.textContent = '';
-    }
-    this.dom.nightEl.classList.toggle('nightMode', App.night);
+    const vm = this.viewModel();
+    this.dom.sourceEl.textContent = vm.source;
+    this.dom.countEl.textContent = vm.count;
+    this.dom.nightEl.classList.toggle('nightMode', vm.night);
+    this.dom.nightEl.setAttribute('aria-pressed', String(vm.night));
+    // The color theme is global and <body> belongs to no component, so the
+    // infobar (which owns the toggle) projects the setting onto it.
+    document.body.classList.toggle('night', vm.night);
   },
 };
 

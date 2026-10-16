@@ -1,5 +1,20 @@
 // SliderUI: swipeable cards backed by Keen Slider. Persistent state is owned
 // by ViewState/SliderState; DOM is only a projection of that state.
+//
+// Component state that is not persisted (dropped by rebuild(): on a view,
+// origin, source or selection change and on actions that rebuild the slides):
+//   entries    - domain entries the slides are built from, in slide order
+//   entryIds   - their ids; a position in Keen maps to an id through it
+//   sideOrders - { [entryId]: lines } order of the sides of a card. It can be
+//                random, so it is resolved once and then reused.
+//   readings   - { [entryId]: 'listened' | 'revealed' } state of the reading bar
+//   openInfoId - id of the card whose info <details> is open
+//
+// Exceptions to a full re-render (see AGENTS.md):
+//   - Keen Slider is destroyed/created together with the slides it owns.
+//   - A tap on a card (rotate a side, reading bar, info) re-renders only the
+//     content of that one slide: rebuilding the container would destroy the
+//     widget and lose the position. The slide element itself is never replaced.
 const SliderUI = {
   name: 'SliderUI',
   viewName: 'slider',
@@ -32,24 +47,28 @@ const SliderUI = {
       '#sliderView .js-slide-inner': 'rotateSide',
       '#sliderView .js-slide-side, #sliderView .js-slide-side span': 'speakSide',
       '#sliderView .slideReading, #sliderView .slideReading span': 'readReading',
+      '#sliderView .entry-info > summary': 'toggleInfo',
     },
   },
 
-  compatibleMatchingModes: ['meaning', 'example', 'example_translation'],
   slider: null,
+  entries: [],
+  entryIds: [],
+  sideOrders: {},
+  readings: {},
+  openInfoId: null,
 
   init() {
     this.ensureMarkup();
     Bus.batchedMethod(this, 'render');
-    Bus.on(Bus.events.viewChanged, () => this.render());
+    Bus.on(Bus.events.viewChanged, () => this.rebuild());
     DropdownUI.on('sliderCardMode', mode => this.changeMode(mode));
-    Bus.on(Bus.events.originSelected, () => this.render());
-    Bus.on(Bus.events.sourcesChanged, () => this.render());
+    Bus.on(Bus.events.originSelected, () => this.rebuild());
+    Bus.on(Bus.events.sourcesChanged, () => this.rebuild());
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
-      if(sourceId === App.currentOrigin) {
-        SliderState.resetNavigation(sourceId);
-        this.render();
-      }
+      if(sourceId !== App.currentOrigin) return;
+      SliderState.resetNavigation(sourceId);
+      this.rebuild();
     });
   },
 
@@ -73,7 +92,11 @@ const SliderUI = {
           <label>Omm <input type="checkbox" id="sliderOnlyMatching"></label>
           <label>R <input type="checkbox" id="sliderRandomOrder"></label>
           <button id="sliderReset">Reset</button>
-          <div id="sliderCounters"><span id="sliderCurrentIndex"></span><span id="sliderCounterSep">/</span><span id="sliderDataCount"></span></div>
+          <div id="sliderCounters">
+            <span id="sliderCurrentIndex"></span>
+            <span id="sliderCounterSep">/</span>
+            <span id="sliderDataCount"></span>
+          </div>
         </div>
         <div id="sliderOuter">
           <div id="sliderLapse" class="sliderMark" aria-label="lapse" role="button" tabindex="0">✗</div>
@@ -81,123 +104,197 @@ const SliderUI = {
           <button id="sliderRemove" aria-label="remove">消</button>
           <div id="sliderContainer" class="keen-slider"></div>
         </div>
-      </div>`;
+      </div>
+      `;
     document.querySelector('#appBody').insertAdjacentHTML('beforeend', html);
     Utils.cacheComponentDom(this);
   },
 
-  state() {
-    const state = ViewState.get(App.currentOrigin, this.viewName);
-    if(!state.ui.mode) state.ui.mode = 'original';
-    if(state.ui.onlyMatching == null) state.ui.onlyMatching = false;
-    if(state.ui.random == null) state.ui.random = false;
-    if(!state.ui.sideIndexes) state.ui.sideIndexes = {};
-    return state;
-  },
+  // ---- state -----------------------------------------------------------------------
 
-  render() {
-    const visible = App.currentView === this.viewName;
-    this.dom.root.classList.toggle('hidden', !visible);
-    if(!visible) {
-      this.destroySlider();
-      return;
-    }
-
-    this.destroySlider();
-    this.dom.containerEl.innerHTML = '';
-    this.dom.currentEl.textContent = '';
-    this.dom.totalEl.textContent = '0';
-
+  // The loaded current source, or null.
+  origin() {
     const originId = App.currentOrigin;
-    if(!originId || !Library.hasSource(originId)) return;
+    return originId && Library.hasSource(originId) ? originId : null;
+  },
 
-    const state = this.state();
-    this.syncControls(state.ui);
-    const entries = this.visibleEntries(originId, state);
-    entries.forEach(entry => {
-      this.dom.containerEl.insertAdjacentHTML('beforeend', this.renderSlide(entry, state));
-    });
-    this.dom.totalEl.textContent = String(entries.length);
+  persistedUi() {
+    const originId = this.origin();
+    return originId ? SliderState.uiOf(originId) : SliderState.defaultUi();
+  },
 
-    if(!entries.length || typeof KeenSlider !== 'function') return;
+  // Drops the non-persisted card state and renders the slides from scratch.
+  rebuild() {
+    this.sideOrders = {};
+    this.readings = {};
+    this.openInfoId = null;
+    this.render();
+  },
 
-    const initial = Math.max(0, entries.findIndex(e => e.id === state.ui.currentEntryId));
-    this.slider = new KeenSlider(this.dom.containerEl, {
-      loop: true,
-      initial,
-      created: slider => this.onSlideChanged(slider),
-      slideChanged: slider => this.onSlideChanged(slider),
+  // Entries are loaded only while the slider is the visible view: selection
+  // changes fire for every view.
+  loadEntries() {
+    const originId = this.origin();
+    const active = App.currentView === this.viewName && originId;
+    this.entries = active ? SliderState.visibleEntries(originId) : [];
+    this.entryIds = this.entries.map(entry => entry.id);
+  },
+
+  // The random side order of a card is resolved once, here, so that
+  // viewModel() and template() stay deterministic.
+  resolveSideOrders(ui) {
+    this.entries.forEach(entry => {
+      if(this.sideOrders[entry.id]) return;
+      this.sideOrders[entry.id] = this.orderLines(
+        this.sideLines(entry),
+        ui.mode,
+        ui.sideIndexes[entry.id],
+      );
     });
   },
 
-  visibleEntries(originId, state) {
-    let entries = App.selectedEntries(originId).filter(entry =>
-      !state.progress[entry.id]?.removed);
-
-    if(state.ui.onlyMatching && this.compatibleMatchingModes.includes(state.ui.mode)) {
-      entries = entries.filter(entry => entry.lines.some(line => line.role === state.ui.mode));
-    }
-
-    if(state.ui.random) {
-      const ids = entries.map(e => e.id);
-      let order = Array.isArray(state.ui.order)
-        ? state.ui.order.filter(id => ids.includes(id)) : [];
-      const missing = ids.filter(id => !order.includes(id));
-      if(!order.length) order = Utils.shuffle(ids);
-      else order = order.concat(Utils.shuffle(missing));
-      state.ui.order = order;
-      App.saveViews();
-      const map = Object.fromEntries(entries.map(e => [e.id, e]));
-      entries = order.map(id => map[id]).filter(Boolean);
-    }
-    return entries;
+  // The only thing that is known by the widget alone: the visible position.
+  currentIndex() {
+    return this.slider?.track.details ? this.slider.track.details.rel : 0;
   },
 
-  renderSlide(entry, state) {
-    const reading = entry.lines.find(line => line.role === Parser.LINE_ROLE.reading);
-    const lines = entry.lines.filter(line => line !== reading);
-    const savedSide = state.ui.sideIndexes[entry.id];
-    const ordered = this.orderLines(lines, state.ui.mode, savedSide);
-    const current = ordered.find(line => line.originalIndex === savedSide) || ordered[0];
-    const attrs = [
-      `data-entry-id="${Utils.escapeHtml(entry.id)}"`,
-      entry.section != null ? `data-section="${Utils.escapeHtml(entry.section)}"` : '',
-      entry.tag ? `data-tag="${Utils.escapeHtml(entry.tag)}"` : '',
-      entry.reviewLevel ? `data-review-level="${Utils.escapeHtml(entry.reviewLevel)}"` : '',
-    ].filter(Boolean).join(' ');
-    const info = entry.info
-      ? `<details class="entry-info"><summary>ⓘ</summary>${Utils.escapeHtml(entry.info)}</details>` : '';
-    const sides = ordered.map(line => this.renderSide(line, current)).join('');
-    const readingHtml = reading
-      ? `<div class="slideReading" data-reading="${Utils.escapeHtml(reading.text)}" role="button" tabindex="0">${Utils.escapeHtml(reading.text)}</div>` : '';
-    // const readingHtml = reading
-    //   ? '<div class="slideReading" data-reading="' + Utils.escapeHtml(reading.text) + '" role="button" tabindex="0"><span>'
-    //     + Utils.escapeHtml(reading.text) + '</span></div>' : '';
+  currentEntryId() {
+    if(!this.slider) return null;
+    return this.entryIds[this.currentIndex()] ?? this.entryIds[0] ?? null;
+  },
 
+  // The side shown on a card: the saved one if the card has it, else the first.
+  currentSideIndex(entryId, ui) {
+    const order = this.sideOrders[entryId] || [];
+    const saved = ui.sideIndexes[entryId];
+    if(order.some(line => line.originalIndex === saved)) return saved;
+    return order.length ? order[0].originalIndex : null;
+  },
+
+  nextSideIndex(indexes, current) {
+    const position = Math.max(0, indexes.indexOf(current));
+    return indexes[(position + 1) % indexes.length];
+  },
+
+  // hidden -> listened (spoken) -> revealed -> hidden.
+  nextReading(state) {
+    return { '': 'listened', listened: 'revealed', revealed: '' }[state || ''];
+  },
+
+  readingOf(entry) {
+    return entry.lines.find(line => line.role === Parser.LINE_ROLE.reading);
+  },
+
+  sideLines(entry) {
+    const reading = this.readingOf(entry);
+    return entry.lines.filter(line => line !== reading);
+  },
+
+  // ---- view model ------------------------------------------------------------------
+
+  // The only place that reads domain state for the slides. Pure over the
+  // component state (entries, sideOrders, readings, openInfoId).
+  viewModel() {
+    const ui = this.persistedUi();
+    const slides = this.entries.map(entry => this.slideViewModel(entry, ui));
+    return {
+      visible: App.currentView === this.viewName,
+      slides,
+      initialIndex: Math.max(0, this.entryIds.indexOf(ui.currentEntryId)),
+    };
+  },
+
+  slideViewModel(entry, ui) {
+    const order = this.sideOrders[entry.id] || [];
+    const current = this.currentSideIndex(entry.id, ui);
+    const reading = this.readingOf(entry);
+    return {
+      id: entry.id,
+      section: entry.section,
+      tag: entry.tag,
+      reviewLevel: entry.reviewLevel,
+      info: entry.info ? { text: entry.info, open: this.openInfoId === entry.id } : null,
+      currentSide: current ?? '',
+      sides: order.map(line => ({
+        index: line.originalIndex,
+        role: line.role,
+        text: line.text,
+        speakable: !!line.speakable,
+        compact: !!line.isCompact || line.role === 'example',
+        current: line.originalIndex === current,
+      })),
+      reading: reading
+        ? { text: reading.text, state: this.readings[entry.id] || '' }
+        : null,
+    };
+  },
+
+  // Counters, controls and hit/lapse marks depend on the widget position, so
+  // they are rendered after the widget is created and on every slide change.
+  controlsViewModel() {
+    const originId = this.origin();
+    const ui = this.persistedUi();
+    const entryId = this.currentEntryId();
+    const item = originId && entryId != null
+      ? ViewState.entry(originId, this.viewName, entryId) : null;
+    const side = entryId != null ? this.currentSideIndex(entryId, ui) : null;
+    return {
+      mode: ui.mode,
+      onlyMatching: ui.onlyMatching,
+      random: ui.random,
+      position: entryId != null ? String(this.currentIndex() + 1) : '',
+      total: String(this.entryIds.length),
+      hit: side != null && !!item?.hits?.includes(side),
+      lapse: side != null && !!item?.lapses?.includes(side),
+    };
+  },
+
+  // ---- markup ----------------------------------------------------------------------
+
+  template(vm) {
+    return vm.slides.map(slide => this.slideTemplate(slide)).join('');
+  },
+
+  // The slide element carries only what depends on the entry itself. Its
+  // content (everything a tap can change) is a separate fragment, see
+  // slideContentTemplate().
+  slideTemplate(slide) {
     return `
-      <div class="keen-slider__slide js-slide" ${attrs}>
-        ${info}
-        <div class="sides-count">${ordered.length}</div>
-        <div class="current-side">${current ? current.originalIndex : ''}</div>
-        <div class="slide-inner js-slide-inner">${sides}</div>
-        ${readingHtml}
-      </div>
+      <div class="keen-slider__slide js-slide"
+        data-entry-id="${Utils.escapeHtml(slide.id)}"
+        ${slide.section != null ? `data-section="${Utils.escapeHtml(slide.section)}"` : ''}
+        ${slide.tag ? `data-tag="${Utils.escapeHtml(slide.tag)}"` : ''}
+        ${slide.reviewLevel ? `data-review-level="${Utils.escapeHtml(slide.reviewLevel)}"` : ''}
+        >${this.slideContentTemplate(slide)}</div>
       `;
   },
 
-  renderSide(line, current) {
-    const classes = ['slide-side', 'js-slide-side'];
-    if(line === current) classes.push('current');
-    if(line.isCompact || line.role === 'example') classes.push('compact');
+  slideContentTemplate(slide) {
     return `
-      <div class="${classes.join(' ')}"
-        data-index="${Utils.escapeHtml(line.originalIndex)}"
-        ${line.role ? `
-        data-role="${Utils.escapeHtml(line.role)}"` : ''}
-        ${line.speakable ? `
-        data-reading="${Utils.escapeHtml(line.text)}"` : ''}
+      ${slide.info ? `
+      <details class="entry-info" ${slide.info.open ? 'open' : ''}>
+        <summary>ⓘ</summary>${Utils.escapeHtml(slide.info.text)}
+      </details>` : ''}
+      <div class="sides-count">${slide.sides.length}</div>
+      <div class="current-side">${Utils.escapeHtml(slide.currentSide)}</div>
+      <div class="slide-inner js-slide-inner">${slide.sides.map(side => this.sideTemplate(side)).join('')}</div>
+      ${slide.reading ? `
+      <div class="slideReading ${slide.reading.state}"
+        data-reading="${Utils.escapeHtml(slide.reading.text)}"
+        role="button"
+        tabindex="0"
+        >${Utils.escapeHtml(slide.reading.text)}</div>` : ''}
+      `;
+  },
+
+  sideTemplate(side) {
+    return `
+      <div class="slide-side js-slide-side ${side.current ? 'current' : ''} ${side.compact ? 'compact' : ''}"
+        data-index="${Utils.escapeHtml(side.index)}"
+        ${side.role ? `data-role="${Utils.escapeHtml(side.role)}"` : ''}
+        ${side.speakable ? `data-reading="${Utils.escapeHtml(side.text)}"` : ''}
         >
-        <span>${Utils.escapeHtml(line.text)}</span>
+        <span>${Utils.escapeHtml(side.text)}</span>
       </div>
       `;
   },
@@ -234,18 +331,59 @@ const SliderUI = {
     });
   },
 
-  syncControls(ui) {
-    DropdownUI.setValue('sliderCardMode', ui.mode);
-    this.dom.matchingEl.checked = !!ui.onlyMatching;
-    this.dom.randomEl.checked = !!ui.random;
+  // ---- rendering -------------------------------------------------------------------
+
+  render() {
+    this.destroySlider();
+    this.loadEntries();
+    this.resolveSideOrders(this.persistedUi());
+    const vm = this.viewModel();
+    this.dom.root.classList.toggle('hidden', !vm.visible);
+    this.dom.containerEl.innerHTML = this.template(vm);
+    this.createSlider(vm);
+    this.renderControls();
   },
 
+  // Exception: third-party widget lifecycle. Keen is created over the slides
+  // that were just written; created/slideChanged render the position-dependent
+  // controls.
+  createSlider(vm) {
+    if(!vm.slides.length || typeof KeenSlider !== 'function') return;
+    this.slider = new KeenSlider(this.dom.containerEl, {
+      loop: true,
+      initial: vm.initialIndex,
+      created: slider => this.onSlideChanged(slider),
+      slideChanged: slider => this.onSlideChanged(slider),
+    });
+  },
+
+  renderControls() {
+    const vm = this.controlsViewModel();
+    DropdownUI.setValue('sliderCardMode', vm.mode);
+    this.dom.matchingEl.checked = vm.onlyMatching;
+    this.dom.randomEl.checked = vm.random;
+    this.dom.currentEl.textContent = vm.position;
+    this.dom.totalEl.textContent = vm.total;
+    this.dom.hitEl.classList.toggle('active', vm.hit);
+    this.dom.lapseEl.classList.toggle('active', vm.lapse);
+  },
+
+  // Exception: one card is re-rendered in place (see the header).
+  renderSlide(entryId) {
+    const entry = this.entries.find(item => item.id === entryId);
+    const slideEl = this.dom.containerEl.querySelector(`[data-entry-id="${entryId}"]`);
+    if(!entry || !slideEl) return;
+    const slide = this.slideViewModel(entry, this.persistedUi());
+    slideEl.innerHTML = this.slideContentTemplate(slide);
+  },
+
+  // ---- handlers (clean: change state or domain, then render) -----------------------
+
   changeMode(mode) {
-    const state = this.state();
-    state.ui.mode = mode;
-    state.ui.sideIndexes = {};
-    App.saveViews();
-    this.render();
+    const originId = this.origin();
+    if(!originId) return;
+    SliderState.setMode(originId, mode);
+    this.rebuild();
   },
 
   changeMatching(el) {
@@ -253,18 +391,17 @@ const SliderUI = {
       onlyMatching: el.checked,
       currentEntryId: null,
     });
-    this.render();
+    this.rebuild();
   },
 
+  // The random order itself is created by SliderState.visibleEntries().
   changeRandom(el) {
-    const patch = { random: el.checked, currentEntryId: null };
-    if(el.checked) {
-      patch.order = Utils.shuffle(App.selectedEntries(App.currentOrigin).map(e => e.id));
-    } else {
-      patch.order = [];
-    }
-    ViewState.setUi(App.currentOrigin, this.viewName, patch);
-    this.render();
+    ViewState.setUi(App.currentOrigin, this.viewName, {
+      random: el.checked,
+      order: [],
+      currentEntryId: null,
+    });
+    this.rebuild();
   },
 
   reset() {
@@ -278,65 +415,51 @@ const SliderUI = {
   doReset() {
     if(!App.currentOrigin) return;
     const ids = App.selectedEntries(App.currentOrigin).map(e => e.id);
-    ViewState.resetEntries(App.currentOrigin, this.viewName, ids, {
-      mode: 'original',
-      onlyMatching: false,
-      random: false,
-      order: [],
-      sideIndexes: {},
-      currentEntryId: null,
-    });
-    this.render();
+    ViewState.resetEntries(App.currentOrigin, this.viewName, ids, SliderState.defaultUi());
+    this.rebuild();
   },
 
-  currentSlide() {
-    if(!this.slider?.slides?.length) return null;
-    const rel = this.slider.track.details ? this.slider.track.details.rel : 0;
-    return this.slider.slides[rel] || this.slider.slides[0];
+  slideIdOf(el) {
+    return Number(el.closest('.js-slide').dataset.entryId);
   },
 
   rotateSide(el, e) {
-    const inner = el.classList.contains('js-slide-inner') ? el : el.closest('.js-slide-inner');
-    const slide = el.closest('.js-slide');
-    if(!inner || !slide) return;
+    if(!el.closest('.js-slide')) return;
     e.preventDefault();
-
-    const sides = Array.from(inner.querySelectorAll('.js-slide-side'));
-    if(sides.length < 2) return;
-    const current = inner.querySelector('.current');
-    const idx = Math.max(0, sides.indexOf(current));
-    const next = sides[(idx + 1) % sides.length];
-    current?.classList.remove('current');
-    next.classList.add('current');
-    slide.querySelector('.current-side').textContent = next.dataset.index;
-
-    SliderState.setSideIndex(
-      App.currentOrigin,
-      Number(slide.dataset.entryId),
-      Number(next.dataset.index),
-    );
-    this.updateMarks();
+    const entryId = this.slideIdOf(el);
+    const indexes = (this.sideOrders[entryId] || []).map(line => line.originalIndex);
+    if(indexes.length < 2) return;
+    const ui = this.persistedUi();
+    const next = this.nextSideIndex(indexes, this.currentSideIndex(entryId, ui));
+    SliderState.setSideIndex(App.currentOrigin, entryId, next);
+    this.renderSlide(entryId);
+    this.renderControls();
   },
 
   readReading(el, e) {
     e.stopPropagation();
     const reading = el.closest('.slideReading');
-    const text = reading.dataset.reading;
-    if(!reading.classList.contains('listened') && !reading.classList.contains('revealed')) {
-      reading.classList.add('listened');
-      Utils.speak(text);
-    } else if(reading.classList.contains('listened')) {
-      reading.classList.remove('listened');
-      reading.classList.add('revealed');
-    } else {
-      reading.classList.remove('revealed');
-    }
+    const entryId = this.slideIdOf(reading);
+    const next = this.nextReading(this.readings[entryId]);
+    if(next === 'listened') Utils.speak(reading.dataset.reading);
+    this.readings[entryId] = next;
+    this.renderSlide(entryId);
   },
 
   speakSide(el, e) {
     e.stopPropagation();
     const side = el.closest('.js-slide-side');
     if(side?.dataset.reading) Utils.speak(side.dataset.reading);
+  },
+
+  // Stop the native <details> toggle: the open attribute is written by the template.
+  toggleInfo(el, e) {
+    e.preventDefault();
+    const entryId = this.slideIdOf(el);
+    const previous = this.openInfoId;
+    this.openInfoId = previous === entryId ? null : entryId;
+    this.renderSlide(entryId);
+    if(previous != null && previous !== entryId) this.renderSlide(previous);
   },
 
   toggleLapse() {
@@ -348,21 +471,16 @@ const SliderUI = {
   },
 
   toggleMark(mark) {
-    const slide = this.currentSlide();
-    const side = slide?.querySelector('.js-slide-side.current');
-    if(!slide || !side) return;
-    SliderState.toggleSideMark(
-      App.currentOrigin,
-      Number(slide.dataset.entryId),
-      mark,
-      Number(side.dataset.index),
-    );
-    this.updateMarks();
+    const entryId = this.currentEntryId();
+    if(entryId == null) return;
+    const side = this.currentSideIndex(entryId, this.persistedUi());
+    if(side == null) return;
+    SliderState.toggleSideMark(App.currentOrigin, entryId, mark, side);
+    this.renderControls();
   },
 
   removeCurrent() {
-    const slide = this.currentSlide();
-    if(!slide || this.slider.slides.length === 1) return;
+    if(this.currentEntryId() == null || this.entryIds.length === 1) return;
     Prompt.ask({
       text: 'Remove the slide?',
       onConfirm: () => this.doRemoveCurrent(),
@@ -370,58 +488,30 @@ const SliderUI = {
   },
 
   doRemoveCurrent() {
-    const slide = this.currentSlide();
-    if(!slide || this.slider.slides.length === 1) return;
+    const entryId = this.currentEntryId();
+    if(entryId == null || this.entryIds.length === 1) return;
     const originId = App.currentOrigin;
-    const rel = this.slider.track.details ? this.slider.track.details.rel : 0;
-    const entryId = Number(slide.dataset.entryId);
+    const position = this.currentIndex();
     SliderState.removeEntry(originId, entryId);
-    // Preserve position: after removal, the slide at same index `rel` becomes current.
-    const state = this.state();
-    const entries = this.visibleEntries(originId, state);
-    const next = entries[rel] || entries[0];
+    // Preserve position: the slide that takes the removed one's place becomes current.
+    const entries = SliderState.visibleEntries(originId);
+    const next = entries[position] || entries[0];
     ViewState.replaceUiValue(originId, this.viewName, 'currentEntryId', next ? next.id : null);
-    this.render();
+    this.rebuild();
   },
 
   onSlideChanged(slider) {
     this.slider = slider;
-    const rel = slider.track.details ? slider.track.details.rel : 0;
-    const slide = slider.slides[rel] || slider.slides[0];
-    slider.slides.forEach(other => {
-      if(other !== slide) {
-        const info = other.querySelector('.entry-info');
-        if(info) info.open = false;
-      }
-    });
-    this.dom.currentEl.textContent = String(rel + 1);
-    if(slide) {
-      ViewState.replaceUiValue(
-        App.currentOrigin,
-        this.viewName,
-        'currentEntryId',
-        Number(slide.dataset.entryId),
-      );
+    const entryId = this.currentEntryId();
+    if(this.openInfoId != null && this.openInfoId !== entryId) {
+      const previous = this.openInfoId;
+      this.openInfoId = null;
+      this.renderSlide(previous);
     }
-    this.updateMarks();
-  },
-
-  updateMarks() {
-    const slide = this.currentSlide();
-    const side = slide?.querySelector('.js-slide-side.current');
-    if(!slide || !side) {
-      this.dom.hitEl.classList.remove('active');
-      this.dom.lapseEl.classList.remove('active');
-      return;
+    if(entryId != null) {
+      ViewState.replaceUiValue(App.currentOrigin, this.viewName, 'currentEntryId', entryId);
     }
-    const item = ViewState.entry(
-      App.currentOrigin,
-      this.viewName,
-      Number(slide.dataset.entryId),
-    ) || {};
-    const sideIndex = Number(side.dataset.index);
-    this.dom.hitEl.classList.toggle('active', item.hits?.includes(sideIndex) || false);
-    this.dom.lapseEl.classList.toggle('active', item.lapses?.includes(sideIndex) || false);
+    this.renderControls();
   },
 
   destroySlider() {
@@ -433,3 +523,4 @@ const SliderUI = {
 };
 
 Components.push(SliderUI);
+

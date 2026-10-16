@@ -30,6 +30,14 @@ global.Utils = {
     for(const x of s) if(x === c) n++;
     return n;
   },
+  shuffle(array) {
+    const copy = array.slice();
+    for(let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  },
 };
 global.SOURCES_LIST = ['goshogun2', 'osarai-house', 'SR_secret'];
 
@@ -263,6 +271,58 @@ loadRel('domain/Prompt.js');
   assert(Prompt.current.notify === true, 'notify opens a notify prompt');
   Prompt.cancel();
   assert(!Prompt.isOpen && log[2] === 'closed', 'notify closes through either path');
+
+  assert(JSON.stringify(Prompt.state) === '{"open":false,"text":"","notify":false}',
+    'state of a closed prompt');
+  Prompt.notify('msg');
+  assert(JSON.stringify(Prompt.state) === '{"open":true,"text":"msg","notify":true}',
+    'state of an open prompt carries no callbacks');
+  Prompt.cancel();
+}
+
+// ---- SliderState: ui defaults and visible entries --------------------------
+{
+  const origin = 'osarai-house';
+  const allIds = Library.getSource(origin).parsed.allEntries.map(e => e.id);
+  ViewState.resetEntries(origin, 'slider', allIds, {});
+  App.setSelection(origin, ['0.0']);
+
+  const before = JSON.stringify(App.views[origin].slider);
+  const ui = SliderState.uiOf(origin);
+  assert(ui.mode === 'original' && ui.onlyMatching === false && ui.random === false
+    && ui.currentEntryId === null && Array.isArray(ui.order), 'uiOf applies defaults');
+  assert(JSON.stringify(App.views[origin].slider) === before, 'uiOf does not write to the state');
+
+  const selected = App.selectedEntries(origin);
+  assert(SliderState.visibleEntries(origin).length === selected.length,
+    'all selected entries are visible by default');
+  assert(JSON.stringify(App.views[origin].slider) === before, 'visibleEntries without random does not write');
+
+  SliderState.removeEntry(origin, selected[0].id);
+  assert(SliderState.visibleEntries(origin).length === selected.length - 1, 'removed entries are hidden');
+
+  ViewState.setUi(origin, 'slider', { mode: 'meaning', onlyMatching: true });
+  assert(SliderState.visibleEntries(origin).every(e => e.lines.some(l => l.role === 'meaning')),
+    'only matching keeps entries with a line of the mode role');
+  ViewState.setUi(origin, 'slider', { mode: 'original' });
+  assert(SliderState.visibleEntries(origin).length === selected.length - 1,
+    'only matching is ignored for incompatible modes');
+
+  ViewState.setUi(origin, 'slider', { onlyMatching: false, random: true, order: [] });
+  const first = SliderState.visibleEntries(origin).map(e => e.id);
+  const second = SliderState.visibleEntries(origin).map(e => e.id);
+  assert(first.length === selected.length - 1 && first.join() === second.join(),
+    'random order is stored and stable between calls');
+  assert(App.views[origin].slider.ui.order.join() === first.join(), 'random order is persisted in ui.order');
+  assert(new Set(first).size === first.length, 'random order has no duplicates');
+
+  ViewState.setUi(origin, 'slider', { sideIndexes: { 5: 2 } });
+  SliderState.setMode(origin, 'example');
+  const afterMode = SliderState.uiOf(origin);
+  assert(afterMode.mode === 'example' && Object.keys(afterMode.sideIndexes).length === 0,
+    'setMode stores the mode and forgets side positions');
+
+  ViewState.resetEntries(origin, 'slider', allIds, {});
 }
 
 // ---- Busy: reference-counted busy flag ------------------------------------
