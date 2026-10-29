@@ -53,6 +53,20 @@
   --viewActionDropdownItemBorder: #3e36558f;
   --viewActionDropdownItemSelected: #f1e6e896;
   --burgerButtonLine: var(--text-color);
+
+  --boardGoodColBorder: #92ccb3;
+  --boardFailedColBorder: #db9292;
+  --boardLearnColBorder: #92b4db;
+  --boardItem: var(--button-primary);
+  --boardItemBorder: #bfbfbf;
+  --boardItemPlaceholder: rgba(130, 200, 205, 0.3);
+  --boardRemoveItemTextColor: #e6004d;
+  --boardItemMenuExpandedBorder: #a6cecf;
+  --boardInfoShadow: #a6cecf;
+  --reversedItemBoxShadow: #cb00ff5e;
+  /* Marks cards that are already in a custom list. Not used until custom
+     lists exist (they replace the v1 global pool); kept for that styling. */
+  /* --boardGlobalItemShadow: #1e20c07d; */
 }
 
 body.night {
@@ -98,6 +112,17 @@ body.night {
   --viewActionDropdownText: var(--button-primary);
   --viewActionDropdownItemSelected: #aca9b780;
   --burgerButtonLine: var(--button-primary);
+
+  --boardGoodColBorder: #338d86;
+  --boardFailedColBorder: #9f0000;
+  --boardLearnColBorder: #adb8c5;
+  --boardItem: var(--button-primary);
+  --boardItemBorder: #00031b;
+  --boardItemMenuExpandedBorder: #6b526d;
+  --boardInfoShadow: rgb(22 0 36);
+  --reversedItemBoxShadow: #0003ff8f;
+  /* See the light theme: reserved for custom lists. */
+  /* --boardGlobalItemShadow: #ffffff45; */
 }
 
 html {

@@ -18,6 +18,7 @@ const Bus = {
     busyChanged: 'busyChanged',
     promptChanged: 'promptChanged',
     dropdownSelected: 'dropdownSelected',
+    dragDropped: 'dragDropped',
   },
 
   listeners: {},

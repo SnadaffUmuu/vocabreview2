@@ -71,6 +71,7 @@ loadRel('domain/Library.js');
 loadRel('domain/App.js');
 loadRel('domain/ViewState.js');
 loadRel('domain/SliderState.js');
+loadRel('domain/BoardState.js');
 loadRel('domain/Progress.js');
 
 // ---- exercise --------------------------------------------------------------
@@ -323,6 +324,69 @@ loadRel('domain/Prompt.js');
     'setMode stores the mode and forgets side positions');
 
   ViewState.resetEntries(source, 'slider', allIds, {});
+}
+
+// ---- BoardState: columns, order, defaults --------------------------------
+{
+  const source = 'osarai-house';
+  App.setSelection(source, []);
+  const all = App.selectedEntries(source).map(e => e.id);
+  const layoutOf = () => BoardState.layout(source);
+  const idsOf = list => list.map(e => e.id).join();
+
+  assert(BoardState.uiOf(source).markReversed === true, 'R is on by default');
+  assert(BoardState.defaultUi().markReversed === true, 'R is on after a reset');
+  ViewState.setUi(source, 'board', { markReversed: false });
+  assert(BoardState.uiOf(source).markReversed === false, 'R switched off is kept');
+
+  assert(idsOf(layoutOf().source) === all.join(), 'source area holds all entries in file order');
+  assert(Progress.activeSessions().every(s => !s.views.some(v => v.name === 'board')),
+    'untouched board is not a session');
+
+  BoardState.move(source, all[0], 'good');
+  BoardState.move(source, all[1], 'good');
+  BoardState.move(source, all[2], 'good', all[0]);
+  assert(idsOf(layoutOf().zones.good) === [all[2], all[0], all[1]].join(),
+    'move inserts before the given card');
+  assert(layoutOf().source.length === all.length - 3, 'moved cards leave the source area');
+  assert(App.views[source].board.progress[all[2]].order === 1, 'order is renumbered from 1');
+
+  BoardState.move(source, all[0], 'good', null);
+  assert(idsOf(layoutOf().zones.good) === [all[2], all[1], all[0]].join(), 'no beforeId moves to the end');
+  BoardState.move(source, all[1], 'good', all[1]);
+  assert(idsOf(layoutOf().zones.good).split(',').length === 3, 'dropping a card before itself keeps it once');
+
+  BoardState.move(source, all[1], 'failed');
+  assert(idsOf(layoutOf().zones.failed) === String(all[1]) && layoutOf().zones.good.length === 2,
+    'move between columns');
+  assert(Progress.activeSessions().some(s => s.views.some(v => v.name === 'board' && v.label === 'B')),
+    'a card in a column makes a board session');
+
+  App.setSelection(source, ['0.0']);
+  BoardState.move(source, all[2], 'good', null);
+  App.setSelection(source, []);
+  assert(layoutOf().zones.good.length === 2, 'cards of other selections keep their column');
+
+  BoardState.move(source, all[1], null);
+  assert(layoutOf().zones.failed.length === 0 && layoutOf().source.some(e => e.id === all[1]),
+    'move to null returns the card to the source area');
+
+  BoardState.removeEntry(source, all[0]);
+  const afterRemove = layoutOf();
+  assert(![afterRemove.source, ...Object.values(afterRemove.zones)].some(l => l.some(e => e.id === all[0])),
+    'removed card is shown nowhere');
+
+  BoardState.setSideIndex(source, all[3], 2);
+  assert(BoardState.uiOf(source).sideIndexes[all[3]] === 2, 'side index is stored');
+  BoardState.setMode(source, 'meaning');
+  assert(BoardState.uiOf(source).mode === 'meaning' && !Object.keys(BoardState.uiOf(source).sideIndexes).length,
+    'setMode forgets side positions');
+
+  ViewState.resetEntries(source, 'board', all, BoardState.defaultUi());
+  assert(layoutOf().source.length === all.length && BoardState.uiOf(source).markReversed === true,
+    'reset returns every card and restores R');
+  assert(Progress.activeSessions().every(s => !s.views.some(v => v.name === 'board')),
+    'no board session after reset');
 }
 
 // ---- Busy: reference-counted busy flag ------------------------------------

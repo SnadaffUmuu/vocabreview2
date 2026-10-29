@@ -1,5 +1,6 @@
 // Checks the pure parts (viewModel helpers and template) of SessionsUI,
-// StructureUI, InfobarUI, PromptUI, DataViewUI and SliderUI without a DOM.
+// StructureUI, InfobarUI, PromptUI, DataViewUI, SliderUI, CardUI, BoardUI and the
+// geometry of DragDrop without a DOM.
 const fs = require('fs');
 const assert = require('assert');
 const load = f => fs.readFileSync(f, 'utf8');
@@ -101,16 +102,18 @@ assert(dataHtml.includes('<span class="entrySource">s&quot;1</span>'));
 assert(dataHtml.includes('<strong>z</strong>'));
 assert.strictEqual(DataViewUI.template({ query: '', entries: [] }), '');
 
-// SliderUI: pure helpers and templates
+// Cards: pure side rules shared by Slider and Board
 const Parser = { LINE_ROLE: { reading: 'reading' }, lineOrders: {
   meaning: ['meaning', 'expression'] } };
-const SliderUI = make('components/slider/SliderUI.js', 'SliderUI', { Parser });
-assert.strictEqual(SliderUI.nextReading(undefined), 'listened');
-assert.strictEqual(SliderUI.nextReading('listened'), 'revealed');
-assert.strictEqual(SliderUI.nextReading('revealed'), '');
-assert.strictEqual(SliderUI.nextSideIndex([4, 5, 6], 6), 4);
-assert.strictEqual(SliderUI.nextSideIndex([4, 5, 6], 4), 5);
-assert.strictEqual(SliderUI.nextSideIndex([4, 5, 6], 99), 5);
+const Cards = make('domain/Cards.js', 'Cards', { Parser });
+assert.strictEqual(Cards.nextSideIndex([4, 5, 6], 6), 4);
+assert.strictEqual(Cards.nextSideIndex([4, 5, 6], 4), 5);
+assert.strictEqual(Cards.nextSideIndex([4, 5, 6], 99), 5);
+assert.strictEqual(Cards.prevSideIndex([4, 5, 6], 4), 6);
+assert.strictEqual(Cards.prevSideIndex([4, 5, 6], 6), 5);
+assert.strictEqual(Cards.currentSide([{ originalIndex: 3 }, { originalIndex: 4 }], 4), 4);
+assert.strictEqual(Cards.currentSide([{ originalIndex: 3 }, { originalIndex: 4 }], 9), 3);
+assert.strictEqual(Cards.currentSide([], 9), null);
 
 const lines = [
   { originalIndex: 0, role: 'expression', text: 'E<>' },
@@ -118,15 +121,21 @@ const lines = [
   { originalIndex: 2, role: 'reading', text: 'R' },
 ];
 assert.deepStrictEqual(
-  SliderUI.orderLines(lines.slice(0, 2), 'meaning', undefined).map(l => l.originalIndex),
+  Cards.orderLines(lines.slice(0, 2), 'meaning', undefined).map(l => l.originalIndex),
   [1, 0], 'order by mode');
 assert.deepStrictEqual(
-  SliderUI.orderLines(lines.slice(0, 2), 'meaning', 0).map(l => l.originalIndex),
+  Cards.orderLines(lines.slice(0, 2), 'meaning', 0).map(l => l.originalIndex),
   [0, 1], 'a saved side keeps the original order');
+
+// SliderUI: pure helpers and templates
+const SliderUI = make('components/slider/SliderUI.js', 'SliderUI', { Cards });
+assert.strictEqual(SliderUI.nextReading(undefined), 'listened');
+assert.strictEqual(SliderUI.nextReading('listened'), 'revealed');
+assert.strictEqual(SliderUI.nextReading('revealed'), '');
 
 const entry = { id: 7, section: '0', tag: 'geo', reviewLevel: '1', info: 'i<n>', lines };
 SliderUI.entries = [entry];
-SliderUI.sideOrders = { 7: SliderUI.sideLines(entry) };
+SliderUI.sideOrders = { 7: Cards.sideLines(entry) };
 SliderUI.readings = { 7: 'revealed' };
 SliderUI.openInfoId = 7;
 assert.strictEqual(SliderUI.currentSideIndex(7, { sideIndexes: {} }), 0);
@@ -153,5 +162,97 @@ slideHtml = SliderUI.template({ slides: [SliderUI.slideViewModel(entry, { sideIn
 assert(!/<details class="entry-info"\s+open/.test(slideHtml), 'info is closed by default');
 assert(slideHtml.includes('class="slideReading "'), 'reading is hidden by default');
 assert.strictEqual(SliderUI.template({ slides: [] }), '');
+
+// CardUI: card markup
+const CardUI = make('components/card/CardUI.js', 'CardUI');
+const baseCard = {
+  id: 7, tag: 'geo', reviewLevel: '1', reversed: true, count: 2,
+  side: { index: 0, role: 'expression', text: 'E<>"', speakable: true, compact: false },
+  reading: 'R<r>', info: 'i<n>', infoOpen: false, draggable: true,
+  expanded: false, top: 0, lineExpanded: false, covered: false,
+};
+let cardHtml = CardUI.template(baseCard);
+assert(cardHtml.includes('data-entry-id="7"') && cardHtml.includes('data-drag-id="7"'));
+assert(cardHtml.includes('data-tag="geo"') && cardHtml.includes('reversedShown'));
+assert(cardHtml.includes('cardTapZone') && cardHtml.includes('cardInfoMark'));
+assert(!cardHtml.includes('cardActions') && !cardHtml.includes('cardInfo"'), 'actions only when expanded');
+assert(cardHtml.includes('data-review-level="1"') && cardHtml.includes('data-reading='));
+assert(cardHtml.includes('E&lt;&gt;&quot;') && !cardHtml.includes('E<>'), 'side text is escaped');
+assert(!cardHtml.includes('covered') && !cardHtml.includes('style='));
+cardHtml = CardUI.template(Object.assign({}, baseCard, {
+  expanded: true, top: 120, infoOpen: true, draggable: false, covered: false, lineExpanded: true }));
+assert(cardHtml.includes('style="top:120px"') && cardHtml.includes('lineExpanded'));
+assert(!cardHtml.includes('data-drag-id') && !cardHtml.includes('cardTapZone'));
+assert(cardHtml.includes('cardSpeak') && cardHtml.includes('cardInfoToggle') && cardHtml.includes('cardRemove'));
+assert(cardHtml.includes('R&lt;r&gt;') && cardHtml.includes('i&lt;n&gt;') && !cardHtml.includes('i<n>'));
+cardHtml = CardUI.template(Object.assign({}, baseCard, {
+  expanded: true, side: Object.assign({}, baseCard.side, { speakable: false }), info: null }));
+assert(!cardHtml.includes('cardSpeak') && !cardHtml.includes('cardReading') && !cardHtml.includes('cardInfoToggle'));
+assert(CardUI.template(Object.assign({}, baseCard, { covered: true })).includes('covered'));
+assert(CardUI.template(Object.assign({}, baseCard, { reversed: false })).indexOf('reversedShown') < 0);
+assert(CardUI.legendTemplate(['geo', 'a"b']).includes('data-tag="a&quot;b"'));
+
+// BoardUI: view model and template
+const ENTRY_TAG = { geo: 'geo', name: 'name' };
+const boardApp = { currentView: 'board' };
+const BoardState = { zones: ['failed', 'learn', 'good'] };
+const BoardUI = make('components/board/BoardUI.js', 'BoardUI', {
+  App: boardApp, BoardState, Cards, CardUI, Parser: { ENTRY_TAG } });
+const bEntry = (id, extra) => Object.assign({ id, lines: [
+  { originalIndex: 0, role: 'expression', text: 'E' + id },
+  { originalIndex: 1, role: 'meaning', text: 'M' + id },
+  { originalIndex: 2, role: 'reading', text: 'R' + id },
+] }, extra);
+const bEntries = [bEntry(1, { tag: 'geo' }), bEntry(2, { reversed: true }), bEntry(3)];
+BoardUI.layout = { source: [bEntries[0], bEntries[1]], zones: { good: [bEntries[2]] } };
+BoardUI.entries = Object.fromEntries(bEntries.map(e => [e.id, e]));
+BoardUI.resolveSideOrders(bEntries, { mode: 'original', sideIndexes: {} });
+assert.strictEqual(BoardUI.sideOrders[1].length, 2, 'the reading is not a side');
+let boardUi = { mode: 'original', markReversed: true, sideIndexes: { 2: 1 } };
+let boardVm = BoardUI.viewModel(boardUi);
+assert.strictEqual(boardVm.sourceCount, '2');
+assert.deepStrictEqual(boardVm.zones.source.map(c => c.id), [1, 2]);
+assert.deepStrictEqual(boardVm.zones.good.map(c => c.id), [3]);
+assert.deepStrictEqual(boardVm.zones.failed, []);
+assert.strictEqual(boardVm.zones.source[1].side.index, 1, 'saved side is shown');
+assert(boardVm.zones.source[1].reversed && boardVm.zones.source[0].draggable);
+assert.deepStrictEqual(boardVm.legend, ['geo'], 'legend lists the tags of the cards');
+assert.strictEqual(boardVm.expanded, null);
+boardVm = BoardUI.viewModel(Object.assign({}, boardUi, { markReversed: false }));
+assert(!boardVm.zones.source[1].reversed, 'R off hides the mark');
+
+BoardUI.expanded = { id: 2, top: 40 };
+BoardUI.infoOpen = true;
+boardVm = BoardUI.viewModel(boardUi);
+assert(boardVm.expanded.expanded && boardVm.expanded.top === 40 && !boardVm.expanded.draggable);
+assert(boardVm.zones.source[1].covered && !boardVm.zones.source[0].covered);
+const zoneHtml = BoardUI.template(boardVm.zones.source);
+assert(zoneHtml.includes('data-drag-id="1"') && zoneHtml.includes('covered'));
+assert.strictEqual(BoardUI.template([]), '');
+BoardUI.expanded = null;
+BoardUI.infoOpen = false;
+
+// DragDrop: pure geometry
+const DragDrop = make('components/drag-drop/DragDrop.js', 'DragDrop');
+const box = (left, top, right, bottom) => ({ left, top, right, bottom });
+const rowA = [box(0, 0, 40, 20), box(45, 0, 85, 20), box(90, 0, 130, 20)];
+const rowB = [box(0, 25, 40, 45), box(45, 25, 85, 45)];
+const twoRows = rowA.concat(rowB);
+assert.strictEqual(DragDrop.insertionIndex([], 10, 10), 0, 'empty zone: to the end');
+assert.strictEqual(DragDrop.insertionIndex(twoRows, 10, 10), 0);
+assert.strictEqual(DragDrop.insertionIndex(twoRows, 50, 10), 1, 'left half of a card: before it');
+assert.strictEqual(DragDrop.insertionIndex(twoRows, 80, 10), 2, 'right half: before the next');
+assert.strictEqual(DragDrop.insertionIndex(twoRows, 125, 10), 3, 'right end of a row: first of the next row');
+assert.strictEqual(DragDrop.insertionIndex(twoRows, 200, 10), 3, 'past the end of a row');
+assert.strictEqual(DragDrop.insertionIndex(twoRows, 10, 30), 3);
+assert.strictEqual(DragDrop.insertionIndex(twoRows, 200, 30), 5, 'past the last card');
+assert.strictEqual(DragDrop.insertionIndex(twoRows, 10, 200), 5, 'below everything: to the end');
+assert.strictEqual(DragDrop.insertionIndex(twoRows, 10, 22), 3, 'the gap between rows belongs to the next row');
+const uneven = [box(0, 0, 40, 60), box(45, 10, 85, 30), box(0, 65, 40, 85)];
+assert.strictEqual(DragDrop.insertionIndex(uneven, 60, 30), 1, 'cards of different heights stay in one row');
+assert.strictEqual(DragDrop.insertionIndex(uneven, 10, 70), 2, 'the next row starts below the tallest card');
+assert.strictEqual(DragDrop.scrollDelta(10, 0, 300), -DragDrop.scrollStep);
+assert.strictEqual(DragDrop.scrollDelta(290, 0, 300), DragDrop.scrollStep);
+assert.strictEqual(DragDrop.scrollDelta(150, 0, 300), 0);
 
 console.log('render-check ok');

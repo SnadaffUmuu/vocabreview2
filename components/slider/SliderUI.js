@@ -145,8 +145,8 @@ const SliderUI = {
   resolveSideOrders(ui) {
     this.entries.forEach(entry => {
       if(this.sideOrders[entry.id]) return;
-      this.sideOrders[entry.id] = this.orderLines(
-        this.sideLines(entry),
+      this.sideOrders[entry.id] = Cards.orderLines(
+        Cards.sideLines(entry),
         ui.mode,
         ui.sideIndexes[entry.id],
       );
@@ -165,29 +165,12 @@ const SliderUI = {
 
   // The side shown on a card: the saved one if the card has it, else the first.
   currentSideIndex(entryId, ui) {
-    const order = this.sideOrders[entryId] || [];
-    const saved = ui.sideIndexes[entryId];
-    if(order.some(line => line.originalIndex === saved)) return saved;
-    return order.length ? order[0].originalIndex : null;
-  },
-
-  nextSideIndex(indexes, current) {
-    const position = Math.max(0, indexes.indexOf(current));
-    return indexes[(position + 1) % indexes.length];
+    return Cards.currentSide(this.sideOrders[entryId] || [], ui.sideIndexes[entryId]);
   },
 
   // hidden -> listened (spoken) -> revealed -> hidden.
   nextReading(state) {
     return { '': 'listened', listened: 'revealed', revealed: '' }[state || ''];
-  },
-
-  readingOf(entry) {
-    return entry.lines.find(line => line.role === Parser.LINE_ROLE.reading);
-  },
-
-  sideLines(entry) {
-    const reading = this.readingOf(entry);
-    return entry.lines.filter(line => line !== reading);
   },
 
   // ---- view model ------------------------------------------------------------------
@@ -207,7 +190,7 @@ const SliderUI = {
   slideViewModel(entry, ui) {
     const order = this.sideOrders[entry.id] || [];
     const current = this.currentSideIndex(entry.id, ui);
-    const reading = this.readingOf(entry);
+    const reading = Cards.readingOf(entry);
     return {
       id: entry.id,
       section: entry.section,
@@ -297,38 +280,6 @@ const SliderUI = {
         <span>${Utils.escapeHtml(side.text)}</span>
       </div>
       `;
-  },
-
-  orderLines(lines, mode, savedSide) {
-    if(savedSide != null && lines.some(l => l.originalIndex === savedSide)) return lines.slice();
-    if(mode === 'random') return Utils.shuffle(lines);
-    const order = Parser.lineOrders?.[mode];
-    if(!order) return lines.slice();
-
-    if(mode === 'example_translation') {
-      const translations = Utils.shuffle(lines.filter(line =>
-        line.role === 'example_translation'));
-      const paired = [];
-      translations.forEach(translation => {
-        paired.push(translation);
-        const example = lines.find(line =>
-          line.translationLineIndex === translation.originalIndex);
-        if(example) paired.push(example);
-      });
-      return order.flatMap(role => {
-        if(role === 'example_translation') return paired;
-        if(role === 'example') {
-          return Utils.shuffle(lines.filter(line =>
-            line.role === role && !paired.includes(line)));
-        }
-        return lines.filter(line => line.role === role);
-      });
-    }
-
-    return order.flatMap(role => {
-      const group = lines.filter(line => line.role === role);
-      return ['example', 'example_translation'].includes(role) ? Utils.shuffle(group) : group;
-    });
   },
 
   // ---- rendering -------------------------------------------------------------------
@@ -430,7 +381,7 @@ const SliderUI = {
     const indexes = (this.sideOrders[entryId] || []).map(line => line.originalIndex);
     if(indexes.length < 2) return;
     const ui = this.persistedUi();
-    const next = this.nextSideIndex(indexes, this.currentSideIndex(entryId, ui));
+    const next = Cards.nextSideIndex(indexes, this.currentSideIndex(entryId, ui));
     SliderState.setSideIndex(App.currentSource, entryId, next);
     this.renderSlide(entryId);
     this.renderControls();

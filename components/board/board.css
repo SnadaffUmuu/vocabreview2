@@ -1,0 +1,148 @@
+#boardView {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  flex-flow: column nowrap;
+}
+
+#boardToolbar {
+  flex: 0 1 auto;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 5px 5px;
+  font-size: 13px;
+}
+
+#boardToolbar label {
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+
+#boardCardMode {
+  width: 100px;
+}
+
+#boardCardMode .boardCardModeButton {
+  font-size: 15px;
+  height: 25px;
+  line-height: 24px;
+}
+
+#boardSourceCount {
+  width: 23px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+#boardContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-flow: column nowrap;
+  overflow: auto;
+  position: relative;
+  font-size: 17px;
+}
+
+/* ---- the source area ---- */
+
+#boardSourceOuter {
+  flex: 0 0 auto;
+  display: flex;
+  flex-flow: row nowrap;
+  max-height: 25vh;
+  overflow: auto;
+}
+
+#boardSource {
+  flex: 1 0 calc(100vw - 40px);
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: flex-start;
+  align-items: center;
+  align-content: flex-start;
+  gap: 5px;
+  min-height: 45px;
+  padding: 7px 15px 10px 10px;
+}
+
+/* ---- the review columns ---- */
+
+#boardColsOuter {
+  flex: 1 0 auto;
+  display: flex;
+  flex-flow: column nowrap;
+  overflow-x: auto;
+}
+
+#boardCols {
+  flex: 1 0 auto;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 10px;
+}
+
+#boardCols .boardZone {
+  flex: 1 0 40vw;
+  display: flex;
+  flex-flow: row wrap;
+  align-content: flex-start;
+  gap: 5px;
+  min-height: 150px;
+  padding: 10px;
+  border: 2px dashed;
+  border-radius: 10px;
+}
+
+#boardCols .boardZone[data-drop-zone="failed"] {
+  flex-basis: 60vw;
+  justify-content: flex-end;
+  border-color: var(--boardFailedColBorder);
+}
+
+#boardCols .boardZone[data-drop-zone="learn"] {
+  justify-content: center;
+  border-color: var(--boardLearnColBorder);
+}
+
+#boardCols .boardZone[data-drop-zone="good"] {
+  flex-basis: 60vw;
+  justify-content: flex-start;
+  border-color: var(--boardGoodColBorder);
+}
+
+/* Card sizes of the board are the defaults of card.css. */
+
+#boardView .dragPlaceholder {
+  opacity: 0.7;
+}
+
+/* ---- the open card ---- */
+
+#boardExpanded {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 500;
+  touch-action: none;
+}
+
+/* ---- marks that have no meaning without a custom list yet ---- */
+
+/* Cards that are already in a custom list get a shadow. Custom lists replace
+   the v1 global pool; the rule is kept for them and is not used until then.
+.entryCard[data-global] {
+  box-shadow: 3px 3px 0 -1px var(--boardGlobalItemShadow);
+}
+*/
+
+#boardLegend:empty {
+  display: none;
+}

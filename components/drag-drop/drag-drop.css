@@ -1,0 +1,26 @@
+/* Visuals of a drag in progress. Cards inside a drag scope are not selectable:
+   a long press must start a drag, not a text selection. */
+[data-drag-scope] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+[data-drag-scope] .dragged {
+  display: none;
+}
+
+.dragClone {
+  position: fixed;
+  z-index: 3000;
+  margin: 0;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.dragPlaceholder {
+  box-sizing: border-box;
+  border-radius: 5px;
+  background: var(--boardItemPlaceholder);
+  flex: 0 0 auto;
+}

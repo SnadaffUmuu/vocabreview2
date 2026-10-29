@@ -1,0 +1,269 @@
+/* A compact card. The owner View sets the size through variables on its root:
+     --cardFont, --cardFontCompact, --cardFontLevel, --cardFontLevelMajor,
+     --cardPadding, --cardMinHeight, --cardMaxWidth
+   Background color of a zone goes to --cardBg. */
+.entryCard {
+  position: relative;
+  box-sizing: border-box;
+  padding: var(--cardPadding, 5px 0 5px 5px);
+  min-height: var(--cardMinHeight, 29px);
+  max-width: var(--cardMaxWidth, calc(100vw - 20px));
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: var(--cardBg, var(--boardItem));
+  font-size: var(--cardFont, 17px);
+}
+
+.entryCard[data-tag] {
+  border-color: var(--boardItemBorder);
+}
+
+.entryCard.reversedShown {
+  box-shadow: 2px 2px 0 0 var(--reversedItemBoxShadow);
+}
+
+/* The place of a card that is shown expanded: it keeps the layout. */
+.entryCard.covered {
+  visibility: hidden;
+}
+
+.cardSide {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  margin-right: 17px;
+  min-height: 23px;
+  line-height: 140%;
+  border-radius: 10px;
+  padding: 0 1px;
+  backdrop-filter: blur(3px);
+}
+
+.cardSide[data-role="meaning"],
+.cardSide[data-role="example_translation"] {
+  -webkit-line-clamp: 2;
+}
+
+.cardSide.compact {
+  font-size: var(--cardFontCompact, 15px);
+}
+
+.entryCard.lineExpanded .cardSide {
+  display: block;
+}
+
+.cardSide[data-review-level="1"],
+.cardSide[data-review-level="2"],
+.cardSide[data-review-level="3"] {
+  font-size: var(--cardFontLevel, 21px);
+}
+
+.cardSide[data-review-level="100"],
+.cardSide[data-review-level="200"],
+.cardSide[data-review-level="300"] {
+  font-size: var(--cardFontLevelMajor, 25px);
+}
+
+.cardSide[data-review-level="1"],
+.cardSide[data-review-level="100"] {
+  color: var(--revLevelMinorTextColor);
+}
+
+.cardSide[data-review-level="2"],
+.cardSide[data-review-level="200"] {
+  color: var(--revLevelTextColor);
+}
+
+.cardSide[data-review-level="3"],
+.cardSide[data-review-level="300"] {
+  color: var(--revLevelExtraTextColor);
+}
+
+.cardCounter,
+.cardInfoMark {
+  position: absolute;
+  padding: 1px;
+  font-size: 10px;
+  backdrop-filter: blur(3px);
+}
+
+.cardCounter {
+  top: 1px;
+  right: 2px;
+}
+
+.cardInfoMark {
+  top: -1px;
+  right: 11px;
+  font-size: 12px;
+}
+
+.cardTapZone {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 25px;
+  height: calc(100% + 2px);
+  z-index: 100;
+}
+
+/* ---- expanded card: lives in the owner's overlay ---- */
+
+.entryCard.expanded {
+  position: absolute;
+  left: 10px;
+  right: 20px;
+  max-width: none;
+  padding: 7px 10px 0;
+  border-color: var(--boardItemMenuExpandedBorder);
+}
+
+.entryCard.expanded .cardSide {
+  margin-right: 0;
+  padding-right: 17px;
+}
+
+.cardActions {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  padding: 10px 1px 0;
+  backdrop-filter: blur(3px);
+}
+
+.cardAction {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 40px;
+  margin-right: 10px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.cardAction.cardRemove {
+  color: var(--boardRemoveItemTextColor);
+  font-weight: bold;
+}
+
+.cardAction.cardReading {
+  flex: 1 1 auto;
+  width: auto;
+  margin-right: 0;
+  justify-content: flex-end;
+  text-align: right;
+  font-size: 13px;
+}
+
+/* ---- entry tags: the pattern lies over the card color ---- */
+
+.entryCard[data-tag="grammar"],
+.tagsLegend [data-tag="grammar"] {
+  background:
+    repeating-linear-gradient(30deg, var(--tagBgGrammar), var(--tagBgGrammar) 1px, transparent 1px, transparent 10px),
+    var(--cardBg, var(--boardItem));
+}
+
+.entryCard[data-tag="onomatopoeia"],
+.tagsLegend [data-tag="onomatopoeia"] {
+  background:
+    repeating-linear-gradient(150deg, var(--tagBgOnoma), var(--tagBgOnoma) 1px, transparent 1px, transparent 10px),
+    var(--cardBg, var(--boardItem));
+}
+
+.entryCard[data-tag="geo"],
+.tagsLegend [data-tag="geo"] {
+  background:
+    repeating-linear-gradient(0deg, var(--tagBgGeo), var(--tagBgGeo) 1px, transparent 1px, transparent 8px),
+    var(--cardBg, var(--boardItem));
+}
+
+.entryCard[data-tag="name"],
+.tagsLegend [data-tag="name"] {
+  background:
+    repeating-linear-gradient(90deg, var(--tagBgName), var(--tagBgName) 1px, transparent 1px, transparent 7px),
+    var(--cardBg, var(--boardItem));
+}
+
+.entryCard[data-tag="suffix"],
+.tagsLegend [data-tag="suffix"] {
+  background:
+    repeating-linear-gradient(0deg, var(--tagBgSuffix), var(--tagBgSuffix) 1px, transparent 1px, transparent 8px),
+    var(--cardBg, var(--boardItem));
+}
+
+.entryCard[data-tag="yojijukugo"],
+.tagsLegend [data-tag="yojijukugo"] {
+  background:
+    repeating-linear-gradient(30deg, var(--tagBgYoji), var(--tagBgYoji) 1px, transparent 1px, transparent 10px),
+    repeating-linear-gradient(150deg, var(--tagBgYoji), var(--tagBgYoji) 1px, transparent 1px, transparent 10px),
+    var(--cardBg, var(--boardItem));
+}
+
+.entryCard[data-tag="term"],
+.tagsLegend [data-tag="term"] {
+  background:
+    radial-gradient(var(--tagBgTerm) 1px, transparent 0px) center / 10px 10px repeat,
+    var(--cardBg, var(--boardItem));
+}
+
+.entryCard[data-tag="dialect"],
+.tagsLegend [data-tag="dialect"] {
+  background:
+    radial-gradient(var(--tagBgDialect) 1px, transparent 0px) center / 10px 10px repeat,
+    var(--cardBg, var(--boardItem));
+}
+
+.entryCard[data-tag="pattern"],
+.tagsLegend [data-tag="pattern"] {
+  background:
+    radial-gradient(var(--tagBgPattern) 3px, transparent 0px) center / 13px 13px repeat,
+    var(--cardBg, var(--boardItem));
+}
+
+.entryCard[data-tag="counter"],
+.tagsLegend [data-tag="counter"] {
+  background:
+    radial-gradient(var(--tagBgCounter) 2px, transparent 0px) center / 13px 13px repeat,
+    var(--cardBg, var(--boardItem));
+}
+
+.tagsLegend {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: stretch;
+  margin-top: 10px;
+  font-size: 14px;
+  border-left: 1px solid var(--paleBorder);
+  border-top: 1px solid var(--paleBorder);
+}
+
+.tagsLegend [data-tag] {
+  flex: 1 1 auto;
+  padding: 5px;
+  text-align: center;
+  border-right: 1px solid var(--paleBorder);
+  border-bottom: 1px solid var(--paleBorder);
+}
+
+.tagsLegend [data-tag] > span {
+  display: inline-block;
+}
+
+.cardInfo {
+  position: absolute;
+  left: -1px;
+  top: calc(100% + 1px);
+  box-sizing: border-box;
+  max-width: calc(100% + 2px);
+  padding: 5px 10px 10px;
+  font-size: 15px;
+  background: var(--boardItem);
+  border: 1px solid var(--boardItemMenuExpandedBorder);
+  border-top: 0;
+  border-radius: 0 0 5px 5px;
+  box-shadow: 4px 5px 7px -2px var(--boardInfoShadow);
+}

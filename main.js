@@ -27,6 +27,7 @@ const AppInit = {
       StructureUI.render();
       DataViewUI.render();
       SliderUI.render();
+      BoardUI.render();
     });
   },
 };

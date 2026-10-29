@@ -57,6 +57,19 @@ const ViewState = {
     Bus.emit(Bus.events.viewsChanged, { sourceId, viewName, entryId });
   },
 
+  // Several entries at once: { [entryId]: item | null }. One save and one event
+  // instead of one per entry. A null or no-progress item drops the entry.
+  setEntries(sourceId, viewName, items) {
+    const state = this.get(sourceId, viewName);
+    Object.keys(items).forEach(entryId => {
+      const item = items[entryId];
+      if(this.isEntryInProgress(viewName, item)) state.progress[entryId] = item;
+      else delete state.progress[entryId];
+    });
+    App.saveViews();
+    Bus.emit(Bus.events.viewsChanged, { sourceId, viewName });
+  },
+
   // Clear progress of the given entries only (e.g. the current selection) and
   // restore the view's ui to defaults. Progress of other entries is kept.
   resetEntries(sourceId, viewName, entryIds, defaultUi = {}) {
