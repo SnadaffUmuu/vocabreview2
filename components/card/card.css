@@ -253,6 +253,8 @@
 
 .tagsLegend [data-tag] > span {
   display: inline-block;
+  background: var(--bg);
+  box-shadow: 0 0 6px 4px var(--bg);
 }
 
 .cardInfo {
