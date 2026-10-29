@@ -17,13 +17,26 @@
 //   draggable,         // gets data-drag-id for DragDrop
 //   expanded, top,     // the open card with actions; top is its viewport offset
 //   lineExpanded,      // the current side is not clamped
-//   covered,           // the place of a card that is shown expanded elsewhere
+//   covered, size,     // the place of a card that is shown expanded elsewhere, and
+//                      // its frozen size { width, height } or null. The place must not
+//                      // follow the content of the card, or its neighbours would move
+//                      // every time the open card changes its side.
 // }
 const CardUI = {
   name: 'CardUI',
 
+  // Numbers only, so nothing has to be escaped.
+  styleOf(card) {
+    if(card.expanded) return `top:${Number(card.top) || 0}px`;
+    if(card.covered && card.size) {
+      return `width:${Number(card.size.width) || 0}px;height:${Number(card.size.height) || 0}px`;
+    }
+    return '';
+  },
+
   template(card) {
     const id = Utils.escapeHtml(card.id);
+    const style = this.styleOf(card);
     return `
       <div class="entryCard
         ${card.expanded ? 'expanded' : ''}
@@ -33,7 +46,7 @@ const CardUI = {
         data-entry-id="${id}"
         ${card.draggable ? `data-drag-id="${id}"` : ''}
         ${card.tag ? `data-tag="${Utils.escapeHtml(card.tag)}"` : ''}
-        ${card.expanded ? `style="top:${Number(card.top) || 0}px"` : ''}
+        ${style ? `style="${style}"` : ''}
         >
         ${card.info ? '<div class="cardInfoMark">i</div>' : ''}
         <div class="cardCounter">${Utils.escapeHtml(card.count)}</div>

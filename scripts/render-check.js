@@ -189,6 +189,7 @@ cardHtml = CardUI.template(Object.assign({}, baseCard, {
   expanded: true, side: Object.assign({}, baseCard.side, { speakable: false }), info: null }));
 assert(!cardHtml.includes('cardSpeak') && !cardHtml.includes('cardReading') && !cardHtml.includes('cardInfoToggle'));
 assert(CardUI.template(Object.assign({}, baseCard, { covered: true })).includes('covered'));
+assert(!CardUI.template(Object.assign({}, baseCard, { covered: true })).includes('style='), 'no size, no style');
 assert(CardUI.template(Object.assign({}, baseCard, { reversed: false })).indexOf('reversedShown') < 0);
 assert(CardUI.legendTemplate(['geo', 'a"b']).includes('data-tag="a&quot;b"'));
 
@@ -221,13 +222,21 @@ assert.strictEqual(boardVm.expanded, null);
 boardVm = BoardUI.viewModel(Object.assign({}, boardUi, { markReversed: false }));
 assert(!boardVm.zones.source[1].reversed, 'R off hides the mark');
 
-BoardUI.expanded = { id: 2, top: 40 };
+BoardUI.expanded = { id: 2, top: 40, width: 120, height: 31 };
 BoardUI.infoOpen = true;
 boardVm = BoardUI.viewModel(boardUi);
 assert(boardVm.expanded.expanded && boardVm.expanded.top === 40 && !boardVm.expanded.draggable);
 assert(boardVm.zones.source[1].covered && !boardVm.zones.source[0].covered);
+assert.deepStrictEqual(boardVm.zones.source[1].size, { width: 120, height: 31 }, 'covered place keeps its size');
+assert.strictEqual(boardVm.zones.source[0].size, null);
 const zoneHtml = BoardUI.template(boardVm.zones.source);
 assert(zoneHtml.includes('data-drag-id="1"') && zoneHtml.includes('covered'));
+assert(zoneHtml.includes('style="width:120px;height:31px"'), 'the place of the open card has a frozen size');
+// The place does not depend on the side the open card shows.
+BoardUI.sideOrders[2] = BoardUI.sideOrders[2].slice().reverse();
+assert.strictEqual(
+  BoardUI.template(BoardUI.viewModel(boardUi).zones.source).match(/style="[^"]*"/)[0],
+  'style="width:120px;height:31px"');
 assert.strictEqual(BoardUI.template([]), '');
 BoardUI.expanded = null;
 BoardUI.infoOpen = false;

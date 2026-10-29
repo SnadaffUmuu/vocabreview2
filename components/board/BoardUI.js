@@ -8,13 +8,21 @@
 //   entries      - { [entryId]: entry } of the cards on the board
 //   sideOrders   - { [entryId]: lines } order of the sides of a card. It can be
 //                  random, so it is resolved once and then reused.
-//   expanded     - { id, top } the card opened with its actions, or null.
-//                  top is where the card was in the viewport when it was tapped.
+//   expanded     - { id, top, width, height } the card opened with its actions,
+//                  or null. top is where the card was in the viewport when it
+//                  was tapped; width and height are the size of its place in
+//                  the zone, frozen at that moment.
 //   lineExpanded - the open card shows its whole side, not a clamped one
 //   infoOpen     - the open card shows its info
 //
 // The open card is drawn by the same template in a fixed overlay, and its place
-// in the zone is only hidden, so the layout does not jump.
+// in the zone is only hidden and keeps the frozen size, so the layout does not
+// jump when the open card rotates to a side of another size.
+//
+// Legend: the columns are stretched to the visible height of the board, so the
+// legend (and nothing else) is just below the screen and is reached by scroll.
+// The height depends on where the columns start, which depends on the number of
+// cards in the source area, so it is measured after every render (fitColumns).
 const BoardUI = {
   name: 'BoardUI',
   viewName: 'board',
@@ -22,6 +30,8 @@ const BoardUI = {
 
   selectors: {
     root: '#boardView',
+    containerEl: '#boardContainer',
+    colsOuterEl: '#boardColsOuter',
     reversedEl: '#boardReversed',
     counterEl: '#boardSourceCount',
     zonesss: '#boardView [data-drop-zone]',
@@ -59,6 +69,7 @@ const BoardUI = {
     Bus.on(Bus.events.sourceSelected, () => this.rebuild());
     Bus.on(Bus.events.sourcesChanged, () => this.rebuild());
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
+      BoardState.resetSourceOrder(sourceId);
       if(sourceId === App.currentSource) this.rebuild();
     });
     Bus.on(Bus.events.viewsChanged, ({ viewName }) => {
@@ -67,6 +78,7 @@ const BoardUI = {
     Bus.on(Bus.events.dragDropped, payload => {
       if(payload.scope === this.viewName) this.dropCard(payload);
     });
+    window.addEventListener('resize', () => this.fitColumns());
     DropdownUI.on('boardCardMode', mode => this.changeMode(mode));
     DropdownUI.on('boardActions', action => {
       if(action === 'reset') this.reset();
@@ -225,6 +237,9 @@ const BoardUI = {
       top: asExpanded ? this.expanded.top : 0,
       lineExpanded: asExpanded && this.lineExpanded,
       covered: !asExpanded && isOpen,
+      size: !asExpanded && isOpen
+        ? { width: this.expanded.width, height: this.expanded.height }
+        : null,
     };
   },
 
@@ -253,6 +268,27 @@ const BoardUI = {
     this.dom.counterEl.textContent = vm.sourceCount;
     this.dom.reversedEl.checked = vm.markReversed;
     DropdownUI.setValue('boardCardMode', vm.mode);
+    this.fitColumns(vm.visible);
+  },
+
+  // Layout measurement, the allowed DOM exception: the columns get the height
+  // that is left of the visible board below the source area. It is the offset
+  // of the columns inside the scrolling container, so it does not depend on the
+  // current scroll position. The offset does not depend on the columns' own
+  // height, so the old value is not reset before measuring (that could shrink
+  // the scrollable area and lose the scroll position). A hidden board has no
+  // geometry and gets no height.
+  fitColumns(visible = App.currentView === this.viewName) {
+    const container = this.dom.containerEl;
+    const cols = this.dom.colsOuterEl;
+    if(!visible) {
+      cols.style.minHeight = '';
+      return;
+    }
+    const offset = cols.getBoundingClientRect().top
+      - container.getBoundingClientRect().top
+      + container.scrollTop;
+    cols.style.minHeight = `${Math.max(0, container.clientHeight - offset)}px`;
   },
 
   // ---- handlers (clean: change state or domain, then render) -----------------------
@@ -299,16 +335,18 @@ const BoardUI = {
     );
   },
 
-  // The card is opened by its tap zone. Its viewport position is an event
-  // coordinate, not state that can be derived from the domain, so it is read
-  // here, once, and kept in the component state.
+  // The card is opened by its tap zone. Its viewport position and size are
+  // measured here, once, and kept in the component state: they are not derived
+  // from the domain, and the size of its place must stay as it was at the tap.
   expandCard(el) {
     const card = el.closest('.entryCard');
     if(!card) return;
-    const top = card.getBoundingClientRect().top;
+    const rect = card.getBoundingClientRect();
     this.expanded = {
       id: Number(card.dataset.entryId),
-      top: Math.max(0, Math.min(top, window.innerHeight - 160)),
+      top: Math.max(0, Math.min(rect.top, window.innerHeight - 160)),
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
     };
     this.lineExpanded = true;
     this.infoOpen = false;

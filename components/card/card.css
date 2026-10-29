@@ -22,9 +22,11 @@
   box-shadow: 2px 2px 0 0 var(--reversedItemBoxShadow);
 }
 
-/* The place of a card that is shown expanded: it keeps the layout. */
+/* The place of a card that is shown expanded: it keeps the layout. Its size is
+   frozen inline, so the content (a rotated side) cannot change it. */
 .entryCard.covered {
   visibility: hidden;
+  overflow: hidden;
 }
 
 .cardSide {

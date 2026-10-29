@@ -387,6 +387,44 @@ loadRel('domain/Prompt.js');
     'reset returns every card and restores R');
   assert(Progress.activeSessions().every(s => !s.views.some(v => v.name === 'board')),
     'no board session after reset');
+
+  // Order of the source area: kept in ui, not progress.
+  assert(BoardState.defaultUi().sourceOrder.length === 0 && BoardState.uiOf(source).sourceOrder.length === 0,
+    'source order is empty by default');
+  BoardState.move(source, all[3], null, all[0]);
+  assert(layoutOf().source[0].id === all[3] && layoutOf().source.length === all.length,
+    'a card dropped in the source area goes before the given card');
+  BoardState.move(source, all[3], null, null);
+  assert(layoutOf().source[layoutOf().source.length - 1].id === all[3], 'no beforeId moves it to the end');
+  BoardState.move(source, all[1], null, all[2]);
+  const arranged = idsOf(layoutOf().source);
+  assert(arranged.startsWith([all[0], all[1], all[2]].join()), 'source order is rewritten from what is shown');
+  assert(Progress.activeSessions().every(s => !s.views.some(v => v.name === 'board')),
+    'arranging the source area is not a session');
+  assert(Object.keys(App.views[source].board.progress).length === 0, 'arranging the source area stores no progress');
+
+  BoardState.uiOf(source).sourceOrder.push(-1);
+  assert(!BoardState.uiOf(source).sourceOrder.includes(-1), 'uiOf returns a copy of the source order');
+
+  BoardState.move(source, all[0], 'good');
+  assert(!layoutOf().source.some(e => e.id === all[0]) && layoutOf().zones.good.length === 1,
+    'a card taken to a column leaves the arranged source area');
+  BoardState.move(source, all[0], null, all[1]);
+  assert(layoutOf().source.findIndex(e => e.id === all[0]) < layoutOf().source.findIndex(e => e.id === all[1]),
+    'a card returned from a column lands before the given card');
+
+  BoardState.removeEntry(source, all[2]);
+  assert(!layoutOf().source.some(e => e.id === all[2]), 'a removed card stays hidden although the order lists it');
+  assert(layoutOf().source.length === all.length - 1, 'stale ids in the source order do not add cards');
+
+  BoardState.resetSourceOrder(source);
+  assert(BoardState.uiOf(source).sourceOrder.length === 0, 'resetSourceOrder forgets the arrangement');
+  assert(idsOf(layoutOf().source) === all.filter(id => id !== all[2]).join(),
+    'file order again after resetSourceOrder');
+
+  BoardState.move(source, all[3], null, all[0]);
+  ViewState.resetEntries(source, 'board', all, BoardState.defaultUi());
+  assert(idsOf(layoutOf().source) === all.join(), 'reset forgets the arrangement of the source area');
 }
 
 // ---- Busy: reference-counted busy flag ------------------------------------

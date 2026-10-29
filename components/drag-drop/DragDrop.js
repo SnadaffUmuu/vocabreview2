@@ -22,6 +22,10 @@
 //   - The original card stays in the DOM (hidden) until the drop; a clone
 //     follows the pointer and a placeholder shows the insertion point. These
 //     are ephemeral drag visuals, the allowed direct-DOM exception.
+//   - On a successful drop the original card is put where the placeholder was
+//     before the visuals are removed. The owner learns about the drop later
+//     (Bus is asynchronous) and re-renders; without this the card would show
+//     at its old place for a few frames. The owner's render() replaces it.
 //   - One drag at a time. Timings and margins are tuning values, not contracts.
 const DragDrop = {
   name: 'DragDrop',
@@ -283,6 +287,12 @@ const DragDrop = {
       g.zone = this.zoneAt(g);
     }
     const payload = g.dragging && drop && g.zone ? this.payloadOf(g) : null;
+    // The placeholder may be in another zone if the pointer moved since the
+    // last update; then there is no reliable place, and the owner's render
+    // decides alone.
+    if(payload && g.placeholder.parentNode === g.zone) {
+      g.zone.insertBefore(g.card, g.placeholder);
+    }
     this.cleanup();
 
     if(g.dragging) this.swallowNextClick();

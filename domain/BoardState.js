@@ -4,9 +4,17 @@
 // know it. An entry is in progress when it sits in a column or was removed.
 //
 // Zones are the three review columns (failed / learn / good). Entries that are
-// in no zone stay in the source area in file order. `order` is the position
-// inside a zone; it is renumbered 1..n on every move, so it never degenerates.
+// in no zone stay in the source area. `order` is the position inside a zone; it
+// is renumbered 1..n on every move, so it never degenerates.
 // Columns carry no automation: they are only places to put cards.
+//
+// The order of the source area is not progress: it is kept in ui.sourceOrder,
+// so that arranging cards there never makes a board session. It is only a hint
+// for layout(): ids that are not shown (removed, in a column, outside the
+// selection) are ignored, shown cards that it does not list follow in file
+// order. move() rewrites it from what is shown, so stale ids drop out by
+// themselves and removeEntry() has nothing to clean. It is forgotten when the
+// selection changes (resetSourceOrder) and on a reset (ui is replaced).
 const BoardState = {
 
   viewName: 'board',
@@ -20,6 +28,7 @@ const BoardState = {
       mode: 'original',
       markReversed: true,
       sideIndexes: {},
+      sourceOrder: [],
     };
   },
 
@@ -32,6 +41,7 @@ const BoardState = {
       mode: ui.mode || defaults.mode,
       markReversed: ui.markReversed ?? defaults.markReversed,
       sideIndexes: ui.sideIndexes || defaults.sideIndexes,
+      sourceOrder: (ui.sourceOrder || defaults.sourceOrder).slice(),
     };
   },
 
@@ -58,13 +68,21 @@ const BoardState = {
       result.zones[zone].sort((a, b) =>
         (progress[a.id].order ?? 0) - (progress[b.id].order ?? 0) || a.id - b.id);
     });
+
+    const rank = new Map(this.uiOf(sourceId).sourceOrder.map((id, i) => [id, i]));
+    const arranged = result.source
+      .filter(entry => rank.has(entry.id))
+      .sort((a, b) => rank.get(a.id) - rank.get(b.id));
+    const rest = result.source.filter(entry => !rank.has(entry.id));
+    result.source = [...arranged, ...rest];
     return result;
   },
 
   // Put an entry into a zone before another entry of that zone (or to the end).
-  // zone === null returns it to the source area. Every card of the zone is
-  // renumbered, including cards outside the current selection, so their
-  // relative order is kept.
+  // zone === null returns it to the source area, before another card of the
+  // source area (or to the end) - this is also how cards are rearranged there.
+  // Every card of the zone is renumbered, including cards outside the current
+  // selection, so their relative order is kept.
   move(sourceId, entryId, zone, beforeId = null) {
     const progress = ViewState.get(sourceId, this.viewName).progress;
     const moving = Object.assign({}, progress[entryId]);
@@ -86,11 +104,28 @@ const BoardState = {
         changes[id] = item;
       });
     } else {
+      const shown = this.layout(sourceId).source
+        .map(entry => entry.id)
+        .filter(id => id !== entryId);
+      const at = beforeId == null ? -1 : shown.indexOf(beforeId);
+      if(at < 0) shown.push(entryId);
+      else shown.splice(at, 0, entryId);
+      // No event here: setEntries below saves again and announces the change.
+      ViewState.setUi(sourceId, this.viewName, { sourceOrder: shown });
+
       delete moving.zone;
       delete moving.order;
       changes[entryId] = moving;
     }
     ViewState.setEntries(sourceId, this.viewName, changes);
+  },
+
+  // The arrangement of the source area belongs to one selection. Does not write
+  // when there is nothing to forget, and does not emit: the caller re-renders.
+  resetSourceOrder(sourceId) {
+    const state = ViewState.get(sourceId, this.viewName);
+    if(!state.ui.sourceOrder?.length) return;
+    ViewState.setUi(sourceId, this.viewName, { sourceOrder: [] });
   },
 
   // Removing wins over any place in a column.
