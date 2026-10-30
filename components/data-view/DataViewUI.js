@@ -44,7 +44,7 @@ const DataViewUI = {
   ensureMarkup() {
     if(this.dom?.root) return;
     const html = `
-      <div id="dataView" class="appView">
+      <div id="dataView" class="appView hidden">
         <div id="dataViewActions">
           <label>only selection <input type="checkbox" id="dataFiltered"></label>
           <input type="search" id="dataSearch" placeholder="search">

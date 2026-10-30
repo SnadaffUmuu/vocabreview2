@@ -100,7 +100,7 @@ const PanelUI = {
   ensureMarkup() {
     if(this.dom?.root) return;
     const html = `
-      <div id="panelView" class="appView" data-drag-scope="panel">
+      <div id="panelView" class="appView hidden" data-drag-scope="panel">
         <div id="panelToolbar">
           ${DropdownUI.select({
             id: 'panelCardMode',

@@ -89,7 +89,7 @@ const BoardUI = {
   ensureMarkup() {
     if(this.dom?.root) return;
     const html = `
-      <div id="boardView" class="appView" data-drag-scope="board">
+      <div id="boardView" class="appView hidden" data-drag-scope="board">
         <div id="boardToolbar">
           ${DropdownUI.select({
             id: 'boardCardMode',

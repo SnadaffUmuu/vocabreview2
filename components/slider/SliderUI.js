@@ -77,7 +77,7 @@ const SliderUI = {
   ensureMarkup() {
     if(this.dom?.root) return;
     const html = `
-      <div id="sliderView" class="appView">
+      <div id="sliderView" class="appView hidden">
         <div id="sliderActions">
           ${DropdownUI.select({
             id: 'sliderCardMode',
