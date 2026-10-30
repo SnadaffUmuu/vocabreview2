@@ -166,6 +166,36 @@ assert(!App.views['osarai-house'] && App.getSelection('osarai-house').length ===
 assert(App.views['goshogun2'], 'reload does not touch other sources');
 assert(Library.getSource('osarai-house').loadedAt > 0, 'loadedAt is kept in memory');
 
+// Update replaces the text only: progress and selection stay, nothing is reconciled.
+{
+  const id = 'goshogun2';
+  const before = Library.getSource(id).raw;
+  const firstLine = Library.getSource(id).parsed.allEntries[0].lines[0].text;
+  const selectionBefore = App.getSelection(id).slice();
+  const marksBefore = JSON.stringify(App.views[id]);
+  const entriesBefore = Library.getSource(id).parsed.allEntries.length;
+  const otherId = 'SR_secret';
+  const otherRawBefore = Library.getSource(otherId).raw;
+  const otherViewsBefore = JSON.stringify(App.views[otherId]);
+
+  Library.updateSource(id, before.replace(firstLine, firstLine + 'X'), 'http');
+
+  const updated = Library.getSource(id);
+  assert(updated.parsed.allEntries[0].lines[0].text === firstLine + 'X',
+    'update parses the new text');
+  assert(updated.parsed.allEntries.length === entriesBefore,
+    'update keeps the number of entries for a typo fix');
+  assert(JSON.stringify(App.views[id]) === marksBefore,
+    'update keeps progress of the source');
+  assert(App.getSelection(id).join(',') === selectionBefore.join(','),
+    'update keeps selection of the source');
+  assert(Storage.loadSource(id).raw === updated.raw && updated.raw !== before,
+    'update persists the new raw text');
+  assert(Library.getSource(otherId).raw === otherRawBefore
+    && JSON.stringify(App.views[otherId]) === otherViewsBefore,
+    'update does not touch other sources');
+}
+
 // Persistence round-trip.
 App.saveViews();
 const reloadedViews = Storage.load(Storage.KEY.views, {});

@@ -17,6 +17,7 @@ const MenuUI = {
   // Global actions: one table feeds both the dropdown items and the dispatch.
   actions: [
     { value: 'loadAllSources', label: 'Load all', run: menu => menu.loadAllSources() },
+    { value: 'updateSource', label: 'update source', run: menu => menu.updateCurrent() },
     { value: 'resetSpeech', label: 'reset speech', run: () => Utils.cancelSpeech() },
     { value: 'resetApp', label: 'reset App', run: menu => menu.resetApp() },
     { value: 'exportState', label: 'export state', run: menu => menu.exportState() },
@@ -150,7 +151,19 @@ const MenuUI = {
       return;
     }
 
-    // Try http first (works when served over http://); fall back to picker.
+    // The dropdown shows the requested id already; restore it to the real current
+    // source in case the picker is cancelled.
+    await this.fetchOrPick(id, (raw, origin) => {
+      Busy.beginAndRun(() => this._installSource(id, raw, origin));
+    }, () => this.render());
+  },
+
+  /*
+    Gets the text of a source: http first (works when served over http://),
+    otherwise a file picker. onRaw(raw, origin) is called with the text;
+    beforePick runs just before the picker opens.
+  */
+  async fetchOrPick(id, onRaw, beforePick) {
     Busy.begin();
     let raw = null;
     try {
@@ -159,15 +172,11 @@ const MenuUI = {
       Busy.end();
     }
     if(raw != null) {
-      Busy.beginAndRun(() => this._installSource(id, raw, 'http'));
+      onRaw(raw, 'http');
       return;
     }
-    // The dropdown shows the requested id already; restore it to the real current
-    // source in case the picker is cancelled.
-    this.render();
-    this.pickFile(id, picked => {
-      Busy.beginAndRun(() => this._installSource(id, picked, 'file'));
-    });
+    if(beforePick) beforePick();
+    this.pickFile(id, picked => onRaw(picked, 'file'));
   },
 
   isHttp() {
@@ -327,19 +336,21 @@ const MenuUI = {
   },
 
   async doReload(id) {
-    Busy.begin();
-    let raw = null;
-    try {
-      raw = await this.tryHttpFetch(id);
-    } finally {
-      Busy.end();
-    }
-    if(raw != null) {
-      Busy.beginAndRun(() => this._installSource(id, raw, 'http'));
-      return;
-    }
-    this.pickFile(id, picked => {
-      Busy.beginAndRun(() => this._installSource(id, picked, 'file'));
+    await this.fetchOrPick(id, (raw, origin) => {
+      Busy.beginAndRun(() => this._installSource(id, raw, origin));
+    });
+  },
+
+  /*
+    Replaces only the text of the current source: progress and selection stay.
+    No confirmation, the user is responsible for keeping the structure of the
+    file (entries, lines, sections) as it was. Unlike reloadCurrent().
+  */
+  async updateCurrent() {
+    const id = App.currentSource;
+    if(!id || !Library.hasSource(id)) return;
+    await this.fetchOrPick(id, (raw, origin) => {
+      Busy.beginAndRun(() => Library.updateSource(id, raw, origin));
     });
   },
 

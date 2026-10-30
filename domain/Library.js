@@ -50,16 +50,35 @@ const Library = {
     return SOURCES_LIST.filter(id => !this.sources[id]);
   },
 
-  // Install raw text for a source (from network or a picked file). Parses,
-  // persists the raw text, and emits sourceLoaded + sourcesChanged.
-  setSource(id, raw, origin) {
+  // Parses the text, keeps the result in memory and persists the raw text only.
+  _install(id, raw, origin) {
     const loadedAt = Date.now();
     const source = this._build(id, raw, origin, loadedAt);
     this.sources[id] = source;
     Storage.saveSource(id, { raw, origin, loadedAt });
+    return source;
+  },
+
+  // Install raw text for a source (from network or a picked file). Parses,
+  // persists the raw text, and emits sourcesChanged.
+  setSource(id, raw, origin) {
+    const source = this._install(id, raw, origin);
     App.ensureSelection(id);
 
-    Bus.emit(Bus.events.sourceLoaded, { id }); 
+    Bus.emit(Bus.events.sourcesChanged, { id });
+    return source;
+  },
+
+  /*
+    Update a source: replace its text and nothing else. Progress and selection
+    are kept as they are and are NOT checked against the new text: entry
+    ordinals, section paths and line indexes are expected to be unchanged (a
+    typo fix). If the structure of the file changed, the source has to be
+    reloaded instead. The selection is not touched, not even to apply the
+    default one.
+  */
+  updateSource(id, raw, origin) {
+    const source = this._install(id, raw, origin);
     Bus.emit(Bus.events.sourcesChanged, { id });
     return source;
   },
