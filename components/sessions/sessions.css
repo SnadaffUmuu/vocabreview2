@@ -1,3 +1,7 @@
+/*
+  Same look as the v1 dialog: the dialog sits at the top of a scrollable
+  overlay with a hard offset shadow and fixed margins to the viewport edges.
+*/
 #sessions {
   position: fixed;
   top: 0;
@@ -5,64 +9,53 @@
   bottom: 0;
   left: 0;
   z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 45px 30px;
   background: var(--overlay);
 }
 
 #sessionsDialog {
   position: relative;
   box-sizing: border-box;
-  width: 85vw;
-  max-height: 80vh;
-  overflow: auto;
-  padding: 10px 15px 15px;
-  border-radius: 8px;
+  padding: 30px 25px;
+  border-radius: 5px;
+  box-shadow: 8px 8px 0 var(--dialogShadow);
   background: var(--bg);
   color: var(--text-color);
-  font-size: 16px;
+  font-size: 15px;
 }
 
 #sessionsDialog h3 {
-  margin: 0 0 10px;
+  margin: 0 0 15px;
   font-size: 18px;
 }
 
 #sessionsClose {
   position: absolute;
-  top: 5px;
-  right: 5px;
+  top: 10px;
+  right: 10px;
   width: 30px;
   height: 30px;
   padding: 0;
+  border-radius: 5px;
   font-size: 20px;
 }
 
 .sessionsData {
-  border-collapse: collapse;
   width: 100%;
 }
 
 .sessionsData td {
-  padding: 6px 4px;
-  border-bottom: 1px solid var(--paleBorder);
+  padding: 5px 10px 0;
+  border: 1px solid var(--paleBorder);
 }
 
-.sessionsData td:first-child {
-  text-decoration: underline;
-}
-
-.sessionsData td:last-child {
-  display: flex;
-  flex-flow: row wrap;
-  gap: 6px;
-  border-bottom: 0;
-}
-
-.sessionsData .tag {
-  font-size: 16px;
-  padding: 3px 10px;
+.sessionsData td .tag {
+  display: inline-block;
+  margin-right: 5px;
+  margin-bottom: 5px;
+  padding: 5px 10px;
 }
 
 .sessionsEmpty {

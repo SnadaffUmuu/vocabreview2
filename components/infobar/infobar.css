@@ -1,9 +1,9 @@
 #infobar {
   position: fixed;
   top: 0;
-  left: 70px;
+  left: 90px;
   z-index: 200;
-  width: calc(100vw - 70px);
+  width: calc(100vw - 90px);
   min-height: 38px;
   box-sizing: border-box;
   display: flex;

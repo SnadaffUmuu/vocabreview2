@@ -83,13 +83,21 @@
 #menuViewRow {
   display: flex;
   flex-flow: row nowrap;
-  justify-content: space-between;
+  justify-content: flex-end;
   margin-bottom:15px;
 }
 
+/* Transparent: only the letter is visible, so it does not clutter the header. */
 #menuSessions {
-  flex: 0 0 auto;
-  margin-right: 15px;
+  position: fixed;
+  top: 0;
+  left: 45px;
+  z-index: 400;
+  width: 45px;
+  height: 35px;
+  background: none;
+  color: var(--text-color);
+  font-size:18px;
 }
 
 #menuViewSwitcher {

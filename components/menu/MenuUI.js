@@ -71,6 +71,7 @@ const MenuUI = {
     const html = `
       <div id="menuContainer">
         <button id="menuTrigger" type="button" aria-label="Open menu" aria-expanded="false">&gt;&gt;</button>
+        <button id="menuSessions" type="button" aria-label="Sessions">A</button>
         <div id="menu">
           <div id="menuSourcesRow">
             ${DropdownUI.select({
@@ -88,7 +89,6 @@ const MenuUI = {
             })}
           </div>
           <div id="menuViewRow">
-            <button id="menuSessions" type="button" aria-label="Sessions">A</button>
             <div id="menuViewSwitcher">${switchers}
             </div>
           </div>
@@ -132,6 +132,10 @@ const MenuUI = {
     this.dom.triggerEl.textContent = this.isOpened ? '<<' : '>>';
     this.dom.triggerEl.setAttribute('aria-expanded', String(this.isOpened));
     this.dom.triggerEl.setAttribute('aria-label', this.isOpened ? 'Close menu' : 'Open menu');
+
+    // The sessions button sits next to the trigger, outside the transformed
+    // #menu; while the menu is open it would cover the sources row.
+    this.dom.sessionsEl.classList.toggle('hidden', this.isOpened);
 
     // Sources dropdown: always the hard-coded list, loaded or not.
     DropdownUI.setValue('menuSources', App.currentSource);
