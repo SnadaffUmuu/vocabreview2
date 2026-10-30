@@ -1,8 +1,10 @@
-// Development-only: compares the v2 Parser against the Version 1 DataFactory
-// on the three source files. Run from the vocabreview2 root:
-//   node scripts/compare-v1.js
-//
-// Requires Version 1 to be present at the path referenced in AGENTS.md.
+/*
+   Development-only: compares the v2 Parser against the Version 1 DataFactory
+   on the three source files. Run from the vocabreview2 root:
+     node scripts/compare-v1.js
+  
+   Requires Version 1 to be present at the path referenced in AGENTS.md.
+*/
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');

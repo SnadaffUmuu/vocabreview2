@@ -1,7 +1,9 @@
-// Progress: read-only domain queries over saved view progress. Used by
-// StructureUI (section marks) and SessionsUI (list of sources in progress).
-// It knows nothing about the shape of a view's progress: that is asked from
-// ViewState.isEntryInProgress(viewName, item).
+/*
+  Progress: read-only domain queries over saved view progress. Used by
+  StructureUI (section marks) and SessionsUI (list of sources in progress).
+  It knows nothing about the shape of a view's progress: that is asked from
+  ViewState.isEntryInProgress(viewName, item).
+*/
 const Progress = {
 
   // View names that have at least one entry with real progress for a source.

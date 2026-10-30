@@ -1,5 +1,7 @@
-// Utils: shared helpers. No DOM-specific app logic here; only small pure
-// utilities used across core, domain, and components.
+/*
+   Utils: shared helpers. No DOM-specific app logic here; only small pure
+   utilities used across core, domain, and components.
+*/
 const Utils = {
 
   // Cache a component's selector map into component.dom once at startup.

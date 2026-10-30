@@ -1,7 +1,9 @@
-// SessionsUI: modal list of sources that have review progress, with one letter
-// tag per view in progress. Click a source name to switch to it; click a letter
-// to switch to that source and view. It only reads Progress.activeSessions()
-// and changes state through App.selectSource / App.setView.
+/*
+   SessionsUI: modal list of sources that have review progress, with one letter
+   tag per view in progress. Click a source name to switch to it; click a letter
+   to switch to that source and view. It only reads Progress.activeSessions()
+   and changes state through App.selectSource / App.setView.
+*/
 const SessionsUI = {
   name: 'SessionsUI',
 

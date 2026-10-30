@@ -1,12 +1,14 @@
-// App: owns current selection state (current source, current view, theme),
-// per-source selections (which sections are checked), and per-source/per-view
-// progress. The single point that writes views/selections/settings to Storage.
-// No DOM.
-//
-// Data model:
-//   views[sourceId][viewName] = { progress: { [entryId]: {...} }, ui: {...} }
-//   selections[sourceId] = [sectionIds]
-//   settings = { currentSource, currentView, night }
+/*
+  App: owns current selection state (current source, current view, theme),
+  per-source selections (which sections are checked), and per-source/per-view
+  progress. The single point that writes views/selections/settings to Storage.
+  No DOM.
+
+  Data model:
+    views[sourceId][viewName] = { progress: { [entryId]: {...} }, ui: {...} }
+    selections[sourceId] = [sectionIds]
+    settings = { currentSource, currentView, night }
+*/
 const App = {
 
   views: {},

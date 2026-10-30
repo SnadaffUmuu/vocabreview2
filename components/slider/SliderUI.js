@@ -1,20 +1,22 @@
-// SliderUI: swipeable cards backed by Keen Slider. Persistent state is owned
-// by ViewState/SliderState; DOM is only a projection of that state.
-//
-// Component state that is not persisted (dropped by rebuild(): on a view,
-// source or selection change and on actions that rebuild the slides):
-//   entries    - domain entries the slides are built from, in slide order
-//   entryIds   - their ids; a position in Keen maps to an id through it
-//   sideOrders - { [entryId]: lines } order of the sides of a card. It can be
-//                random, so it is resolved once and then reused.
-//   readings   - { [entryId]: 'listened' | 'revealed' } state of the reading bar
-//   openInfoId - id of the card whose info <details> is open
-//
-// Exceptions to a full re-render (see AGENTS.md):
-//   - Keen Slider is destroyed/created together with the slides it owns.
-//   - A tap on a card (rotate a side, reading bar, info) re-renders only the
-//     content of that one slide: rebuilding the container would destroy the
-//     widget and lose the position. The slide element itself is never replaced.
+/*
+   SliderUI: swipeable cards backed by Keen Slider. Persistent state is owned
+   by ViewState/SliderState; DOM is only a projection of that state.
+  
+   Component state that is not persisted (dropped by rebuild(): on a view,
+   source or selection change and on actions that rebuild the slides):
+     entries    - domain entries the slides are built from, in slide order
+     entryIds   - their ids; a position in Keen maps to an id through it
+     sideOrders - { [entryId]: lines } order of the sides of a card. It can be
+                  random, so it is resolved once and then reused.
+     readings   - { [entryId]: 'listened' | 'revealed' } state of the reading bar
+     openInfoId - id of the card whose info <details> is open
+  
+   Exceptions to a full re-render (see AGENTS.md):
+     - Keen Slider is destroyed/created together with the slides it owns.
+     - A tap on a card (rotate a side, reading bar, info) re-renders only the
+       content of that one slide: rebuilding the container would destroy the
+       widget and lose the position. The slide element itself is never replaced.
+*/
 const SliderUI = {
   name: 'SliderUI',
   viewName: 'slider',

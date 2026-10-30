@@ -1,6 +1,8 @@
-// Entry point. Short, explicit startup mirroring KanbanMvd's main.js:
-// load data, init events/components, then issue explicit initial renders.
-// Afterwards, changes flow through Bus events.
+/*
+   Entry point. Short, explicit startup mirroring KanbanMvd's main.js:
+   load data, init events/components, then issue explicit initial renders.
+   Afterwards, changes flow through Bus events.
+*/
 const AppInit = {
 
   init() {

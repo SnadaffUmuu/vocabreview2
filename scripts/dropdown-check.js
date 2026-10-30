@@ -1,4 +1,6 @@
-// Checks DropdownUI markup generation and escaping (no DOM needed).
+/*
+   Checks DropdownUI markup generation and escaping (no DOM needed).
+*/
 const fs = require('fs');
 const assert = require('assert');
 const load = f => fs.readFileSync(f, 'utf8');

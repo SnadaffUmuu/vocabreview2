@@ -1,13 +1,15 @@
-// DataViewUI: read-only, maximally detailed dump of the selected collection
-// for the current source, plus a search box. No tests/editor (not wanted).
-// Shows/hides itself based on App.currentView === 'data'.
-//
-// Component state:
-//   onlyFiltered - the "only selection" checkbox
-//   searchValue  - the applied search query
-// The text typed into the search input is an uncommitted draft that lives in
-// the input itself (caret, IME); render() never writes it back. It becomes
-// state when the user commits it (Enter / the search event).
+/*
+   DataViewUI: read-only, maximally detailed dump of the selected collection
+   for the current source, plus a search box. No tests/editor (not wanted).
+   Shows/hides itself based on App.currentView === 'data'.
+  
+   Component state:
+     onlyFiltered - the "only selection" checkbox
+     searchValue  - the applied search query
+   The text typed into the search input is an uncommitted draft that lives in
+   the input itself (caret, IME); render() never writes it back. It becomes
+   state when the user commits it (Enter / the search event).
+*/
 const DataViewUI = {
   name: 'DataViewUI',
   viewName: 'data',

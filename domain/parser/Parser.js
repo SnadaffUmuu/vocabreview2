@@ -1,11 +1,13 @@
-// Parser: pure domain logic. parse(rawText) -> { title, sourceName, structure,
-// allEntries, excludedEntries, excludedLines }. No DOM, no storage, no net.
-//
-// Faithful port of Version 1's DataFactory.parse, with a few clarifications:
-//   - BOM is stripped before parsing (v1 silently left it glued to the first line).
-//   - File header (title / ::source:: / ====) is recognized explicitly.
-//   - entry.id is the positional index (0-based) in the file.
-//   - section.id is the structural path ("0", "0.1", ...), not a hash.
+/*
+   Parser: pure domain logic. parse(rawText) -> { title, sourceName, structure,
+   allEntries, excludedEntries, excludedLines }. No DOM, no storage, no net.
+  
+   Faithful port of Version 1's DataFactory.parse, with a few clarifications:
+     - BOM is stripped before parsing (v1 silently left it glued to the first line).
+     - File header (title / ::source:: / ====) is recognized explicitly.
+     - entry.id is the positional index (0-based) in the file.
+     - section.id is the structural path ("0", "0.1", ...), not a hash.
+*/
 const Parser = {
 
   LINE_ROLE: {

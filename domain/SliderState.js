@@ -1,7 +1,9 @@
-// SliderState: Slider-specific progress rules. Owns the shape
-//   progress[entryId] = { hits: [sideIndex], lapses: [sideIndex], removed }
-// and registers it as a view kind so generic code (Progress) never needs to
-// know it. Only study marks count as progress; card rotation and position don't.
+/*
+   SliderState: Slider-specific progress rules. Owns the shape
+     progress[entryId] = { hits: [sideIndex], lapses: [sideIndex], removed }
+   and registers it as a view kind so generic code (Progress) never needs to
+   know it. Only study marks count as progress; card rotation and position don't.
+*/
 const SliderState = {
 
   viewName: 'slider',

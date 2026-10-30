@@ -1,11 +1,13 @@
-// Backup: export/import/reset of the whole persisted state. Pure domain logic;
-// no DOM. Only Storage touches localStorage.
-//
-// A backup is a snapshot of every key in our Storage namespace, including raw
-// source texts, so that an import works on file:// without re-picking files.
-// parse() validates the file completely before anything is replaced: a bad
-// file must never damage the current state. Version 1 exports are rejected on
-// purpose; their data model differs and old data is not reconciled.
+/*
+   Backup: export/import/reset of the whole persisted state. Pure domain logic;
+   no DOM. Only Storage touches localStorage.
+  
+   A backup is a snapshot of every key in our Storage namespace, including raw
+   source texts, so that an import works on file:// without re-picking files.
+   parse() validates the file completely before anything is replaced: a bad
+   file must never damage the current state. Version 1 exports are rejected on
+   purpose; their data model differs and old data is not reconciled.
+*/
 const Backup = {
 
   FORMAT: 'vocabreview2-state',

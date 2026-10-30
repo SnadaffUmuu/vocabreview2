@@ -1,5 +1,7 @@
-// InfobarUI: shows the current source name and selected-entry count, plus a
-// night-mode toggle. Renders from domain state; no state of its own.
+/*
+   InfobarUI: shows the current source name and selected-entry count, plus a
+   night-mode toggle. Renders from domain state; no state of its own.
+*/
 const InfobarUI = {
   name: 'InfobarUI',
 

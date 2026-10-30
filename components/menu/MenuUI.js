@@ -1,14 +1,16 @@
-// MenuUI: slide-out panel with source selector, view switcher, sessions button,
-// reload and the global actions menu (load all, speech, app state). A source
-// loads via http when served over http(s)://, otherwise (or when http fails)
-// via a file picker. The menu does not know which views exist: every
-// registered component that declares viewName/viewLabel gets a switch button,
-// and the menu only calls App.setView().
-//
-// Reset and import replace the whole persisted state and then reload the page:
-// views keep in-memory state of their own, and a reload is the only reliable
-// way to make every component start from the new data. Storage writes are
-// immediate, so nothing is lost by reloading.
+/*
+   MenuUI: slide-out panel with source selector, view switcher, sessions button,
+   reload and the global actions menu (load all, speech, app state). A source
+   loads via http when served over http(s)://, otherwise (or when http fails)
+   via a file picker. The menu does not know which views exist: every
+   registered component that declares viewName/viewLabel gets a switch button,
+   and the menu only calls App.setView().
+  
+   Reset and import replace the whole persisted state and then reload the page:
+   views keep in-memory state of their own, and a reload is the only reliable
+   way to make every component start from the new data. Storage writes are
+   immediate, so nothing is lost by reloading.
+*/
 const MenuUI = {
   name: 'MenuUI',
 

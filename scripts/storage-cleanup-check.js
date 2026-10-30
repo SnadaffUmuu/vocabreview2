@@ -1,4 +1,6 @@
-// Domain/storage check only; no browser needed. Run with node scripts/storage-cleanup-check.js.
+/*
+   Domain/storage check only; no browser needed. Run with node scripts/storage-cleanup-check.js.
+*/
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');

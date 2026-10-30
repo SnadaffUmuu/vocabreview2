@@ -1,11 +1,13 @@
-// DropdownUI: replacement for system selects (ugly on Android) and a button
-// with a list of actions. It is a markup factory plus one shared click
-// behaviour: a view embeds DropdownUI.select()/burger() output in its own
-// template and reacts to a choice via DropdownUI.on(id, handler).
-//
-// The component keeps no value: the owner (domain/view state) is the source
-// of truth and pushes it back with setValue(). Disabled items are placeholders
-// for actions that do not exist yet; they never produce a selection.
+/*
+   DropdownUI: replacement for system selects (ugly on Android) and a button
+   with a list of actions. It is a markup factory plus one shared click
+   behaviour: a view embeds DropdownUI.select()/burger() output in its own
+   template and reacts to a choice via DropdownUI.on(id, handler).
+  
+   The component keeps no value: the owner (domain/view state) is the source
+   of truth and pushes it back with setValue(). Disabled items are placeholders
+   for actions that do not exist yet; they never produce a selection.
+*/
 const DropdownUI = {
   name: 'DropdownUI',
 

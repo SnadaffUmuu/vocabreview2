@@ -1,13 +1,15 @@
-// Prompt: pending question to the user (confirm) or message (notify). Pure
-// domain state, never persisted; PromptUI is its projection. Replaces the
-// system confirm()/alert().
-//
-// Callbacks run synchronously from confirm()/cancel()/dismiss(), not through
-// Bus: Bus delivers in a later macrotask, which would lose the user gesture
-// needed by follow-ups such as opening a file picker. Callbacks are therefore
-// kept here and never travel in the event payload.
-//
-// One prompt at a time: ask()/notify() while another is open are ignored.
+/*
+   Prompt: pending question to the user (confirm) or message (notify). Pure
+   domain state, never persisted; PromptUI is its projection. Replaces the
+   system confirm()/alert().
+  
+   Callbacks run synchronously from confirm()/cancel()/dismiss(), not through
+   Bus: Bus delivers in a later macrotask, which would lose the user gesture
+   needed by follow-ups such as opening a file picker. Callbacks are therefore
+   kept here and never travel in the event payload.
+  
+   One prompt at a time: ask()/notify() while another is open are ignored.
+*/
 const Prompt = {
 
   current: null,

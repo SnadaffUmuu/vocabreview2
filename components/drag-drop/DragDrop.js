@@ -1,32 +1,34 @@
-// DragDrop: one gesture engine for dragging cards between zones. It only works
-// out the target; the owner of the cards changes its state in response to
-// Bus.events.dragDropped and re-renders. The engine never mutates view state.
-//
-// Markup contract (written by the View's template):
-//   [data-drag-scope="<name>"]  root of one View; a drag never leaves its scope
-//   [data-drop-zone="<name>"]   a place for cards; cards must be its direct children
-//   [data-drag-id="<id>"]       a draggable card
-//   [data-drag-scroll]          a box that scrolls while a card is held near its edge
-// Event payload: { scope, id, zone, beforeId, x, y }. beforeId is the card of
-// the zone the dropped one goes in front of (null = to the end). x, y is the
-// top-left of the dropped card inside the zone, for Views that place freely.
-//
-// Constraints and reasons:
-//   - Touch starts with a long press so that scrolling and taps keep working.
-//     A mouse starts after a small move, so that clicks on a card still work.
-//   - Native HTML5 drag is not used: on Android it competes with touch events.
-//   - Raw listeners instead of Events.js: a gesture needs move/end events for
-//     its whole duration and a non-passive touchmove to stop page scrolling.
-//     The touchmove listener is added in touchstart, before any scrolling can
-//     begin, otherwise the browser may ignore preventDefault().
-//   - The original card stays in the DOM (hidden) until the drop; a clone
-//     follows the pointer and a placeholder shows the insertion point. These
-//     are ephemeral drag visuals, the allowed direct-DOM exception.
-//   - On a successful drop the original card is put where the placeholder was
-//     before the visuals are removed. The owner learns about the drop later
-//     (Bus is asynchronous) and re-renders; without this the card would show
-//     at its old place for a few frames. The owner's render() replaces it.
-//   - One drag at a time. Timings and margins are tuning values, not contracts.
+/*
+   DragDrop: one gesture engine for dragging cards between zones. It only works
+   out the target; the owner of the cards changes its state in response to
+   Bus.events.dragDropped and re-renders. The engine never mutates view state.
+  
+   Markup contract (written by the View's template):
+     [data-drag-scope="<name>"]  root of one View; a drag never leaves its scope
+     [data-drop-zone="<name>"]   a place for cards; cards must be its direct children
+     [data-drag-id="<id>"]       a draggable card
+     [data-drag-scroll]          a box that scrolls while a card is held near its edge
+   Event payload: { scope, id, zone, beforeId, x, y }. beforeId is the card of
+   the zone the dropped one goes in front of (null = to the end). x, y is the
+   top-left of the dropped card inside the zone, for Views that place freely.
+  
+   Constraints and reasons:
+     - Touch starts with a long press so that scrolling and taps keep working.
+       A mouse starts after a small move, so that clicks on a card still work.
+     - Native HTML5 drag is not used: on Android it competes with touch events.
+     - Raw listeners instead of Events.js: a gesture needs move/end events for
+       its whole duration and a non-passive touchmove to stop page scrolling.
+       The touchmove listener is added in touchstart, before any scrolling can
+       begin, otherwise the browser may ignore preventDefault().
+     - The original card stays in the DOM (hidden) until the drop; a clone
+       follows the pointer and a placeholder shows the insertion point. These
+       are ephemeral drag visuals, the allowed direct-DOM exception.
+     - On a successful drop the original card is put where the placeholder was
+       before the visuals are removed. The owner learns about the drop later
+       (Bus is asynchronous) and re-renders; without this the card would show
+       at its old place for a few frames. The owner's render() replaces it.
+     - One drag at a time. Timings and margins are tuning values, not contracts.
+*/
 const DragDrop = {
   name: 'DragDrop',
 

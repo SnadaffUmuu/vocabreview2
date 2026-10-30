@@ -1,5 +1,7 @@
-// Character-class regexes shared by the parser. Ported verbatim from
-// Version 1's utils.js to avoid any behaviour drift in classification.
+/*
+   Character-class regexes shared by the parser. Ported verbatim from
+   Version 1's utils.js to avoid any behaviour drift in classification.
+*/
 const regex = {
   hasKanji: /[\p{Script=Han}]+/u,
   kanaOnly: /^[\p{Script=Hiragana}\p{Script=Katakana}\p{N}\p{P}\s\p{S}\p{Z}ー]+$/u,

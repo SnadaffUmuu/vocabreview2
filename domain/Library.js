@@ -1,7 +1,9 @@
-// Library: holds loaded sources (raw text + parsed result in memory), loads
-// and reloads them. Pure domain logic; no DOM. Emits Bus events and persists
-// only the raw text through Storage; the parsed result is never stored.
-// The set of known sources is the hard-coded SOURCES_LIST.
+/*
+   Library: holds loaded sources (raw text + parsed result in memory), loads
+   and reloads them. Pure domain logic; no DOM. Emits Bus events and persists
+   only the raw text through Storage; the parsed result is never stored.
+   The set of known sources is the hard-coded SOURCES_LIST.
+*/
 const Library = {
 
   // id -> { id, raw, origin, loadedAt, title, sourceName, parsed }

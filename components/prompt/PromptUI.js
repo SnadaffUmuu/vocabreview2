@@ -1,6 +1,8 @@
-// PromptUI: modal confirm/notify dialog. A projection of the Prompt state.
-// Subscribes to Bus.promptChanged; button clicks are forwarded to the domain.
-// Text is always set via textContent (never as markup).
+/*
+   PromptUI: modal confirm/notify dialog. A projection of the Prompt state.
+   Subscribes to Bus.promptChanged; button clicks are forwarded to the domain.
+   Text is always set via textContent (never as markup).
+*/
 const PromptUI = {
   name: 'PromptUI',
 

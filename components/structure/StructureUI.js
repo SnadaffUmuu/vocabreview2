@@ -1,14 +1,16 @@
-// StructureUI: renders the section tree for the current source with checkboxes
-// for selection and letter marks for "in progress" views. Its root is mounted
-// in the menu's layout slot; it does not call or otherwise know MenuUI.
-// Writes selection via App.setSelection.
-//
-// Not-yet-applied UI state lives in the component, not in the DOM:
-//   draft    - Set of checked section ids, or null while it equals the applied
-//              selection. Applied by the "filter" button.
-//   expanded - Set of opened branch ids, or null for the default (branches that
-//              contain selected sections).
-// Both are dropped when the source, sources or the applied selection change.
+/*
+   StructureUI: renders the section tree for the current source with checkboxes
+   for selection and letter marks for "in progress" views. Its root is mounted
+   in the menu's layout slot; it does not call or otherwise know MenuUI.
+   Writes selection via App.setSelection.
+  
+   Not-yet-applied UI state lives in the component, not in the DOM:
+     draft    - Set of checked section ids, or null while it equals the applied
+                selection. Applied by the "filter" button.
+     expanded - Set of opened branch ids, or null for the default (branches that
+                contain selected sections).
+   Both are dropped when the source, sources or the applied selection change.
+*/
 const StructureUI = {
   name: 'StructureUI',
   mountSelector: '#menuStructureSlot',

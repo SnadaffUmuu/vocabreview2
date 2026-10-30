@@ -1,16 +1,18 @@
-// Events: DOM -> application, via a single document-level listener per event
-// type. Handlers are declared in each component's "events" map and dispatched
-// here by selector match (e.target.matches). Mirrors KanbanMvd's Events.js.
-//
-//   component.events = {
-//     click: {
-//       '@alias': 'myHandler',               // selector via component.selectors
-//       '#raw .selector': 'myHandler',       // raw selector
-//       '@other': ['myHandler', [param1, param2]],
-//     },
-//   };
-//
-// Handler names are auto-prefixed with component.name.
+/*
+   Events: DOM -> application, via a single document-level listener per event
+   type. Handlers are declared in each component's "events" map and dispatched
+   here by selector match (e.target.matches). Mirrors KanbanMvd's Events.js.
+  
+     component.events = {
+       click: {
+         '@alias': 'myHandler',               // selector via component.selectors
+         '#raw .selector': 'myHandler',       // raw selector
+         '@other': ['myHandler', [param1, param2]],
+       },
+     };
+  
+   Handler names are auto-prefixed with component.name.
+*/
 const Events = {
 
   namespaces: {},

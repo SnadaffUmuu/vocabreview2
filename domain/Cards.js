@@ -1,7 +1,9 @@
-// Cards: pure rules for the sides (lines) of a card, shared by the Views that
-// show an entry as a card (Slider, Board). No DOM, no storage, no state: the
-// caller owns the resolved side order, because a random order must be created
-// once and then reused.
+/*
+  Cards: pure rules for the sides (lines) of a card, shared by the Views that
+  show an entry as a card (Slider, Board). No DOM, no storage, no state: the
+  caller owns the resolved side order, because a random order must be created
+  once and then reused.
+*/
 const Cards = {
 
   readingOf(entry) {

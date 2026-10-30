@@ -1,12 +1,14 @@
-// Busy: reference-counted flag for "something is happening". Pure domain state,
-// never persisted. Producers wrap work in begin()/end() or beginAndRun().
-// Counting keeps overlapping operations from clearing the busy state before
-// all finish. The PreloaderUI overlay subscribes to busyChanged events.
-//
-// Compromise: beginAndRun waits for a repaint before running the callback, then
-// waits again before clearing the flag. This is heuristic, not a guarantee of
-// completion: if work emits Bus events, those handlers may run after the flag
-// clears. Reliable completion would require awaiting all macrotask queues.
+/*
+   Busy: reference-counted flag for "something is happening". Pure domain state,
+   never persisted. Producers wrap work in begin()/end() or beginAndRun().
+   Counting keeps overlapping operations from clearing the busy state before
+   all finish. The PreloaderUI overlay subscribes to busyChanged events.
+  
+   Compromise: beginAndRun waits for a repaint before running the callback, then
+   waits again before clearing the flag. This is heuristic, not a guarantee of
+   completion: if work emits Bus events, those handlers may run after the flag
+   clears. Reliable completion would require awaiting all macrotask queues.
+*/
 const Busy = {
 
   count: 0,

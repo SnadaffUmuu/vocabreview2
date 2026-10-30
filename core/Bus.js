@@ -1,6 +1,8 @@
-// Bus: application -> subscribers (named change notifications).
-// Components subscribe with Bus.on() and react; they never call each other.
-// Render methods wrapped with Bus.batchedMethod() are coalesced per microtask.
+/*
+   Bus: application -> subscribers (named change notifications).
+   Components subscribe with Bus.on() and react; they never call each other.
+   Render methods wrapped with Bus.batchedMethod() are coalesced per microtask.
+*/
 const Bus = {
 
   // Canonical event names. Refer to these; do not hardcode strings elsewhere.

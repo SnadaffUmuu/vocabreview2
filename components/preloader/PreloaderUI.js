@@ -1,5 +1,7 @@
-// PreloaderUI: full-screen spinner overlay. A projection of the Busy flag.
-// Subscribes to Bus.busyChanged and shows/hides itself.
+/*
+   PreloaderUI: full-screen spinner overlay. A projection of the Busy flag.
+   Subscribes to Bus.busyChanged and shows/hides itself.
+*/
 const PreloaderUI = {
   name: 'PreloaderUI',
 

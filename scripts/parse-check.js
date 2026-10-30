@@ -1,5 +1,7 @@
-// Development-only harness: runs the v2 parser over the three source files and
-// prints a compact summary. Run with: node scripts/parse-check.js
+/*
+   Development-only harness: runs the v2 parser over the three source files and
+   prints a compact summary. Run with: node scripts/parse-check.js
+*/
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');

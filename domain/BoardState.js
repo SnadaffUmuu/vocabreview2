@@ -1,20 +1,22 @@
-// BoardState: Board-specific progress rules. Owns the shape
-//   progress[entryId] = { zone, order, removed }
-// and registers it as a view kind so generic code (Progress) never needs to
-// know it. An entry is in progress when it sits in a column or was removed.
-//
-// Zones are the three review columns (failed / learn / good). Entries that are
-// in no zone stay in the source area. `order` is the position inside a zone; it
-// is renumbered 1..n on every move, so it never degenerates.
-// Columns carry no automation: they are only places to put cards.
-//
-// The order of the source area is not progress: it is kept in ui.sourceOrder,
-// so that arranging cards there never makes a board session. It is only a hint
-// for layout(): ids that are not shown (removed, in a column, outside the
-// selection) are ignored, shown cards that it does not list follow in file
-// order. move() rewrites it from what is shown, so stale ids drop out by
-// themselves and removeEntry() has nothing to clean. It is forgotten when the
-// selection changes (resetSourceOrder) and on a reset (ui is replaced).
+/*
+   BoardState: Board-specific progress rules. Owns the shape
+     progress[entryId] = { zone, order, removed }
+   and registers it as a view kind so generic code (Progress) never needs to
+   know it. An entry is in progress when it sits in a column or was removed.
+  
+   Zones are the three review columns (failed / learn / good). Entries that are
+   in no zone stay in the source area. `order` is the position inside a zone; it
+   is renumbered 1..n on every move, so it never degenerates.
+   Columns carry no automation: they are only places to put cards.
+  
+   The order of the source area is not progress: it is kept in ui.sourceOrder,
+   so that arranging cards there never makes a board session. It is only a hint
+   for layout(): ids that are not shown (removed, in a column, outside the
+   selection) are ignored, shown cards that it does not list follow in file
+   order. move() rewrites it from what is shown, so stale ids drop out by
+   themselves and removeEntry() has nothing to clean. It is forgotten when the
+   selection changes (resetSourceOrder) and on a reset (ui is replaced).
+*/
 const BoardState = {
 
   viewName: 'board',

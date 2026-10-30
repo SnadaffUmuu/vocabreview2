@@ -1,12 +1,14 @@
-// ViewState: generic domain operations over the persisted per-source/per-view
-// state { progress: { [entryId]: {...} }, ui: {...} }. This is NOT a "session
-// snapshot": the selection only decides which entries are shown, progress stays
-// bound to entry.id.
-//
-// The shape of one progress item belongs to the view that writes it. A view
-// describes itself through registerKind(viewName, kind), where kind is
-//   { label: 'S', isEntryInProgress(item) -> boolean }
-// Progress (section marks, sessions dialog) reads only that contract.
+/*
+  ViewState: generic domain operations over the persisted per-source/per-view
+  state { progress: { [entryId]: {...} }, ui: {...} }. This is NOT a "session
+  snapshot": the selection only decides which entries are shown, progress stays
+  bound to entry.id.
+
+  The shape of one progress item belongs to the view that writes it. A view
+  describes itself through registerKind(viewName, kind), where kind is
+    { label: 'S', isEntryInProgress(item) -> boolean }
+  Progress (section marks, sessions dialog) reads only that contract.
+*/
 const ViewState = {
 
   kinds: {},

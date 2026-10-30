@@ -1,27 +1,29 @@
-// CardUI: markup of one compact card (an entry shown as a chip), shared by the
-// Views that put cards on boards. It is a pure template factory: no state, no
-// events, no DOM access. The owner View builds the card view model, handles the
-// clicks and decides where the card is drawn; sizes and colors of the zones are
-// set by the View's own CSS through variables (see card.css).
-//
-// Interactive parts are leaf elements, because Events.js matches the exact
-// event target.
-//
-// card = {
-//   id, tag, reviewLevel,
-//   reversed,          // show the "reversed entry" mark
-//   count,             // number of sides
-//   side,              // the current side { index, role, text, speakable, compact } or null
-//   reading,           // text of the reading line or null
-//   info, infoOpen,    // entry info text or null, and whether it is shown
-//   draggable,         // gets data-drag-id for DragDrop
-//   expanded, top,     // the open card with actions; top is its viewport offset
-//   lineExpanded,      // the current side is not clamped
-//   covered, size,     // the place of a card that is shown expanded elsewhere, and
-//                      // its frozen size { width, height } or null. The place must not
-//                      // follow the content of the card, or its neighbours would move
-//                      // every time the open card changes its side.
-// }
+/*
+   CardUI: markup of one compact card (an entry shown as a chip), shared by the
+   Views that put cards on boards. It is a pure template factory: no state, no
+   events, no DOM access. The owner View builds the card view model, handles the
+   clicks and decides where the card is drawn; sizes and colors of the zones are
+   set by the View's own CSS through variables (see card.css).
+  
+   Interactive parts are leaf elements, because Events.js matches the exact
+   event target.
+  
+   card = {
+     id, tag, reviewLevel,
+     reversed,          // show the "reversed entry" mark
+     count,             // number of sides
+     side,              // the current side { index, role, text, speakable, compact } or null
+     reading,           // text of the reading line or null
+     info, infoOpen,    // entry info text or null, and whether it is shown
+     draggable,         // gets data-drag-id for DragDrop
+     expanded, top,     // the open card with actions; top is its viewport offset
+     lineExpanded,      // the current side is not clamped
+     covered, size,     // the place of a card that is shown expanded elsewhere, and
+                        // its frozen size { width, height } or null. The place must not
+                        // follow the content of the card, or its neighbours would move
+                        // every time the open card changes its side.
+   }
+*/
 const CardUI = {
   name: 'CardUI',
 

@@ -1,9 +1,11 @@
-// Development-only: smoke-tests the domain layer (Parser + Library + App +
-// Progress) without a browser. Run from vocabreview2 root:
-//   node scripts/domain-check.js
-//
-// Builds minimal globals (regex, Utils, Bus, Storage) and loads the parser and
-// domain files via vm, then exercises source loading, selection, and progress.
+/*
+   Development-only: smoke-tests the domain layer (Parser + Library + App +
+   Progress) without a browser. Run from vocabreview2 root:
+     node scripts/domain-check.js
+  
+   Builds minimal globals (regex, Utils, Bus, Storage) and loads the parser and
+   domain files via vm, then exercises source loading, selection, and progress.
+*/
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');

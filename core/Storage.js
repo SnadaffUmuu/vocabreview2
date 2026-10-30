@@ -1,14 +1,16 @@
-// Storage: the only persistence boundary. Components and domain code never
-// touch localStorage directly; they go through Storage methods.
-//
-// Canonical keys (prefix "vocabreview2." to avoid clashing with Version 1
-// keys on file:// where localStorage is shared across local pages):
-//
-//   vocabreview2.src.<id>   one key per source: {raw, origin, loadedAt}
-//   vocabreview2.collections custom collections (full entry copies)
-//   vocabreview2.views       progress per source per view (written often)
-//   vocabreview2.selections  selected section ids per source
-//   vocabreview2.settings    theme, current source, current view
+/*
+   Storage: the only persistence boundary. Components and domain code never
+   touch localStorage directly; they go through Storage methods.
+  
+   Canonical keys (prefix "vocabreview2." to avoid clashing with Version 1
+   keys on file:// where localStorage is shared across local pages):
+  
+     vocabreview2.src.<id>   one key per source: {raw, origin, loadedAt}
+     vocabreview2.collections custom collections (full entry copies)
+     vocabreview2.views       progress per source per view (written often)
+     vocabreview2.selections  selected section ids per source
+     vocabreview2.settings    theme, current source, current view
+*/
 const Storage = {
 
   PREFIX: 'vocabreview2.',

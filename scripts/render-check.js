@@ -1,6 +1,8 @@
-// Checks the pure parts (viewModel helpers and template) of SessionsUI,
-// StructureUI, InfobarUI, PromptUI, DataViewUI, SliderUI, CardUI, BoardUI and the
-// geometry of DragDrop without a DOM.
+/*
+   Checks the pure parts (viewModel helpers and template) of SessionsUI,
+   StructureUI, InfobarUI, PromptUI, DataViewUI, SliderUI, CardUI, BoardUI and the
+   geometry of DragDrop without a DOM.
+*/
 const fs = require('fs');
 const assert = require('assert');
 const load = f => fs.readFileSync(f, 'utf8');

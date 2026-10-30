@@ -1,28 +1,30 @@
-// BoardUI: cards that are dragged from the source area into three review
-// columns. Persistent state is owned by ViewState/BoardState; the DOM is only
-// a projection of it. Dragging itself is done by DragDrop, which reports a drop
-// through Bus; this component then changes BoardState and re-renders.
-//
-// Component state that is not persisted (dropped by rebuild(): on a view,
-// source or selection change and on actions that rebuild the cards):
-//   entries      - { [entryId]: entry } of the cards on the board
-//   sideOrders   - { [entryId]: lines } order of the sides of a card. It can be
-//                  random, so it is resolved once and then reused.
-//   expanded     - { id, top, width, height } the card opened with its actions,
-//                  or null. top is where the card was in the viewport when it
-//                  was tapped; width and height are the size of its place in
-//                  the zone, frozen at that moment.
-//   lineExpanded - the open card shows its whole side, not a clamped one
-//   infoOpen     - the open card shows its info
-//
-// The open card is drawn by the same template in a fixed overlay, and its place
-// in the zone is only hidden and keeps the frozen size, so the layout does not
-// jump when the open card rotates to a side of another size.
-//
-// Legend: the columns are stretched to the visible height of the board, so the
-// legend (and nothing else) is just below the screen and is reached by scroll.
-// The height depends on where the columns start, which depends on the number of
-// cards in the source area, so it is measured after every render (fitColumns).
+/*
+   BoardUI: cards that are dragged from the source area into three review
+   columns. Persistent state is owned by ViewState/BoardState; the DOM is only
+   a projection of it. Dragging itself is done by DragDrop, which reports a drop
+   through Bus; this component then changes BoardState and re-renders.
+  
+   Component state that is not persisted (dropped by rebuild(): on a view,
+   source or selection change and on actions that rebuild the cards):
+     entries      - { [entryId]: entry } of the cards on the board
+     sideOrders   - { [entryId]: lines } order of the sides of a card. It can be
+                    random, so it is resolved once and then reused.
+     expanded     - { id, top, width, height } the card opened with its actions,
+                    or null. top is where the card was in the viewport when it
+                    was tapped; width and height are the size of its place in
+                    the zone, frozen at that moment.
+     lineExpanded - the open card shows its whole side, not a clamped one
+     infoOpen     - the open card shows its info
+  
+   The open card is drawn by the same template in a fixed overlay, and its place
+   in the zone is only hidden and keeps the frozen size, so the layout does not
+   jump when the open card rotates to a side of another size.
+  
+   Legend: the columns are stretched to the visible height of the board, so the
+   legend (and nothing else) is just below the screen and is reached by scroll.
+   The height depends on where the columns start, which depends on the number of
+   cards in the source area, so it is measured after every render (fitColumns).
+*/
 const BoardUI = {
   name: 'BoardUI',
   viewName: 'board',
