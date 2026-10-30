@@ -235,7 +235,7 @@ const StructureUI = {
     this.dom.treeEl.innerHTML = this.template(vm);
     // Exception: `indeterminate` has no HTML attribute, so it is applied as a
     // DOM property from the data-indeterminate marker written by the template.
-    // Scroll position is not lost: the scroll container (#structure) is not rewritten.
+    // Scroll position is not lost: the scroll container (#structureTree) is not replaced, only its content.
     this.dom.treeEl.querySelectorAll('[data-indeterminate]').forEach(checkbox => {
       checkbox.indeterminate = true;
     });
