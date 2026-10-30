@@ -72,6 +72,18 @@ const ViewState = {
     Bus.emit(Bus.events.viewsChanged, { sourceId, viewName });
   },
 
+  /*
+    How many entries with real progress are NOT among the given ones (e.g. in
+    sections outside the current selection). A reset of the selection keeps
+    them, and they still keep the source in the sessions list.
+  */
+  countInProgressOutside(sourceId, viewName, entryIds) {
+    const inside = new Set(entryIds.map(String));
+    const progress = this.get(sourceId, viewName).progress;
+    return Object.keys(progress).filter(entryId =>
+      !inside.has(entryId) && this.isEntryInProgress(viewName, progress[entryId])).length;
+  },
+
   // Clear progress of the given entries only (e.g. the current selection) and
   // restore the view's ui to defaults. Progress of other entries is kept.
   resetEntries(sourceId, viewName, entryIds, defaultUi = {}) {

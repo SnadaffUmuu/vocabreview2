@@ -358,9 +358,12 @@ const SliderUI = {
   },
 
   reset() {
-    if(!App.currentSource) return;
+    const sourceId = App.currentSource;
+    if(!sourceId) return;
+    const ids = App.selectedEntries(sourceId).map(entry => entry.id);
+    const kept = ViewState.countInProgressOutside(sourceId, this.viewName, ids);
     Prompt.ask({
-      text: 'Really reset the Slider?',
+      text: `Really reset the Slider?${kept ? ` ${kept} entries in other sections keep their progress.` : ''}`,
       onConfirm: () => this.doReset(),
     });
   },

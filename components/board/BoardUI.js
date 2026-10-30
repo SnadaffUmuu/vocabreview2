@@ -214,9 +214,12 @@ const BoardUI = {
   },
 
   reset() {
-    if(!this.loadedSource()) return;
+    const sourceId = this.loadedSource();
+    if(!sourceId) return;
+    const ids = App.selectedEntries(sourceId).map(entry => entry.id);
+    const kept = ViewState.countInProgressOutside(sourceId, this.viewName, ids);
     Prompt.ask({
-      text: 'Really reset the Board?',
+      text: `Really reset the Board?${kept ? ` ${kept} entries in other sections keep their progress.` : ''}`,
       onConfirm: () => this.doReset(),
     });
   },

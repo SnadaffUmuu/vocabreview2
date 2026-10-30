@@ -512,6 +512,33 @@ loadRel('domain/Prompt.js');
   assert(PanelState.uiOf(source).mode === 'original', 'reset restores the mode');
 }
 
+// ---- Reset of a selection keeps progress outside it ------------------------
+{
+  const source = 'SR_secret';
+  App.selectSource(source);
+  const sectionIds = [];
+  (function walk(nodes) {
+    nodes.forEach(n => { sectionIds.push(n.id); if(n.children) walk(n.children); });
+  })(Library.getSource(source).parsed.structure);
+
+  App.setSelection(source, [sectionIds[1]]);
+  const first = App.selectedEntries(source).map(e => e.id);
+  App.setSelection(source, [sectionIds[2]]);
+  const second = App.selectedEntries(source).map(e => e.id);
+  PanelState.move(source, first[0], '1');
+  PanelState.move(source, second[0], '1');
+  assert(ViewState.countInProgressOutside(source, 'panel', second) === 1,
+    'progress outside the selection is counted');
+
+  ViewState.resetEntries(source, 'panel', second, PanelState.defaultUi());
+  assert(Progress.activeSessions().some(s => s.sourceId === source && s.views.some(v => v.name === 'panel')),
+    'progress in another section keeps the session after a reset of the selection');
+  assert(ViewState.countInProgressOutside(source, 'panel', second) === 1, 'the kept progress is still outside');
+  ViewState.resetEntries(source, 'panel', first, PanelState.defaultUi());
+  assert(!Progress.activeSessions().some(s => s.sourceId === source && s.views.some(v => v.name === 'panel')),
+    'session ends once no section has progress');
+}
+
 // ---- Busy: reference-counted busy flag ------------------------------------
 // Loaded last so it can be exercised independently of the parser fixtures.
 // Bus.emit() delivers to handlers in a macrotask, so observed transitions are
