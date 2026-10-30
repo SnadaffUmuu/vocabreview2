@@ -32,6 +32,12 @@
        removed. The owner learns about the drop later (Bus is asynchronous) and
        re-renders; without this the card would show at its old place for a few
        frames. The owner's render() replaces it.
+     - Edge auto-scroll must not fire by accident. A source area is only a few
+       card rows high, so a card taken in it is almost always near its edge, and
+       a card dragged out of it crosses the edge on the way. Therefore the edge
+       band is at most a quarter of the box, scrolling starts only after the
+       pointer has stayed in a band for scrollDelayMs, and the band the drag
+       started in is not armed until the pointer has left it.
      - One drag at a time. Timings and margins are tuning values, not contracts.
 */
 const DragDrop = {
@@ -47,6 +53,7 @@ const DragDrop = {
   moveTolerance: 8,
   scrollEdge: 50,
   scrollStep: 8,
+  scrollDelayMs: 400,
 
   gesture: null,
 
@@ -98,10 +105,15 @@ const DragDrop = {
     return Math.round(Math.max(0, Math.min(pos, zoneSize - cardSize)));
   },
 
-  // -step / 0 / +step: scroll direction for a pointer position along one axis.
+  /*
+     -step / 0 / +step: scroll direction for a pointer position along one axis.
+     The edge band is at most a quarter of the box, so that a small box keeps a
+     middle where nothing scrolls.
+  */
   scrollDelta(pos, start, end) {
-    if(pos < start + this.scrollEdge) return -this.scrollStep;
-    if(pos > end - this.scrollEdge) return this.scrollStep;
+    const edge = Math.min(this.scrollEdge, (end - start) / 4);
+    if(pos < start + edge) return -this.scrollStep;
+    if(pos > end - edge) return this.scrollStep;
     return 0;
   },
 
@@ -143,6 +155,7 @@ const DragDrop = {
       placeholder: null,
       zone: null,
       beforeId: null,
+      edges: { x: null, y: null },
       offsetX: 0,
       offsetY: 0,
       width: 0,
@@ -227,6 +240,8 @@ const DragDrop = {
 
     g.card.classList.add('dragged');
     this.updateDrag();
+    // The band the drag starts in is remembered as not armed.
+    this.autoScroll(g, true);
     g.raf = requestAnimationFrame(() => this.autoScrollLoop());
   },
 
@@ -283,9 +298,14 @@ const DragDrop = {
 
   /*
      Scrolls the innermost box under the pointer that can still scroll in the
-     wanted direction. Returns true when something moved.
+     wanted direction, once the pointer has stayed in its edge band for
+     scrollDelayMs. g.edges keeps, per axis, the band the pointer is in and
+     since when; a band marked at the start of the drag (initial) never
+     becomes ready until the pointer has left it. Returns true when something
+     moved.
   */
-  autoScroll(g) {
+  autoScroll(g, initial = false) {
+    const now = performance.now();
     const boxes = Array.from(g.scope.querySelectorAll(this.scrollSelector))
       .map(el => ({ el, rect: el.getBoundingClientRect() }))
       .filter(({ rect }) => g.x >= rect.left && g.x <= rect.right
@@ -301,17 +321,27 @@ const DragDrop = {
       ? el.scrollTop > 0
       : el.scrollTop < el.scrollHeight - el.clientHeight - 1;
 
+    const axes = [
+      { name: 'x', delta: dx, can: canX, prop: 'scrollLeft' },
+      { name: 'y', delta: dy, can: canY, prop: 'scrollTop' },
+    ];
     let moved = false;
-    const boxX = boxes.find(box => dx(box) && canX(box.el, dx(box)));
-    if(boxX) {
-      boxX.el.scrollLeft += dx(boxX);
+    axes.forEach(axis => {
+      const box = boxes.find(b => axis.delta(b) && axis.can(b.el, axis.delta(b)));
+      if(!box) {
+        g.edges[axis.name] = null;
+        return;
+      }
+      const delta = axis.delta(box);
+      const edge = g.edges[axis.name];
+      if(!edge || edge.el !== box.el || edge.delta !== delta) {
+        g.edges[axis.name] = { el: box.el, delta, since: initial ? Infinity : now };
+        return;
+      }
+      if(now - edge.since < this.scrollDelayMs) return;
+      box.el[axis.prop] += delta;
       moved = true;
-    }
-    const boxY = boxes.find(box => dy(box) && canY(box.el, dy(box)));
-    if(boxY) {
-      boxY.el.scrollTop += dy(boxY);
-      moved = true;
-    }
+    });
     return moved;
   },
 

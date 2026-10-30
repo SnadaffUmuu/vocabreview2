@@ -333,5 +333,7 @@ assert.strictEqual(DragDrop.isFree({ dataset: {} }), false, 'a zone is a flow un
 assert.strictEqual(DragDrop.scrollDelta(10, 0, 300), -DragDrop.scrollStep);
 assert.strictEqual(DragDrop.scrollDelta(290, 0, 300), DragDrop.scrollStep);
 assert.strictEqual(DragDrop.scrollDelta(150, 0, 300), 0);
+assert.strictEqual(DragDrop.scrollDelta(40, 0, 80), 0, 'a small box keeps a middle without scrolling');
+assert.strictEqual(DragDrop.scrollDelta(10, 0, 80), -DragDrop.scrollStep);
 
 console.log('render-check ok');
