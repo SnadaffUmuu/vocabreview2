@@ -6,11 +6,15 @@
    Markup contract (written by the View's template):
      [data-drag-scope="<name>"]  root of one View; a drag never leaves its scope
      [data-drop-zone="<name>"]   a place for cards; cards must be its direct children
+     [data-drop-mode="free"]     on a zone: cards lie where they are dropped (Panel)
+                                 instead of being inserted into the flow (Board)
      [data-drag-id="<id>"]       a draggable card
      [data-drag-scroll]          a box that scrolls while a card is held near its edge
    Event payload: { scope, id, zone, beforeId, x, y }. beforeId is the card of
-   the zone the dropped one goes in front of (null = to the end). x, y is the
-   top-left of the dropped card inside the zone, for Views that place freely.
+   the zone the dropped one goes in front of (null = to the end); a free zone has
+   no order, so it is always null there. x, y is the top-left of the dropped card
+   inside the zone (its padding box, scroll included), kept within the zone so
+   that a card cannot be dropped out of reach. Flow zones ignore it.
   
    Constraints and reasons:
      - Touch starts with a long press so that scrolling and taps keep working.
@@ -24,9 +28,10 @@
        follows the pointer and a placeholder shows the insertion point. These
        are ephemeral drag visuals, the allowed direct-DOM exception.
      - On a successful drop the original card is put where the placeholder was
-       before the visuals are removed. The owner learns about the drop later
-       (Bus is asynchronous) and re-renders; without this the card would show
-       at its old place for a few frames. The owner's render() replaces it.
+       (in a free zone: at the dropped position) before the visuals are
+       removed. The owner learns about the drop later (Bus is asynchronous) and
+       re-renders; without this the card would show at its old place for a few
+       frames. The owner's render() replaces it.
      - One drag at a time. Timings and margins are tuning values, not contracts.
 */
 const DragDrop = {
@@ -36,6 +41,7 @@ const DragDrop = {
   cardSelector: '[data-drag-id]',
   zoneSelector: '[data-drop-zone]',
   scrollSelector: '[data-drag-scroll]',
+  freeMode: 'free',
 
   longPressMs: 250,
   moveTolerance: 8,
@@ -55,10 +61,12 @@ const DragDrop = {
 
   // ---- pure geometry (checked in Node) ---------------------------------------------
 
-  // Index of the card the pointer is in front of, for rects of cards laid out
-  // left to right in wrapping rows. rects.length means "after the last card".
-  // The next row of a wrapping layout starts below the lowest card of the
-  // previous one, so a card whose top is above the row bottom is in that row.
+  /*
+     Index of the card the pointer is in front of, for rects of cards laid out
+     left to right in wrapping rows. rects.length means "after the last card".
+     The next row of a wrapping layout starts below the lowest card of the
+     previous one, so a card whose top is above the row bottom is in that row.
+  */
   insertionIndex(rects, x, y) {
     const rows = [];
     rects.forEach((rect, i) => {
@@ -80,6 +88,14 @@ const DragDrop = {
       return row.end;
     }
     return rects.length;
+  },
+
+  /*
+     Position of a card's edge inside a zone of the given size, so that the whole
+     card stays inside. A card larger than the zone sticks to its start.
+  */
+  clampPosition(pos, cardSize, zoneSize) {
+    return Math.round(Math.max(0, Math.min(pos, zoneSize - cardSize)));
   },
 
   // -step / 0 / +step: scroll direction for a pointer position along one axis.
@@ -129,6 +145,8 @@ const DragDrop = {
       beforeId: null,
       offsetX: 0,
       offsetY: 0,
+      width: 0,
+      height: 0,
       listeners: [],
     };
     this.gesture = gesture;
@@ -185,11 +203,20 @@ const DragDrop = {
     const rect = g.card.getBoundingClientRect();
     g.offsetX = g.startX - rect.left;
     g.offsetY = g.startY - rect.top;
+    g.width = rect.width;
+    g.height = rect.height;
 
     g.clone = g.card.cloneNode(true);
     g.clone.removeAttribute('data-drag-id');
     g.clone.classList.add('dragClone');
     g.clone.style.width = `${rect.width}px`;
+    // A freely placed card carries its own z-index inline; the clone must stay
+    // above everything, which only the stylesheet guarantees.
+    g.clone.style.removeProperty('z-index');
+    // The color of a zone reaches its cards through an inherited variable; the
+    // clone is outside the zone, so it takes the resolved value along.
+    const cardBg = getComputedStyle(g.card).getPropertyValue('--cardBg');
+    if(cardBg) g.clone.style.setProperty('--cardBg', cardBg);
     // Inside the scope, not in <body>: the View's CSS variables must reach it.
     g.scope.appendChild(g.clone);
 
@@ -224,10 +251,21 @@ const DragDrop = {
     return zone && zone.closest(this.scopeSelector) === g.scope ? zone : null;
   },
 
-  // The placeholder is removed before measuring: cards are measured without
-  // it, so it cannot shift them and make the indicator jump back and forth.
+  isFree(zone) {
+    return zone.dataset.dropMode === this.freeMode;
+  },
+
+  /*
+     The placeholder is removed before measuring: cards are measured without
+     it, so it cannot shift them and make the indicator jump back and forth.
+     A free zone has no insertion point, so it gets no placeholder.
+  */
   placeIndicator(g) {
     g.placeholder.remove();
+    if(this.isFree(g.zone)) {
+      g.beforeId = null;
+      return;
+    }
     const cards = Array.from(g.zone.querySelectorAll(this.cardSelector))
       .filter(card => card !== g.card);
     const rects = cards.map(card => card.getBoundingClientRect());
@@ -243,8 +281,10 @@ const DragDrop = {
     g.raf = requestAnimationFrame(() => this.autoScrollLoop());
   },
 
-  // Scrolls the innermost box under the pointer that can still scroll in the
-  // wanted direction. Returns true when something moved.
+  /*
+     Scrolls the innermost box under the pointer that can still scroll in the
+     wanted direction. Returns true when something moved.
+  */
   autoScroll(g) {
     const boxes = Array.from(g.scope.querySelectorAll(this.scrollSelector))
       .map(el => ({ el, rect: el.getBoundingClientRect() }))
@@ -289,10 +329,17 @@ const DragDrop = {
       g.zone = this.zoneAt(g);
     }
     const payload = g.dragging && drop && g.zone ? this.payloadOf(g) : null;
-    // The placeholder may be in another zone if the pointer moved since the
-    // last update; then there is no reliable place, and the owner's render
-    // decides alone.
-    if(payload && g.placeholder.parentNode === g.zone) {
+    /*
+       The placeholder may be in another zone if the pointer moved since the
+       last update; then there is no reliable place, and the owner's render
+       decides alone.
+    */
+    if(payload && this.isFree(g.zone)) {
+      g.zone.appendChild(g.card);
+      g.card.classList.add('placed');
+      g.card.style.left = `${payload.x}px`;
+      g.card.style.top = `${payload.y}px`;
+    } else if(payload && g.placeholder.parentNode === g.zone) {
       g.zone.insertBefore(g.card, g.placeholder);
     }
     this.cleanup();
@@ -302,14 +349,23 @@ const DragDrop = {
   },
 
   payloadOf(g) {
-    const zoneRect = g.zone.getBoundingClientRect();
+    const zone = g.zone;
+    const zoneRect = zone.getBoundingClientRect();
     return {
       scope: g.scope.dataset.dragScope,
       id: g.card.dataset.dragId,
-      zone: g.zone.dataset.dropZone,
+      zone: zone.dataset.dropZone,
       beforeId: g.beforeId,
-      x: Math.max(0, g.x - g.offsetX - zoneRect.left + g.zone.scrollLeft),
-      y: Math.max(0, g.y - g.offsetY - zoneRect.top + g.zone.scrollTop),
+      x: this.clampPosition(
+        g.x - g.offsetX - zoneRect.left - zone.clientLeft + zone.scrollLeft,
+        g.width,
+        zone.clientWidth,
+      ),
+      y: this.clampPosition(
+        g.y - g.offsetY - zoneRect.top - zone.clientTop + zone.scrollTop,
+        g.height,
+        zone.clientHeight,
+      ),
     };
   },
 
@@ -328,8 +384,10 @@ const DragDrop = {
     }
   },
 
-  // A finished drag may be followed by a click on whatever is under the
-  // pointer (always for a mouse, sometimes for a long touch). It must not act.
+  /*
+     A finished drag may be followed by a click on whatever is under the
+     pointer (always for a mouse, sometimes for a long touch). It must not act.
+  */
   swallowNextClick() {
     const stop = e => {
       e.stopPropagation();

@@ -3,6 +3,8 @@
    columns. Persistent state is owned by ViewState/BoardState; the DOM is only
    a projection of it. Dragging itself is done by DragDrop, which reports a drop
    through Bus; this component then changes BoardState and re-renders.
+   What the Board shares with the Panel (the open card, the sides, the legend)
+   lives in CardZones; here stays what is specific to three ordered columns.
   
    Component state that is not persisted (dropped by rebuild(): on a view,
    source or selection change and on actions that rebuild the cards):
@@ -23,12 +25,15 @@
    Legend: the columns are stretched to the visible height of the board, so the
    legend (and nothing else) is just below the screen and is reached by scroll.
    The height depends on where the columns start, which depends on the number of
-   cards in the source area, so it is measured after every render (fitColumns).
+   cards in the source area, so it is measured after every render (fitToViewport).
 */
 const BoardUI = {
+  ...CardZones.methods,
+
   name: 'BoardUI',
   viewName: 'board',
   viewLabel: 'B',
+  kind: BoardState,
 
   selectors: {
     root: '#boardView',
@@ -48,13 +53,7 @@ const BoardUI = {
     click: {
       '#boardView .cardTapZone': 'expandCard',
       '@expandedEl': 'collapseCard',
-      '#boardExpanded .cardSide': 'rotateSide',
-      '#boardExpanded .cardRotateBack': 'rotateBack',
-      '#boardExpanded .cardLineToggle': 'toggleLine',
-      '#boardExpanded .cardInfoToggle': 'toggleInfo',
-      '#boardExpanded .cardRemove': 'removeCard',
-      '#boardExpanded .cardSpeak': 'speakSide',
-      '#boardExpanded .cardReading': 'speakReading',
+      ...CardZones.overlayClicks('#boardExpanded'),
     },
   },
 
@@ -80,7 +79,7 @@ const BoardUI = {
     Bus.on(Bus.events.dragDropped, payload => {
       if(payload.scope === this.viewName) this.dropCard(payload);
     });
-    window.addEventListener('resize', () => this.fitColumns());
+    window.addEventListener('resize', () => this.fitToViewport(this.dom.colsOuterEl));
     DropdownUI.on('boardCardMode', mode => this.changeMode(mode));
     DropdownUI.on('boardActions', action => {
       if(action === 'reset') this.reset();
@@ -108,7 +107,7 @@ const BoardUI = {
           <div id="boardSourceCount" class="tag"></div>
           ${DropdownUI.burger({
             id: 'boardActions',
-            cls: 'v2',
+            //cls: 'v2',
             items: [
               { value: 'reset', label: 'Reset' },
             ],
@@ -136,59 +135,21 @@ const BoardUI = {
 
   // ---- state -----------------------------------------------------------------------
 
-  // The loaded current source, or null.
-  boardSource() {
-    const sourceId = App.currentSource;
-    return sourceId && Library.hasSource(sourceId) ? sourceId : null;
+  // The side of a card is part of the persisted ui of the Board.
+  sideIndexOf(entryId, ui) {
+    return ui.sideIndexes[entryId];
   },
 
-  persistedUi() {
-    const sourceId = this.boardSource();
-    return sourceId ? BoardState.uiOf(sourceId) : BoardState.defaultUi();
-  },
-
-  // Drops the non-persisted card state and renders the board from scratch.
-  rebuild() {
-    this.sideOrders = {};
-    this.closeCard();
-    this.render();
-  },
-
-  closeCard() {
-    this.expanded = null;
-    this.lineExpanded = false;
-    this.infoOpen = false;
-  },
-
-  // The random side order of a card is resolved once, here, so that
-  // viewModel() and template() stay deterministic.
-  resolveSideOrders(entries, ui) {
-    entries.forEach(entry => {
-      if(this.sideOrders[entry.id]) return;
-      this.sideOrders[entry.id] = Cards.orderLines(
-        Cards.sideLines(entry),
-        ui.mode,
-        ui.sideIndexes[entry.id],
-      );
-    });
-  },
-
-  // The cards on the board, only while the board is the visible view: selection
-  // changes fire for every view.
-  loadLayout() {
-    const sourceId = this.boardSource();
-    const active = App.currentView === this.viewName && sourceId;
-    this.layout = active ? BoardState.layout(sourceId) : { source: [], zones: {} };
-    this.entries = {};
-    [this.layout.source, ...Object.values(this.layout.zones)].forEach(list =>
-      list.forEach(entry => { this.entries[entry.id] = entry; }));
-    if(this.expanded && !this.entries[this.expanded.id]) this.closeCard();
+  rememberSide(sourceId, entryId, index) {
+    BoardState.setSideIndex(sourceId, entryId, index);
   },
 
   // ---- view model ------------------------------------------------------------------
 
-  // The only place that reads domain state for the board. Pure over the
-  // component state (layout, entries, sideOrders, expanded, ...) and ui.
+  /*
+     The only place that reads domain state for the board. Pure over the
+     component state (layout, entries, sideOrders, expanded, ...) and ui.
+  */
   viewModel(ui) {
     const cardsOf = list => list.map(entry => this.cardViewModel(entry, ui));
     const zones = {
@@ -198,7 +159,6 @@ const BoardUI = {
       zones[zone] = cardsOf(this.layout.zones[zone] || []);
     });
     const open = this.expanded ? this.entries[this.expanded.id] : null;
-    const tags = new Set(Object.values(this.entries).map(entry => entry.tag).filter(Boolean));
     return {
       visible: App.currentView === this.viewName,
       mode: ui.mode,
@@ -206,42 +166,7 @@ const BoardUI = {
       sourceCount: String(zones.source.length),
       zones,
       expanded: open ? this.cardViewModel(open, ui, true) : null,
-      legend: Object.values(Parser.ENTRY_TAG).filter(tag => tags.has(tag)),
-    };
-  },
-
-  // asExpanded: the card drawn in the overlay. The same card in its zone only
-  // keeps its place (covered).
-  cardViewModel(entry, ui, asExpanded = false) {
-    const order = this.sideOrders[entry.id] || [];
-    const current = Cards.currentSide(order, ui.sideIndexes[entry.id]);
-    const side = order.find(line => line.originalIndex === current);
-    const reading = Cards.readingOf(entry);
-    const isOpen = this.expanded?.id === entry.id;
-    return {
-      id: entry.id,
-      tag: entry.tag,
-      reviewLevel: entry.reviewLevel,
-      reversed: ui.markReversed && !!entry.reversed,
-      count: order.length,
-      side: side ? {
-        index: side.originalIndex,
-        role: side.role,
-        text: side.text,
-        speakable: !!side.speakable,
-        compact: !!side.isCompact || side.role === 'example',
-      } : null,
-      reading: reading ? reading.text : null,
-      info: entry.info || null,
-      infoOpen: asExpanded && this.infoOpen,
-      draggable: !asExpanded,
-      expanded: asExpanded,
-      top: asExpanded ? this.expanded.top : 0,
-      lineExpanded: asExpanded && this.lineExpanded,
-      covered: !asExpanded && isOpen,
-      size: !asExpanded && isOpen
-        ? { width: this.expanded.width, height: this.expanded.height }
-        : null,
+      legend: this.legendTags(),
     };
   },
 
@@ -270,46 +195,26 @@ const BoardUI = {
     this.dom.counterEl.textContent = vm.sourceCount;
     this.dom.reversedEl.checked = vm.markReversed;
     DropdownUI.setValue('boardCardMode', vm.mode);
-    this.fitColumns(vm.visible);
-  },
-
-  // Layout measurement, the allowed DOM exception: the columns get the height
-  // that is left of the visible board below the source area. It is the offset
-  // of the columns inside the scrolling container, so it does not depend on the
-  // current scroll position. The offset does not depend on the columns' own
-  // height, so the old value is not reset before measuring (that could shrink
-  // the scrollable area and lose the scroll position). A hidden board has no
-  // geometry and gets no height.
-  fitColumns(visible = App.currentView === this.viewName) {
-    const container = this.dom.containerEl;
-    const cols = this.dom.colsOuterEl;
-    if(!visible) {
-      cols.style.minHeight = '';
-      return;
-    }
-    const offset = cols.getBoundingClientRect().top
-      - container.getBoundingClientRect().top
-      + container.scrollTop;
-    cols.style.minHeight = `${Math.max(0, container.clientHeight - offset)}px`;
+    this.fitToViewport(this.dom.colsOuterEl, vm.visible);
   },
 
   // ---- handlers (clean: change state or domain, then render) -----------------------
 
   changeMode(mode) {
-    const sourceId = this.boardSource();
+    const sourceId = this.loadedSource();
     if(!sourceId) return;
     BoardState.setMode(sourceId, mode);
     this.rebuild();
   },
 
   changeReversed(el) {
-    const sourceId = this.boardSource();
+    const sourceId = this.loadedSource();
     if(!sourceId) return;
     ViewState.setUi(sourceId, this.viewName, { markReversed: el.checked }, true);
   },
 
   reset() {
-    if(!this.boardSource()) return;
+    if(!this.loadedSource()) return;
     Prompt.ask({
       text: 'Really reset the Board?',
       onConfirm: () => this.doReset(),
@@ -317,17 +222,19 @@ const BoardUI = {
   },
 
   doReset() {
-    const sourceId = this.boardSource();
+    const sourceId = this.loadedSource();
     if(!sourceId) return;
     const ids = App.selectedEntries(sourceId).map(entry => entry.id);
     ViewState.resetEntries(sourceId, this.viewName, ids, BoardState.defaultUi());
     this.rebuild();
   },
 
-  // DragDrop reports ids as strings. "source" is not a column: it means the
-  // card goes back to the source area.
+  /*
+     DragDrop reports ids as strings. "source" is not a column: it means the
+     card goes back to the source area.
+  */
   dropCard({ id, zone, beforeId }) {
-    const sourceId = this.boardSource();
+    const sourceId = this.loadedSource();
     if(!sourceId) return;
     BoardState.move(
       sourceId,
@@ -335,81 +242,6 @@ const BoardUI = {
       BoardState.zones.includes(zone) ? zone : null,
       beforeId == null ? null : Number(beforeId),
     );
-  },
-
-  // The card is opened by its tap zone. Its viewport position and size are
-  // measured here, once, and kept in the component state: they are not derived
-  // from the domain, and the size of its place must stay as it was at the tap.
-  expandCard(el) {
-    const card = el.closest('.entryCard');
-    if(!card) return;
-    const rect = card.getBoundingClientRect();
-    this.expanded = {
-      id: Number(card.dataset.entryId),
-      top: Math.max(0, Math.min(rect.top, window.innerHeight - 160)),
-      width: Math.round(rect.width),
-      height: Math.round(rect.height),
-    };
-    this.lineExpanded = true;
-    this.infoOpen = false;
-    this.render();
-  },
-
-  collapseCard() {
-    this.closeCard();
-    this.render();
-  },
-
-  rotateSide(el, e) {
-    this.rotate(Cards.nextSideIndex, e);
-  },
-
-  rotateBack(el, e) {
-    this.rotate(Cards.prevSideIndex, e);
-  },
-
-  rotate(step, e) {
-    e.stopPropagation();
-    const sourceId = this.boardSource();
-    if(!sourceId || !this.expanded) return;
-    const entryId = this.expanded.id;
-    const order = this.sideOrders[entryId] || [];
-    if(order.length < 2) return;
-    const current = Cards.currentSide(order, this.persistedUi().sideIndexes[entryId]);
-    const indexes = order.map(line => line.originalIndex);
-    BoardState.setSideIndex(sourceId, entryId, step.call(Cards, indexes, current));
-    this.render();
-  },
-
-  toggleLine() {
-    this.lineExpanded = !this.lineExpanded;
-    this.render();
-  },
-
-  toggleInfo() {
-    this.infoOpen = !this.infoOpen;
-    this.render();
-  },
-
-  // No confirmation: removing a card is frequent and cheap.
-  removeCard() {
-    const sourceId = this.boardSource();
-    if(!sourceId || !this.expanded) return;
-    const entryId = this.expanded.id;
-    this.closeCard();
-    BoardState.removeEntry(sourceId, entryId);
-  },
-
-  speakSide() {
-    if(!this.expanded) return;
-    const order = this.sideOrders[this.expanded.id] || [];
-    const current = Cards.currentSide(order, this.persistedUi().sideIndexes[this.expanded.id]);
-    const side = order.find(line => line.originalIndex === current);
-    if(side?.speakable) Utils.speak(side.text);
-  },
-
-  speakReading(el) {
-    Utils.speak(el.textContent.trim());
   },
 };
 

@@ -1,7 +1,7 @@
 /*
    Checks the pure parts (viewModel helpers and template) of SessionsUI,
-   StructureUI, InfobarUI, PromptUI, DataViewUI, SliderUI, CardUI, BoardUI and the
-   geometry of DragDrop without a DOM.
+   StructureUI, InfobarUI, PromptUI, DataViewUI, SliderUI, CardUI, BoardUI, PanelUI
+   and the geometry of DragDrop without a DOM.
 */
 const fs = require('fs');
 const assert = require('assert');
@@ -199,8 +199,10 @@ assert(CardUI.legendTemplate(['geo', 'a"b']).includes('data-tag="a&quot;b"'));
 const ENTRY_TAG = { geo: 'geo', name: 'name' };
 const boardApp = { currentView: 'board' };
 const BoardState = { zones: ['failed', 'learn', 'good'] };
+const CardZones = make('components/card/CardZones.js', 'CardZones', {
+  App: boardApp, Cards, Parser: { ENTRY_TAG } });
 const BoardUI = make('components/board/BoardUI.js', 'BoardUI', {
-  App: boardApp, BoardState, Cards, CardUI, Parser: { ENTRY_TAG } });
+  App: boardApp, BoardState, Cards, CardUI, CardZones, Parser: { ENTRY_TAG } });
 const bEntry = (id, extra) => Object.assign({ id, lines: [
   { originalIndex: 0, role: 'expression', text: 'E' + id },
   { originalIndex: 1, role: 'meaning', text: 'M' + id },
@@ -243,6 +245,66 @@ assert.strictEqual(BoardUI.template([]), '');
 BoardUI.expanded = null;
 BoardUI.infoOpen = false;
 
+// CardUI: a card that lies freely in its zone
+cardHtml = CardUI.template(Object.assign({}, baseCard, { place: { x: 12, y: 30, z: 4 } }));
+assert(cardHtml.includes('style="left:12px;top:30px;z-index:4"') && cardHtml.includes('placed'));
+cardHtml = CardUI.template(Object.assign({}, baseCard, {
+  place: { x: 'a"b', y: 0, z: 1 }, covered: true, size: { width: 50, height: 20 } }));
+assert(cardHtml.includes('left:0px') && !cardHtml.includes('a"b'), 'a place holds numbers only');
+assert(cardHtml.includes('left:0px;top:0px;z-index:1;width:50px;height:20px'), 'place and frozen size go together');
+assert(!CardUI.template(baseCard).includes('placed'), 'no place, no mark');
+
+// PanelUI: view model and template
+const PanelState = { zones: ['1', '2', '3', '4'] };
+const PanelUI = make('components/panel/PanelUI.js', 'PanelUI', {
+  App: boardApp, PanelState, Cards, CardUI, CardZones, Parser: { ENTRY_TAG } });
+boardApp.currentView = 'panel';
+PanelUI.layout = { source: [bEntries[0]], zones: { '2': [bEntries[1]], '3': [bEntries[2]] } };
+PanelUI.entries = Object.fromEntries(bEntries.map(e => [e.id, e]));
+PanelUI.sideOrders = {};
+PanelUI.positions = { 2: { x: 7, y: 9, z: 3 } };
+PanelUI.resolveSideOrders(bEntries, { mode: 'original' });
+assert.strictEqual(PanelUI.sideOrders[1].length, 2, 'the reading is not a side');
+const panelUi = { mode: 'original' };
+let panelVm = PanelUI.viewModel(panelUi);
+assert.strictEqual(panelVm.sourceCount, '1');
+assert.deepStrictEqual(Object.keys(panelVm.zones).sort(), ['1', '2', '3', '4', 'source']);
+assert.deepStrictEqual(panelVm.zones['2'].cards.map(c => c.id), [2]);
+assert.deepStrictEqual(panelVm.zones['1'].cards, []);
+assert(!panelVm.zones.source.controls && panelVm.zones['1'].controls, 'the start area has no buttons');
+assert.deepStrictEqual(panelVm.zones['2'].cards[0].place, { x: 7, y: 9, z: 3 }, 'a placed card keeps its place');
+assert.strictEqual(panelVm.zones.source.cards[0].place, null, 'a card without a place is in the flow');
+assert(!panelVm.zones['2'].cards[0].reversed, 'the panel has no reversed mark');
+assert.deepStrictEqual(panelVm.legend, ['geo'], 'legend lists the tags of the cards on the screen');
+assert.strictEqual(panelVm.expanded, null);
+
+// A turned side is only kept while the card is open.
+PanelUI.expanded = { id: 3, top: 10, width: 80, height: 29, sideIndex: 1 };
+panelVm = PanelUI.viewModel(panelUi);
+assert.strictEqual(panelVm.expanded.side.index, 1, 'the open card shows its turned side');
+assert.strictEqual(panelVm.expanded.place, null, 'the open card lies in the overlay');
+assert(panelVm.zones['3'].cards[0].covered);
+PanelUI.closeCard();
+PanelUI.sideOrders = {};
+PanelUI.resolveSideOrders(bEntries, panelUi);
+panelVm = PanelUI.viewModel(panelUi);
+assert.strictEqual(panelVm.zones['3'].cards[0].side.index, 0, 'a closed card is back on its default side');
+
+let zoneHtml2 = PanelUI.template(panelVm.zones['2']);
+assert(zoneHtml2.includes('zoneFocus') && zoneHtml2.includes('zoneClear'));
+assert(zoneHtml2.includes('data-drag-id="2"') && zoneHtml2.includes('left:7px;top:9px;z-index:3'));
+assert(zoneHtml2.indexOf('zoneClear') < zoneHtml2.indexOf('entryCard'), 'buttons come before the cards');
+assert(!PanelUI.template(panelVm.zones.source).includes('zoneClear'), 'no buttons in the start area');
+assert(!PanelUI.template(Object.assign({}, panelVm.zones['2'], { focused: true })).includes('zoneClear'),
+  'a zoomed area has no clear button');
+assert(PanelUI.template(Object.assign({}, panelVm.zones['2'], { focused: true })).includes('zoneFocus'));
+assert.strictEqual(PanelUI.template({ controls: false, focused: false, cards: [] }).trim(), '');
+PanelUI.focused = { zone: '2', height: 300, top: 40, bottom: null };
+assert(PanelUI.viewModel(panelUi).zones['2'].focused && !PanelUI.viewModel(panelUi).zones['3'].focused);
+PanelUI.resetLayoutState();
+assert(!PanelUI.focused && !Object.keys(PanelUI.positions).length && !Object.keys(PanelUI.sizes).length);
+boardApp.currentView = 'board';
+
 // DragDrop: pure geometry
 const DragDrop = make('components/drag-drop/DragDrop.js', 'DragDrop');
 const box = (left, top, right, bottom) => ({ left, top, right, bottom });
@@ -262,6 +324,12 @@ assert.strictEqual(DragDrop.insertionIndex(twoRows, 10, 22), 3, 'the gap between
 const uneven = [box(0, 0, 40, 60), box(45, 10, 85, 30), box(0, 65, 40, 85)];
 assert.strictEqual(DragDrop.insertionIndex(uneven, 60, 30), 1, 'cards of different heights stay in one row');
 assert.strictEqual(DragDrop.insertionIndex(uneven, 10, 70), 2, 'the next row starts below the tallest card');
+assert.strictEqual(DragDrop.clampPosition(-5, 40, 300), 0, 'not left of the zone');
+assert.strictEqual(DragDrop.clampPosition(100, 40, 300), 100);
+assert.strictEqual(DragDrop.clampPosition(290, 40, 300), 260, 'the whole card stays inside');
+assert.strictEqual(DragDrop.clampPosition(10, 400, 300), 0, 'a card larger than the zone sticks to its start');
+assert.strictEqual(DragDrop.isFree({ dataset: { dropMode: 'free' } }), true);
+assert.strictEqual(DragDrop.isFree({ dataset: {} }), false, 'a zone is a flow unless marked');
 assert.strictEqual(DragDrop.scrollDelta(10, 0, 300), -DragDrop.scrollStep);
 assert.strictEqual(DragDrop.scrollDelta(290, 0, 300), DragDrop.scrollStep);
 assert.strictEqual(DragDrop.scrollDelta(150, 0, 300), 0);

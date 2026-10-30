@@ -74,6 +74,7 @@ loadRel('domain/App.js');
 loadRel('domain/ViewState.js');
 loadRel('domain/SliderState.js');
 loadRel('domain/BoardState.js');
+loadRel('domain/PanelState.js');
 loadRel('domain/Progress.js');
 
 // ---- exercise --------------------------------------------------------------
@@ -427,6 +428,58 @@ loadRel('domain/Prompt.js');
   BoardState.move(source, all[3], null, all[0]);
   ViewState.resetEntries(source, 'board', all, BoardState.defaultUi());
   assert(idsOf(layoutOf().source) === all.join(), 'reset forgets the arrangement of the source area');
+}
+
+// ---- PanelState: free areas, removal, defaults ----------------------------
+{
+  const source = 'osarai-house';
+  App.setSelection(source, []);
+  const all = App.selectedEntries(source).map(e => e.id);
+  const layoutOf = () => PanelState.layout(source);
+  const idsOf = list => list.map(e => e.id).join();
+  const panelSession = () => Progress.activeSessions()
+    .some(s => s.views.some(v => v.name === 'panel' && v.label === 'P'));
+
+  assert(idsOf(layoutOf().source) === all.join() && !panelSession(), 'untouched panel is not a session');
+  assert(PanelState.uiOf(source).mode === 'original' && !('sideIndexes' in PanelState.uiOf(source)),
+    'the panel keeps no sides');
+
+  PanelState.move(source, all[2], '3');
+  PanelState.move(source, all[0], '3');
+  PanelState.move(source, all[1], '1');
+  assert(idsOf(layoutOf().zones['3']) === [all[0], all[2]].join(), 'areas list their cards in file order');
+  assert(idsOf(layoutOf().zones['1']) === String(all[1]), 'a card is in the area it was taken to');
+  assert(!layoutOf().source.some(e => [all[0], all[1], all[2]].includes(e.id)), 'moved cards leave the start area');
+  assert(panelSession(), 'a card in an area makes a panel session');
+  assert(App.views[source].panel.progress[all[0]].zone === '3'
+    && !('order' in App.views[source].panel.progress[all[0]]), 'progress is only the area');
+
+  PanelState.move(source, all[0], '9');
+  assert(layoutOf().source.some(e => e.id === all[0]), 'an unknown area means the start area');
+  PanelState.move(source, all[0], null);
+  assert(!(String(all[0]) in App.views[source].panel.progress), 'a card back in the start area has no progress');
+
+  PanelState.removeEntry(source, all[1]);
+  assert(!layoutOf().zones['1'].length && !layoutOf().source.some(e => e.id === all[1]), 'a removed card is hidden');
+
+  // Clearing an area removes its cards: they do not return to the start area.
+  PanelState.move(source, all[0], '4');
+  PanelState.move(source, all[3], '4');
+  const before = layoutOf().source.length;
+  PanelState.removeEntries(source, layoutOf().zones['4'].map(e => e.id));
+  assert(!layoutOf().zones['4'].length && layoutOf().source.length === before, 'a cleared area does not refill the start area');
+  assert(App.views[source].panel.progress[all[0]].removed && App.views[source].panel.progress[all[3]].removed,
+    'cleared cards are removed');
+  PanelState.move(source, all[0], '2');
+  assert(layoutOf().zones['2'].length === 1 && !App.views[source].panel.progress[all[0]].removed,
+    'a card moved again is not removed any more');
+
+  PanelState.setMode(source, 'meaning');
+  assert(PanelState.uiOf(source).mode === 'meaning', 'mode is stored');
+
+  ViewState.resetEntries(source, 'panel', all, PanelState.defaultUi());
+  assert(idsOf(layoutOf().source) === all.join() && !panelSession(), 'reset returns every card to the start area');
+  assert(PanelState.uiOf(source).mode === 'original', 'reset restores the mode');
 }
 
 // ---- Busy: reference-counted busy flag ------------------------------------

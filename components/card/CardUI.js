@@ -30,10 +30,21 @@ const CardUI = {
   // Numbers only, so nothing has to be escaped.
   styleOf(card) {
     if(card.expanded) return `top:${Number(card.top) || 0}px`;
-    if(card.covered && card.size) {
-      return `width:${Number(card.size.width) || 0}px;height:${Number(card.size.height) || 0}px`;
+    const parts = [];
+    if(card.place) {
+      parts.push(
+        `left:${Number(card.place.x) || 0}px`,
+        `top:${Number(card.place.y) || 0}px`,
+        `z-index:${Number(card.place.z) || 0}`,
+      );
     }
-    return '';
+    if(card.covered && card.size) {
+      parts.push(
+        `width:${Number(card.size.width) || 0}px`,
+        `height:${Number(card.size.height) || 0}px`,
+      );
+    }
+    return parts.join(';');
   },
 
   template(card) {
@@ -44,6 +55,7 @@ const CardUI = {
         ${card.expanded ? 'expanded' : ''}
         ${card.lineExpanded ? 'lineExpanded' : ''}
         ${card.reversed ? 'reversedShown' : ''}
+        ${card.place ? 'placed' : ''}
         ${card.covered ? 'covered' : ''}"
         data-entry-id="${id}"
         ${card.draggable ? `data-drag-id="${id}"` : ''}

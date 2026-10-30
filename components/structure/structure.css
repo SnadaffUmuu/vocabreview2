@@ -7,7 +7,7 @@
 #structureTree {
   list-style: none;
   margin: 13px 0 0;
-  padding: 0 0 10px 50px;
+  padding: 0 0 10px 40px;
   line-height: 180%;
   box-sizing: border-box;
 }
@@ -15,7 +15,7 @@
 #structureTree ul {
   list-style: none;
   margin: 0;
-  padding: 10px 0 10px 20px;
+  padding: 10px 0 10px 0;
   box-sizing: border-box;
 }
 

@@ -1,0 +1,250 @@
+#panelView {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  flex-flow: column nowrap;
+  /* Card sizes of the panel: more compact than the board's. */
+  --cardFont: 15px;
+  --cardFontCompact: 13px;
+  --cardFontLevel: 17px;
+  --cardFontLevelMajor: 19px;
+  --cardPadding: 1px 0 2px 5px;
+  --cardMinHeight: 0;
+}
+
+#panelToolbar {
+  flex: 0 1 auto;
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 5px 5px;
+  font-size: 13px;
+}
+
+#panelCardMode {
+  flex: 1 0 auto;
+}
+
+#panelCardMode .panelCardModeButton {
+  font-size: 15px;
+  height: 24px;
+  line-height: 24px;
+}
+
+#panelSourceCount {
+  width: 23px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+#panelArrange {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+#panelContainer {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-flow: column nowrap;
+  overflow: auto;
+  position: relative;
+  font-size: 15px;
+}
+
+/* ---- the start area ---- */
+
+#panelSourceOuter {
+  flex: 0 0 auto;
+  display: flex;
+  flex-flow: row nowrap;
+  max-height: 18vh;
+  overflow: auto;
+}
+
+#panelSource {
+  flex: 1 0 calc(100vw - 40px);
+  box-sizing: border-box;
+  min-height: 45px;
+  padding: 7px 15px 10px 10px;
+}
+
+/* ---- the four areas ---- */
+
+#panelZonesOuter {
+  flex: 1 0 auto;
+  display: flex;
+  flex-flow: column nowrap;
+  overflow-x: auto;
+}
+
+#panelZones {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: 5px;
+  padding: 10px;
+}
+
+.panelSlot {
+  position: relative;
+  min-width: 0;
+  min-height: 150px;
+}
+
+/* A zone is a place cards lie in: in the flow before they are measured, and
+   absolutely (.placed) afterwards, see PanelUI.settle(). */
+.panelZone {
+  position: relative;
+  /* The z-index of freely placed cards stays inside the area: it must never
+     reach the buttons of the area, the zoomed area or the open card. */
+  isolation: isolate;
+  box-sizing: border-box;
+  display: flex;
+  flex-flow: row wrap;
+  align-content: flex-start;
+  align-items: center;
+  gap: 5px;
+}
+
+#panelZones .panelZone {
+  height: 100%;
+  min-height: 150px;
+  padding: 5px;
+  border: 1px dashed gray;
+  border-radius: 10px;
+  /* overflow: hidden; */
+}
+
+.panelZone .entryCard {
+  --cardMaxWidth: 100%;
+  --cardPadding: 1px 0 2px 5px;
+  width: max-content;
+  min-width: 50px;
+  /* border-color: var(--paleBorder); */
+}
+
+.panelZone .entryCard[data-tag] {
+  border-color: var(--boardItemBorder);
+}
+
+.panelZone .entryCard.placed {
+  position: absolute;
+}
+
+/* A card whose current side is a meaning is at most half of the screen wide;
+   card.css clamps such a side to two lines. */
+.panelZone .entryCard:has(.cardSide[data-role="meaning"]):not(.covered) {
+  --cardMaxWidth: calc(50dvw - 15px);
+  width: min-content;
+}
+
+#panelZones .panelSlot:nth-child(1) .panelZone { --cardBg: var(--panelBox1Bg); }
+#panelZones .panelSlot:nth-child(2) .panelZone { --cardBg: var(--panelBox2Bg); }
+#panelZones .panelSlot:nth-child(3) .panelZone { --cardBg: var(--panelBox3Bg); }
+#panelZones .panelSlot:nth-child(4) .panelZone { --cardBg: var(--panelBox4Bg); }
+
+/* The clone of a dragged card is outside of its area, so the rules of the area
+   do not reach it. */
+#panelView .dragClone:not([data-tag]) {
+  border-color: var(--paleBorder);
+}
+
+/* ---- the buttons of an area ---- */
+
+.zoneClear,
+.zoneFocus {
+  position: absolute;
+  z-index: 100000;
+  width: 20px;
+  height: 20px;
+  bottom: 0;
+  text-align: center;
+}
+
+.zoneClear {
+  background: var(--button-primary);
+}
+
+.zoneFocus {
+  background: var(--panelFocusButtonBg);
+}
+
+/* Left column: clear at the right, focus at the left; right column: mirrored. */
+.panelSlot:nth-child(odd) .zoneClear {
+  right: 0;
+  border-top-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+.panelSlot:nth-child(odd) .zoneFocus {
+  left: 0;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.panelSlot:nth-child(even) .zoneClear {
+  left: 0;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+.panelSlot:nth-child(even) .zoneFocus {
+  right: 0;
+  border-top-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+/* The zoomed area: out of the flow, over the other areas, on its side. */
+#panelZones .panelZone.focused {
+  position: fixed;
+  width: 70vw;
+  min-height: 0;
+  background: var(--bg);
+  box-shadow: -4px 4px 13px 6px var(--panelFocusedBoxShadow);
+  z-index: 800;
+}
+
+#panelZones .panelSlot:nth-child(odd) .panelZone.focused {
+  left: 5px;
+}
+
+#panelZones .panelSlot:nth-child(even) .panelZone.focused {
+  right: 5px;
+}
+
+body:has(#panelZones .focused) {
+  overflow: hidden;
+}
+
+/* ---- the open card ---- */
+
+#panelExpanded {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  touch-action: none;
+}
+
+#panelExpanded .entryCard.expanded {
+  left: 5px;
+  right: 5px;
+}
+
+/* ---- marks that have no meaning without a custom list yet ---- */
+
+/* Cards that are already in a custom list get a shadow. Custom lists replace
+   the v1 global pool; the rule is kept for them and is not used until then.
+.entryCard[data-global] {
+  box-shadow: 3px 3px 7px -3px var(--boardGlobalItemShadow);
+}
+*/
+
+#panelLegend:empty {
+  display: none;
+}

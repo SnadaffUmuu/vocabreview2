@@ -30,6 +30,7 @@ const AppInit = {
       DataViewUI.render();
       SliderUI.render();
       BoardUI.render();
+      PanelUI.render();
     });
   },
 };

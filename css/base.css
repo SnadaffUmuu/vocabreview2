@@ -64,6 +64,12 @@
   --boardItemMenuExpandedBorder: #a6cecf;
   --boardInfoShadow: #a6cecf;
   --reversedItemBoxShadow: #cb00ff5e;
+  --panelBox1Bg: #ffefef;
+  --panelBox2Bg: #ecfffb;
+  --panelBox3Bg: #fff;
+  --panelBox4Bg: #fff5fe;
+  --panelFocusedBoxShadow: #c5b8d0;
+  --panelFocusButtonBg: #e6deee;
   /* Marks cards that are already in a custom list. Not used until custom
      lists exist (they replace the v1 global pool); kept for that styling. */
   /* --boardGlobalItemShadow: #1e20c07d; */
@@ -121,6 +127,12 @@ body.night {
   --boardItemMenuExpandedBorder: #6b526d;
   --boardInfoShadow: rgb(22 0 36);
   --reversedItemBoxShadow: #0003ff8f;
+  --panelBox1Bg: #4a4435;
+  --panelBox2Bg: #35493e;
+  --panelBox3Bg: #3d4551;
+  --panelBox4Bg: #553f4c;
+  --panelFocusedBoxShadow: #300000;
+  --panelFocusButtonBg: #5e1730;
   /* See the light theme: reserved for custom lists. */
   /* --boardGlobalItemShadow: #ffffff45; */
 }

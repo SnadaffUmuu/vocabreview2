@@ -6,7 +6,6 @@
   position: relative;
   box-sizing: border-box;
   padding: var(--cardPadding, 5px 0 5px 5px);
-  min-height: var(--cardMinHeight, 29px);
   max-width: var(--cardMaxWidth, calc(100vw - 20px));
   border: 1px solid transparent;
   border-radius: 5px;
@@ -35,8 +34,6 @@
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   margin-right: 17px;
-  min-height: 23px;
-  line-height: 140%;
   border-radius: 10px;
   padding: 0 1px;
   backdrop-filter: blur(3px);
