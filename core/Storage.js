@@ -62,6 +62,40 @@ const Storage = {
     this.remove(this.sourceKey(id));
   },
 
+  // Keys of our namespace only; other data in the same localStorage (Version 1
+  // on file://, unrelated pages) is never listed, exported or removed.
+  ownKeys() {
+    const keys = [];
+    try {
+      for(let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if(key && key.startsWith(this.PREFIX)) keys.push(key);
+      }
+    } catch(e) {
+      console.error('Storage.ownKeys failed', e);
+    }
+    return keys;
+  },
+
+  // { key: value } for everything the app persists.
+  exportAll() {
+    const result = {};
+    this.ownKeys().forEach(key => {
+      result[key] = this.load(key, null);
+    });
+    return result;
+  },
+
+  clearAll() {
+    this.ownKeys().forEach(key => this.remove(key));
+  },
+
+  // Replaces the whole persisted state. The caller validates entries first.
+  importAll(entries) {
+    this.clearAll();
+    Object.keys(entries).forEach(key => this.save(key, entries[key]));
+  },
+
   // Source files removed from the hard-coded list must not occupy storage.
   // Only inspect our source-key namespace; leave other app data untouched.
   removeUnlistedSources(allowedIds) {

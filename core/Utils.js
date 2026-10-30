@@ -68,6 +68,20 @@ const Utils = {
     speechSynthesis.speak(utterance);
   },
 
+  // Stops current and queued speech (a stuck queue is a known Android quirk).
+  cancelSpeech() {
+    if(typeof speechSynthesis === 'undefined') return;
+    speechSynthesis.cancel();
+  },
+
+  // YYYY-MM-DD-HHMMSS in local time; used in file names.
+  timestamp(date) {
+    const pad = n => String(n).padStart(2, '0');
+    const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    const time = `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+    return `${day}-${time}`;
+  },
+
   setSelectOption(select, value) {
     const options = Array.from(select.querySelectorAll('option'));
     options.forEach(o => o.removeAttribute('selected'));

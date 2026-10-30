@@ -127,6 +127,7 @@ Before considering a view converted to this model, check:
 - Persist state changes immediately. Do not introduce debounced or delayed writes to localStorage.
 - Reloading a source resets its View progress and selection, after confirmation.
 - Do not reconcile old progress with reloaded source data or introduce automatic synchronization.
+- State export/import/reset (`Backup`) covers only the `vocabreview2.` storage namespace and includes raw source texts. A file is fully validated before the current state is replaced. Version 1 exports are rejected, not converted. After a reset or import the page reloads, because Views hold in-memory state.
 
 ### Input Safety
 

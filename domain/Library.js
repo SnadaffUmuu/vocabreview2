@@ -43,6 +43,11 @@ const Library = {
     return Object.keys(this.sources);
   },
 
+  // Listed sources whose text has not been loaded yet.
+  missingIds() {
+    return SOURCES_LIST.filter(id => !this.sources[id]);
+  },
+
   // Install raw text for a source (from network or a picked file). Parses,
   // persists the raw text, and emits sourceLoaded + sourcesChanged.
   setSource(id, raw, origin) {

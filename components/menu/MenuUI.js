@@ -1,10 +1,25 @@
-// MenuUI: slide-out panel with source selector, view switcher, sessions button
-// and reload. A source loads via http when served over http(s)://, otherwise
-// (or when http fails) via a file picker. The menu does not know which views
-// exist: every registered component that declares viewName/viewLabel gets a
-// switch button, and the menu only calls App.setView().
+// MenuUI: slide-out panel with source selector, view switcher, sessions button,
+// reload and the global actions menu (load all, speech, app state). A source
+// loads via http when served over http(s)://, otherwise (or when http fails)
+// via a file picker. The menu does not know which views exist: every
+// registered component that declares viewName/viewLabel gets a switch button,
+// and the menu only calls App.setView().
+//
+// Reset and import replace the whole persisted state and then reload the page:
+// views keep in-memory state of their own, and a reload is the only reliable
+// way to make every component start from the new data. Storage writes are
+// immediate, so nothing is lost by reloading.
 const MenuUI = {
   name: 'MenuUI',
+
+  // Global actions: one table feeds both the dropdown items and the dispatch.
+  actions: [
+    { value: 'loadAllSources', label: 'Load all', run: menu => menu.loadAllSources() },
+    { value: 'resetSpeech', label: 'reset speech', run: () => Utils.cancelSpeech() },
+    { value: 'resetApp', label: 'reset App', run: menu => menu.resetApp() },
+    { value: 'exportState', label: 'export state', run: menu => menu.exportState() },
+    { value: 'importState', label: 'import state', run: menu => menu.importState() },
+  ],
 
   selectors: {
     root: '#menu',
@@ -33,6 +48,11 @@ const MenuUI = {
     Bus.on(Bus.events.sourcesChanged, () => this.render());
     Bus.on(Bus.events.viewChanged, () => this.render());
     DropdownUI.on('menuSources', id => this.loadSource(id));
+    DropdownUI.on('menuActions', value => this.runAction(value));
+  },
+
+  runAction(value) {
+    this.actions.find(action => action.value === value)?.run(this);
   },
 
   // Components that present themselves as a view (declare viewName/viewLabel).
@@ -61,13 +81,7 @@ const MenuUI = {
             ${DropdownUI.burger({
               id: 'menuActions',
               cls: 'menuActionsButton v2',
-              items: [
-                { value: 'loadAllSources', label: 'Load all', disabled: true },
-                { value: 'resetSpeech', label: 'reset speech', disabled: true },
-                { value: 'resetApp', label: 'reset App', disabled: true },
-                { value: 'exportState', label: 'export state', disabled: true },
-                { value: 'importState', label: 'import state', disabled: true },
-              ],
+              items: this.actions.map(({ value, label }) => ({ value, label })),
             })}
           </div>
           <div id="menuViewRow">
@@ -172,20 +186,133 @@ const MenuUI = {
   // One file at a time. The picked file name must match the expected source id;
   // a mismatch is reported to the user and nothing is substituted silently.
   pickFile(id, onRaw) {
+    this.pickFiles({
+      accept: '.txt,text/plain',
+      onFiles: files => {
+        const file = files[0];
+        const pickedId = file.name.replace(/\.txt$/i, '');
+        if(pickedId !== id) {
+          Prompt.notify(`Wrong file: expected "${id}.txt" but got "${file.name}".`);
+          return;
+        }
+        file.text().then(onRaw);
+      },
+    });
+  },
+
+  // Opens the system file picker. Must be called within a user gesture.
+  // The input is never attached to the document; onFiles gets a non-empty array.
+  pickFiles({ accept, multiple = false, onFiles }) {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.txt,text/plain';
+    input.accept = accept;
+    input.multiple = multiple;
     input.onchange = () => {
-      const file = input.files && input.files[0];
-      if(!file) return;
-      const pickedId = file.name.replace(/\.txt$/i, '');
-      if(pickedId !== id) {
-        Prompt.notify(`Wrong file: expected "${id}.txt" but got "${file.name}".`);
-        return;
-      }
-      file.text().then(onRaw);
+      const files = Array.from(input.files || []);
+      if(files.length) onFiles(files);
     };
     input.click();
+  },
+
+  // ---- global actions ------------------------------------------------------------
+
+  // Loads only sources that are not loaded yet; loaded ones keep their progress
+  // and selection, so no confirmation is needed. The current source is not changed.
+  async loadAllSources() {
+    const ids = Library.missingIds();
+    if(!ids.length) {
+      Prompt.notify('All sources are already loaded.');
+      return;
+    }
+    if(this.isHttp()) {
+      await this.loadMissingOverHttp(ids);
+      return;
+    }
+    this.pickFiles({
+      accept: '.txt,text/plain',
+      multiple: true,
+      onFiles: files => this.loadMissingFromFiles(ids, files),
+    });
+  },
+
+  async loadMissingOverHttp(ids) {
+    Busy.begin();
+    let results = [];
+    try {
+      results = await Promise.all(ids.map(async id => ({ id, raw: await this.tryHttpFetch(id) })));
+    } finally {
+      Busy.end();
+    }
+    const loaded = results.filter(item => item.raw != null);
+    const failed = results.filter(item => item.raw == null).map(item => item.id);
+    if(loaded.length) this.installAll(loaded, 'http');
+    if(failed.length) Prompt.notify(`Could not load: ${failed.join(', ')}.`);
+  },
+
+  // Files are matched to missing sources by name; the rest are reported, not guessed.
+  async loadMissingFromFiles(ids, files) {
+    const wanted = files.filter(file => ids.includes(file.name.replace(/\.txt$/i, '')));
+    const skipped = files.filter(file => !wanted.includes(file)).map(file => file.name);
+    const loaded = await Promise.all(wanted.map(async file => ({
+      id: file.name.replace(/\.txt$/i, ''),
+      raw: await file.text(),
+    })));
+    if(loaded.length) this.installAll(loaded, 'file');
+    if(skipped.length) {
+      Prompt.notify(`Skipped (not a missing source): ${skipped.join(', ')}.`);
+    }
+  },
+
+  installAll(items, origin) {
+    Busy.beginAndRun(() => {
+      items.forEach(({ id, raw }) => Library.setSource(id, raw, origin));
+    });
+  },
+
+  resetApp() {
+    Prompt.ask({
+      text: 'Reset the whole app? Sources, progress, selections and settings will be erased.',
+      onConfirm: () => {
+        Backup.reset();
+        location.reload();
+      },
+    });
+  },
+
+  // The file is handed to the browser through a temporary link.
+  exportState() {
+    const { filename, json } = Backup.serialize();
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // Revoking at once can abort the download in mobile browsers.
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  },
+
+  // The picker opens inside the Prompt callback (it runs synchronously) to keep
+  // the user gesture. The file is validated before the current state is touched.
+  importState() {
+    Prompt.ask({
+      text: 'Replace the current state with the contents of a file?',
+      onConfirm: () => this.pickFiles({
+        accept: '.json,application/json',
+        onFiles: files => this.importFromFile(files[0]),
+      }),
+    });
+  },
+
+  async importFromFile(file) {
+    const result = Backup.parse(await file.text());
+    if(!result.ok) {
+      Prompt.notify(`Import failed: ${result.error}`);
+      return;
+    }
+    Backup.apply(result.data);
+    location.reload();
   },
 
   reloadCurrent() {
