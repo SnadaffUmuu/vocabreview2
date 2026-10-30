@@ -98,8 +98,25 @@ const CardZones = {
       height, so the old value is not reset before measuring (that could shrink
       the scrollable area and lose the scroll position). A hidden View has no
       geometry and gets no height.
+
+      The measurement is repeated once before the next paint. On a View switch
+      every View renders in its own microtask, in the order of registration, so a
+      View that renders before the previous one has hidden itself measures a
+      container that is still shared with it, and gets a height that is too
+      small (the legend would show on the screen). The first measurement stays
+      synchronous: the Panel reads the layout that depends on it right after.
     */
     fitToViewport(fillEl, visible = App.currentView === this.viewName) {
+      this.measureFill(fillEl, visible);
+      if(this.fitScheduled) return;
+      this.fitScheduled = true;
+      requestAnimationFrame(() => {
+        this.fitScheduled = false;
+        this.measureFill(fillEl, App.currentView === this.viewName);
+      });
+    },
+
+    measureFill(fillEl, visible) {
       const container = this.dom.containerEl;
       if(!visible) {
         fillEl.style.minHeight = '';
