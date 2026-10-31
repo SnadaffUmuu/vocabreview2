@@ -88,7 +88,7 @@ const SessionsUI = {
     const source = Utils.escapeHtml(session.sourceId);
     return `
       <tr>
-        <td data-session-source="${source}">${source}</td>
+        <td data-session-source="${source}">${Utils.escapeHtml(session.label)}</td>
         <td>
           ${session.views.map(view => `
           <div class="tag"

@@ -9,6 +9,11 @@
    kept here and never travel in the event payload.
   
    One prompt at a time: ask()/notify() while another is open are ignored.
+
+   A confirm prompt may carry a choice: one value out of a list of items
+   { value, label }, chosen before confirming. onConfirm then receives the
+   chosen value; the initial one is choice.value. The choice is part of the
+   prompt state, so PromptUI only projects it.
 */
 const Prompt = {
 
@@ -22,12 +27,19 @@ const Prompt = {
   get state() {
     const prompt = this.current;
     return prompt
-      ? { open: true, text: prompt.text, notify: prompt.notify }
-      : { open: false, text: '', notify: false };
+      ? { open: true, text: prompt.text, notify: prompt.notify, choice: this._choiceState(prompt) }
+      : { open: false, text: '', notify: false, choice: null };
   },
 
-  ask({ text, onConfirm = () => {}, onCancel = () => {} }) {
-    this._open({ text, notify: false, onConfirm, onCancel });
+  // choice: { items: [{ value, label }], value } - optional, see the header.
+  ask({ text, choice = null, onConfirm = () => {}, onCancel = () => {} }) {
+    this._open({
+      text,
+      notify: false,
+      choice: choice ? { items: choice.items, value: choice.value } : null,
+      onConfirm,
+      onCancel,
+    });
   },
 
   notify(text, onClose = () => {}) {
@@ -38,9 +50,23 @@ const Prompt = {
     this._close('onConfirm');
   },
 
+  // Picks the value of the open prompt's choice; a value that is not offered is ignored.
+  choose(value) {
+    const choice = this.current?.choice;
+    if(!choice || !choice.items.some(item => String(item.value) === String(value))) return;
+    choice.value = value;
+    Bus.emit(Bus.events.promptChanged);
+  },
+
   // Cancel button or overlay click. For notify() it is the same as OK.
   cancel() {
     this._close('onCancel');
+  },
+
+  _choiceState(prompt) {
+    return prompt.choice
+      ? { items: prompt.choice.items.slice(), value: prompt.choice.value }
+      : null;
   },
 
   _open(prompt) {
@@ -54,6 +80,6 @@ const Prompt = {
     if(!prompt) return;
     this.current = null;
     Bus.emit(Bus.events.promptChanged);
-    prompt[callbackName]();
+    prompt[callbackName](prompt.choice ? prompt.choice.value : undefined);
   },
 };

@@ -5,6 +5,10 @@
    via a file picker. The menu does not know which views exist: every
    registered component that declares viewName/viewLabel gets a switch button,
    and the menu only calls App.setView().
+
+   The sources dropdown lists the hard-coded sources, followed by the custom
+   lists that have entries ("L: name"). A list has no file, so it cannot be
+   reloaded or updated.
   
    Reset and import replace the whole persisted state and then reload the page:
    views keep in-memory state of their own, and a reload is the only reliable
@@ -49,6 +53,7 @@ const MenuUI = {
     Bus.batchedMethod(this, 'render');
     Bus.on(Bus.events.sourceSelected, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
+    Bus.on(Bus.events.collectionsChanged, () => this.render());
     Bus.on(Bus.events.viewChanged, () => this.render());
     DropdownUI.on('menuSources', id => this.loadSource(id));
     DropdownUI.on('menuActions', value => this.runAction(value));
@@ -61,6 +66,14 @@ const MenuUI = {
   // Components that present themselves as a view (declare viewName/viewLabel).
   viewComponents() {
     return Components.list.filter(c => c.viewName && c.viewLabel);
+  },
+
+  // Files first, then the lists that have entries.
+  sourceItems() {
+    return [
+      ...SOURCES_LIST.map(id => ({ value: id })),
+      ...Collections.menuItems(),
+    ];
   },
 
   ensureMarkup() {
@@ -76,7 +89,7 @@ const MenuUI = {
           <div id="menuSourcesRow">
             ${DropdownUI.select({
               id: 'menuSources',
-              items: SOURCES_LIST.map(id => ({ value: id })),
+              items: this.sourceItems(),
               placeholder: 'source…',
               cls: 'menuSourcesButton',
               menuCls: 'sourcesList',
@@ -137,8 +150,10 @@ const MenuUI = {
     // #menu; while the menu is open it would cover the sources row.
     this.dom.sessionsEl.classList.toggle('hidden', this.isOpened);
 
-    // Sources dropdown: always the hard-coded list, loaded or not.
+    // Sources dropdown: the hard-coded list, loaded or not, and the lists.
+    DropdownUI.setItems('menuSources', this.sourceItems());
     DropdownUI.setValue('menuSources', App.currentSource);
+    this.dom.reloadEl.classList.toggle('hidden', Collections.isListId(App.currentSource));
 
     // View highlight.
     Array.from(this.dom.viewSwitcherEl.querySelectorAll('.switchView')).forEach(btn => {
@@ -286,7 +301,7 @@ const MenuUI = {
 
   resetApp() {
     Prompt.ask({
-      text: 'Reset the whole app? Sources, progress, selections and settings will be erased.',
+      text: 'Reset the whole app? Sources, lists, progress, selections and settings will be erased.',
       onConfirm: () => {
         Backup.reset();
         location.reload();
@@ -330,9 +345,17 @@ const MenuUI = {
     location.reload();
   },
 
+  // A list is not a file: there is nothing to load it from.
+  refuseList(id) {
+    if(!Collections.isListId(id)) return false;
+    Prompt.notify('A list has no source file: it cannot be reloaded or updated.');
+    return true;
+  },
+
   reloadCurrent() {
     const id = App.currentSource;
     if(!id) return;
+    if(this.refuseList(id)) return;
     Prompt.ask({
       text: `Reload source "${id}"? Its progress and selection will be reset.`,
       onConfirm: () => this.doReload(id),
@@ -353,6 +376,7 @@ const MenuUI = {
   async updateCurrent() {
     const id = App.currentSource;
     if(!id || !Library.hasSource(id)) return;
+    if(this.refuseList(id)) return;
     await this.fetchOrPick(id, (raw, origin) => {
       Busy.beginAndRun(() => Library.updateSource(id, raw, origin));
     });

@@ -18,6 +18,7 @@
      draggable,         // gets data-drag-id for DragDrop
      expanded, top,     // the open card with actions; top is its viewport offset
      lineExpanded,      // the current side is not clamped
+     canAddToList,      // the open card offers the button that adds it to a custom list
      covered, size,     // the place of a card that is shown expanded elsewhere, and
                         // its frozen size { width, height } or null. The place must not
                         // follow the content of the card, or its neighbours would move
@@ -106,6 +107,7 @@ const CardUI = {
         <div class="cardAction cardRotateBack">←</div>
         ${speakable ? '<div class="cardAction cardSpeak">▶</div>' : ''}
         ${card.info ? '<div class="cardAction cardInfoToggle">ⓘ</div>' : ''}
+        ${card.canAddToList ? '<div class="cardAction cardAddToList">＋</div>' : ''}
         ${speakable && card.reading ? `
         <div class="cardAction cardReading">${Utils.escapeHtml(card.reading)}</div>` : ''}
       </div>

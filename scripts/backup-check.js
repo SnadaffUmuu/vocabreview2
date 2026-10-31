@@ -54,6 +54,17 @@ Storage.save(Storage.KEY.collections, { stale: true });
 Backup.apply(parsed.data);
 assert.deepEqual(Storage.exportAll(), before);
 
+// A broken collections section is rejected like any other section.
+const badCollections = JSON.stringify({
+  format: Backup.FORMAT, version: 1, data: { [Storage.KEY.collections]: [] },
+});
+assert.equal(Backup.parse(badCollections).ok, false, 'collections not an object');
+const goodCollections = JSON.stringify({
+  format: Backup.FORMAT, version: 1,
+  data: { [Storage.KEY.collections]: { global: { name: 'Global', nextId: 0, entries: [] } } },
+});
+assert.equal(Backup.parse(goodCollections).ok, true, 'collections are exported and imported');
+
 // Bad files are rejected, and parse() never touches storage.
 const snapshot = Array.from(data);
 const key = Storage.sourceKey(listed);

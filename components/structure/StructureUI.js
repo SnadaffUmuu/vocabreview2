@@ -10,6 +10,9 @@
      expanded - Set of opened branch ids, or null for the default (branches that
                 contain selected sections).
    Both are dropped when the source, sources or the applied selection change.
+
+   A custom list has no structure and no selection: the whole component is
+   hidden while a list is the current source.
 */
 const StructureUI = {
   name: 'StructureUI',
@@ -124,6 +127,7 @@ const StructureUI = {
     const marks = structure.length ? Progress.marksBySection(sourceId) : {};
     const nodes = this.buildNodes(structure, checked, expanded, marks);
     return {
+      selectable: !Collections.isListId(sourceId),
       nodes,
       allChecked: nodes.length > 0 && nodes.every(node => node.checked),
     };
@@ -231,6 +235,7 @@ const StructureUI = {
 
   render() {
     const vm = this.viewModel();
+    this.dom.root.classList.toggle('hidden', !vm.selectable);
     this.dom.toggleAllEl.checked = vm.allChecked;
     this.dom.treeEl.innerHTML = this.template(vm);
     // Exception: `indeterminate` has no HTML attribute, so it is applied as a

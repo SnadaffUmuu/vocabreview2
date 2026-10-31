@@ -16,8 +16,8 @@ const Progress = {
     });
   },
 
-  // [{ sourceId, views: [{ name, label }] }] for loaded sources that have a
-  // view in progress. Backs the sessions dialog.
+  // [{ sourceId, label, views: [{ name, label }] }] for loaded sources and
+  // lists that have a view in progress. Backs the sessions dialog.
   activeSessions() {
     const result = [];
     Object.keys(App.views).forEach(sourceId => {
@@ -25,7 +25,7 @@ const Progress = {
       const views = this.viewsInProgress(sourceId)
         .map(name => ({ name, label: ViewState.labelOf(name) }))
         .sort((a, b) => a.label.localeCompare(b.label));
-      if(views.length) result.push({ sourceId, views });
+      if(views.length) result.push({ sourceId, label: Library.labelOf(sourceId), views });
     });
     return result;
   },

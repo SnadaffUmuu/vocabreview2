@@ -6,7 +6,7 @@
    keys on file:// where localStorage is shared across local pages):
   
      vocabreview2.src.<id>   one key per source: {raw, origin, loadedAt}
-     vocabreview2.collections custom collections (full entry copies)
+     vocabreview2.collections custom lists: { [listId]: { name, nextId, entries } }
      vocabreview2.views       progress per source per view (written often)
      vocabreview2.selections  selected section ids per source
      vocabreview2.settings    theme, current source, current view
@@ -23,7 +23,7 @@ const Storage = {
   },
 
   sourceKey(id) {
-    return this.PREFIX + 'src.' + id;
+    return `${this.PREFIX}src.${id}`;
   },
 
   load(key, defaultValue) {
@@ -102,7 +102,7 @@ const Storage = {
   // Only inspect our source-key namespace; leave other app data untouched.
   removeUnlistedSources(allowedIds) {
     const allowed = new Set(allowedIds);
-    const prefix = this.PREFIX + 'src.';
+    const prefix = `${this.PREFIX}src.`;
     try {
       for(let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);

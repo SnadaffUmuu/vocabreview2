@@ -20,4 +20,15 @@ assert(select.includes('dropdown-item disabled" data-value="c">c<'));
 
 const burger = DropdownUI.burger({ id: 'y', items: [{ value: 'z', label: 'Z' }] });
 assert(burger.includes('burger-button') && burger.includes('id="y"'));
+
+// setItems rewrites only the list of items of an existing dropdown.
+let written = null;
+global.document = { getElementById: id => id === 'y'
+  ? { querySelector: () => ({ set innerHTML(html) { written = html; } }) } : null };
+DropdownUI.setItems('y', [{ value: 'a"b', label: '<i>' }]);
+assert(written.includes('data-value="a&quot;b"') && !written.includes('<i>'));
+written = null;
+DropdownUI.setItems('missing', []);
+assert.strictEqual(written, null, 'an unknown dropdown is ignored');
+delete global.document;
 console.log('dropdown-check ok');

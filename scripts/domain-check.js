@@ -40,6 +40,11 @@ global.Utils = {
     }
     return copy;
   },
+  hash(str) {
+    let h = 0;
+    for(let i = 0; i < str.length; i++) h = (Math.imul(h, 31) + str.charCodeAt(i)) >>> 0;
+    return h;
+  },
 };
 global.SOURCES_LIST = ['goshogun2', 'osarai-house', 'SR_secret'];
 
@@ -69,6 +74,7 @@ function loadRel(file) {
 // ---- load parser + core + domain ------------------------------------------
 loadRel('domain/parser/Parser.js');
 loadRel('core/Bus.js');
+loadRel('domain/Collections.js');
 loadRel('domain/Library.js');
 loadRel('domain/App.js');
 loadRel('domain/ViewState.js');
@@ -306,12 +312,120 @@ loadRel('domain/Prompt.js');
   Prompt.cancel();
   assert(!Prompt.isOpen && log[2] === 'closed', 'notify closes through either path');
 
-  assert(JSON.stringify(Prompt.state) === '{"open":false,"text":"","notify":false}',
+  assert(JSON.stringify(Prompt.state) === '{"open":false,"text":"","notify":false,"choice":null}',
     'state of a closed prompt');
   Prompt.notify('msg');
-  assert(JSON.stringify(Prompt.state) === '{"open":true,"text":"msg","notify":true}',
+  assert(JSON.stringify(Prompt.state) === '{"open":true,"text":"msg","notify":true,"choice":null}',
     'state of an open prompt carries no callbacks');
   Prompt.cancel();
+
+  const picked = [];
+  const items = [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }];
+  Prompt.ask({ text: 'q', choice: { items, value: 'a' }, onConfirm: v => picked.push(v) });
+  assert(Prompt.state.choice.value === 'a' && Prompt.state.choice.items.length === 2,
+    'a choice starts with its initial value');
+  Prompt.choose('zzz');
+  assert(Prompt.state.choice.value === 'a', 'a value that is not offered is ignored');
+  Prompt.choose('b');
+  assert(Prompt.state.choice.value === 'b', 'choose changes the value');
+  Prompt.confirm();
+  assert(picked.join() === 'b', 'onConfirm receives the chosen value');
+  Prompt.ask({ text: 'q', choice: { items, value: 'a' }, onConfirm: v => picked.push(v) });
+  Prompt.confirm();
+  assert(picked.join() === 'b,a', 'the initial value is confirmed when nothing was chosen');
+  Prompt.choose('b');
+  assert(!Prompt.isOpen, 'choose without an open prompt is a no-op');
+}
+
+// ---- Collections: custom lists ---------------------------------------------
+{
+  const listSource = 'L:global';
+  const savedCurrent = App.settings.currentSource;
+  Collections.lists = {};
+  Storage.remove(Storage.KEY.collections);
+  const origin = Library.getSource('goshogun2').parsed.allEntries[3];
+  const other = Library.getSource('goshogun2').parsed.allEntries[4];
+
+  assert(Collections.choices().length === 1 && Collections.choices()[0].value === 'global'
+    && Collections.choices()[0].label === 'Global', 'Global is offered before it exists');
+  assert(!Collections.has(listSource) && !Library.hasSource(listSource)
+    && !Collections.menuItems().length, 'a list that does not exist is not a source');
+  assert(Storage.load(Storage.KEY.collections, null) === null, 'offering Global creates nothing');
+
+  assert(Collections.add('global', origin) === true, 'the first add creates the list');
+  const list = Collections.lists.global;
+  assert(list.name === 'Global' && list.entries.length === 1 && list.nextId === 1, 'list shape');
+  const copy = list.entries[0];
+  assert(copy !== origin && copy.id === 0 && copy.originalIndex === 0, 'the copy gets its own id');
+  assert(!('section' in copy) && copy.lines.length === origin.lines.length
+    && copy.lines.every((line, i) => line !== origin.lines[i] && line.text === origin.lines[i].text
+      && line.originalIndex === origin.lines[i].originalIndex),
+  'the copy has no section and keeps the lines (and their indexes) as copies');
+  assert(origin.id === 3 && origin.section !== undefined, 'the source entry is not changed');
+  assert(JSON.stringify(Storage.load(Storage.KEY.collections, null)) === JSON.stringify(Collections.lists),
+    'the list is saved at once');
+
+  assert(Collections.add('global', origin) === false && list.entries.length === 1,
+    'the same text is not added twice');
+  assert(Collections.add('global', other) === true && list.entries[1].id === 1 && list.nextId === 2,
+    'ids go on counting');
+
+  assert(Library.hasSource(listSource) && Library.getSource(listSource).parsed.structure.length === 0,
+    'a list looks like a source without structure');
+  assert(Library.labelOf(listSource) === 'L: Global' && Library.labelOf('goshogun2') === 'goshogun2',
+    'labels');
+  assert(Collections.menuItems().length === 1 && Collections.menuItems()[0].value === listSource
+    && Collections.menuItems()[0].label === 'L: Global', 'a non-empty list is in the menu');
+  assert(!Library.listIds().includes(listSource) && !Library.missingIds().includes(listSource),
+    'a list is not a file source');
+  assert(App.selectedEntries(listSource).length === 2 && App.defaultSelection(listSource).length === 0,
+    'the whole list is shown, there is no default selection');
+  App.selectSource(listSource);
+  assert(App.currentSource === listSource && App.getSelection(listSource).length === 0,
+    'a list can be the current source, with no selection');
+
+  // Progress of a list is kept like the progress of a source.
+  SliderState.toggleSideMark(listSource, 0, 'hits', 0);
+  BoardState.removeEntry(listSource, 1);
+  assert(BoardState.layout(listSource).source.length === 1, 'a removed card is hidden');
+  assert(Collections.lists.global.entries.length === 2, 'removing a card does not remove it from the list');
+  const session = Progress.activeSessions().find(s => s.sourceId === listSource);
+  assert(session && session.label === 'L: Global' && session.views.length === 2,
+    'a list with progress is a session, with its label');
+  assert(Progress.activeSessions().find(s => s.sourceId === 'goshogun2').label === 'goshogun2',
+    'a file source label is its id');
+
+  // Reloading or updating a source does not touch a list.
+  const listBefore = JSON.stringify(Collections.lists);
+  const viewsBefore = JSON.stringify(App.views[listSource]);
+  Library.reloadSource('goshogun2',
+    fs.readFileSync(path.join(vocabDir, 'goshogun2.txt'), 'utf8'), 'http');
+  Library.updateSource('goshogun2',
+    fs.readFileSync(path.join(vocabDir, 'goshogun2.txt'), 'utf8'), 'http');
+  assert(JSON.stringify(Collections.lists) === listBefore
+    && JSON.stringify(App.views[listSource]) === viewsBefore,
+  'reload and update of a source leave lists and their progress alone');
+
+  // Restart: the lists come back from Storage, progress survives the cleanup.
+  Collections.lists = {};
+  Collections.load();
+  assert(JSON.stringify(Collections.lists) === listBefore, 'lists are loaded back');
+  App.removeUnlistedSources([...SOURCES_LIST, ...Collections.sourceIds()]);
+  assert(App.views[listSource] && App.currentSource === listSource,
+    'progress and the current list survive the cleanup');
+  App.removeUnlistedSources(SOURCES_LIST);
+  assert(!App.views[listSource] && App.currentSource === null,
+    'without the list ids the cleanup would retire its progress');
+
+  // A broken saved list is skipped, not fatal.
+  Storage.save(Storage.KEY.collections, { bad: { name: 1 }, ok: { name: 'Ok', nextId: 0, entries: [] } });
+  Collections.load();
+  assert(Object.keys(Collections.lists).join() === 'ok', 'a broken list is skipped on load');
+
+  Collections.lists = {};
+  Storage.remove(Storage.KEY.collections);
+  App.clearViewsFor(listSource);
+  App.settings.currentSource = savedCurrent;
 }
 
 // ---- SliderState: ui defaults and visible entries --------------------------

@@ -3,6 +3,11 @@
    and reloads them. Pure domain logic; no DOM. Emits Bus events and persists
    only the raw text through Storage; the parsed result is never stored.
    The set of known sources is the hard-coded SOURCES_LIST.
+
+   Custom lists (Collections) are looked up through the same getSource() and
+   hasSource(), so Views treat them as sources. They are not file sources:
+   listIds() and missingIds() never include them, so nothing that loads,
+   reloads or searches the files touches a list.
 */
 const Library = {
 
@@ -34,11 +39,16 @@ const Library = {
   },
 
   getSource(id) {
-    return this.sources[id];
+    return Collections.isListId(id) ? Collections.asSource(id) : this.sources[id];
   },
 
   hasSource(id) {
-    return !!this.sources[id];
+    return Collections.isListId(id) ? Collections.has(id) : !!this.sources[id];
+  },
+
+  // The name of a source for the user: the id of a file, "L: name" for a list.
+  labelOf(id) {
+    return Collections.isListId(id) ? Collections.labelOf(id) : id;
   },
 
   listIds() {

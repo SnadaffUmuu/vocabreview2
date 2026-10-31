@@ -20,7 +20,7 @@ A mobile-only web application for reviewing Japanese vocabulary collected in use
 - Loaded in a browser through a local HTTP server.
 - Source files are edited externally. Their syntax conventions are deliberately permissive; parsing combines explicit rules and heuristics.
 - Users select sources and scopes (chapters or sections), then review vocabulary through independent Views, such as sliders, tables, cards on boards and cards on panels.
-- Persisted data: raw source text, per-source selections, per-view progress and UI state, and application settings. Parsed results are rebuilt in memory, not persisted.
+- Persisted data: raw source text, custom lists, per-source selections, per-view progress and UI state, and application settings. Parsed results are rebuilt in memory, not persisted.
 - Storage access is isolated from UI components.
 
 ## Version 1: Functionality to Preserve
@@ -117,11 +117,20 @@ Before considering a view converted to this model, check:
 
 - Entry IDs are ordinal numbers in the source file.
 - Section IDs are structural paths.
-- Hashes are reserved for duplicate detection in future custom collections.
+- Hashes are used only for duplicate detection when adding an entry to a custom list.
+- A custom list is addressed like a source with the id `L:<listId>` (shown as `L: <name>`), so Views, progress and sessions work with it unchanged. Its entry ids are ordinals handed out by a counter that never goes back: progress is bound to the id, so an id must not move to another entry.
+
+### Custom Lists
+
+- An entry added to a list is a detached copy (lines, tag, info, review level). It loses its section and its link to the source: reloading or updating a source never touches a list, and nothing is reconciled.
+- A list has no structure and no selection: the whole list is always shown, the section tree is hidden. It has no file, so it cannot be reloaded or updated.
+- The list `Global` is always offered as a target and is created by the first entry added to it. A list appears in the sources menu only when it is not empty.
+- Removing a card in a View only marks it removed in that View's progress (restored by the View's reset); it never removes the entry from the list.
+- Progress of a list is stored in `views` under the list's source id, exactly like the progress of a source.
 
 ### Persistence and Source Reloading
 
-- Persist only raw source text, per-source selections, per-view progress/UI state, and application settings.
+- Persist only raw source text, custom lists, per-source selections, per-view progress/UI state, and application settings.
 - Rebuild parsed results in memory rather than storing them.
 - Keep storage access isolated from UI components.
 - Persist state changes immediately. Do not introduce debounced or delayed writes to localStorage.

@@ -34,6 +34,7 @@ const BoardUI = {
   viewName: 'board',
   viewLabel: 'B',
   kind: BoardState,
+  canAddToList: true,
 
   selectors: {
     root: '#boardView',
@@ -54,6 +55,7 @@ const BoardUI = {
       '#boardView .cardTapZone': 'expandCard',
       '@expandedEl': 'collapseCard',
       ...CardZones.overlayClicks('#boardExpanded'),
+      '#boardExpanded .cardAddToList': 'addToList',
     },
   },
 
@@ -211,6 +213,24 @@ const BoardUI = {
     const sourceId = this.loadedSource();
     if(!sourceId) return;
     ViewState.setUi(sourceId, this.viewName, { markReversed: el.checked }, true);
+  },
+
+  /*
+     The card stays open. The list is chosen in the prompt (Global by default);
+     the entry is copied, so the card keeps its place in the source. A copy that
+     the list already has is not added again.
+  */
+  addToList() {
+    const entry = this.expanded ? this.entries[this.expanded.id] : null;
+    if(!entry) return;
+    Prompt.ask({
+      text: 'Add the card to a list',
+      choice: { items: Collections.choices(), value: Collections.DEFAULT_ID },
+      onConfirm: listId => {
+        if(Collections.add(listId, entry)) return;
+        Prompt.notify(`Already in the list "${Collections.nameOf(listId)}".`);
+      },
+    });
   },
 
   reset() {

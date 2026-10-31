@@ -56,6 +56,13 @@ const DropdownUI = {
     });
   },
 
+  // Replace the items of an existing dropdown (the set of items is dynamic).
+  // The chosen mark is lost: the owner pushes the value again with setValue().
+  setItems(id, items) {
+    const list = document.getElementById(id)?.querySelector('.dropdown-list');
+    if(list) list.innerHTML = this.itemsHtml(items);
+  },
+
   // Show the value as chosen (label + highlight). Unknown/empty value shows
   // the placeholder.
   setValue(id, value) {

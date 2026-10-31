@@ -18,6 +18,8 @@
                           so a closed card always shows its default side.
      rememberSide(sourceId, entryId, index)
      resetLayoutState() - optional: drops the View's own layout state on rebuild
+     canAddToList       - optional: true when the open card offers "add to a list".
+                          The View then handles the click of .cardAddToList itself.
 */
 const CardZones = {
 
@@ -164,6 +166,7 @@ const CardZones = {
         expanded: asExpanded,
         top: asExpanded ? this.expanded.top : 0,
         lineExpanded: asExpanded && this.lineExpanded,
+        canAddToList: asExpanded && !!this.canAddToList,
         covered: !asExpanded && isOpen,
         size: !asExpanded && isOpen
           ? { width: this.expanded.width, height: this.expanded.height }

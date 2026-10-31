@@ -52,7 +52,7 @@ const InfobarUI = {
     const sourceId = App.currentSource;
     const loaded = !!sourceId && Library.hasSource(sourceId);
     return {
-      source: loaded ? sourceId : '',
+      source: loaded ? Library.labelOf(sourceId) : '',
       count: loaded ? String(App.selectedEntries(sourceId).length) : '',
       night: App.night,
     };

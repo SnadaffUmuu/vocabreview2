@@ -72,7 +72,12 @@ const Backup = {
     if(!keys.length) return 'the file contains no state.';
 
     const srcPrefix = `${Storage.PREFIX}src.`;
-    const mapKeys = [Storage.KEY.views, Storage.KEY.selections, Storage.KEY.settings];
+    const mapKeys = [
+      Storage.KEY.views,
+      Storage.KEY.selections,
+      Storage.KEY.settings,
+      Storage.KEY.collections,
+    ];
     for(const key of keys) {
       if(!key.startsWith(Storage.PREFIX)) return `foreign key "${key}".`;
       const value = data[key];

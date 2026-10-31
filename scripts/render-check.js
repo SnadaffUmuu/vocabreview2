@@ -20,10 +20,11 @@ const StructureUI = make('components/structure/StructureUI.js', 'StructureUI');
 // SessionsUI.template
 assert(SessionsUI.template({ sessions: [] }).includes('No sessions in progress'));
 const sessionsHtml = SessionsUI.template({
-  sessions: [{ sourceId: 'a"b', views: [{ name: 's', label: '<S>' }] }],
+  sessions: [{ sourceId: 'a"b', label: 'L: <x>', views: [{ name: 's', label: '<S>' }] }],
 });
 assert(sessionsHtml.includes('data-session-source="a&quot;b"'));
 assert(sessionsHtml.includes('data-session-view="s"'));
+assert(sessionsHtml.includes('>L: &lt;x&gt;</td>') && !sessionsHtml.includes('<x>'), 'the label is shown, escaped');
 assert(!sessionsHtml.includes('<S>') && sessionsHtml.includes('&lt;S&gt;'));
 
 // StructureUI.buildNodes / toggled / template
@@ -47,6 +48,15 @@ assert.strictEqual(ids([...next].sort()), '0.1', 'unchecking a child unchecks th
 next = StructureUI.toggled(structure, new Set(), '0', true);
 assert.strictEqual(ids([...next].sort()), '0,0.0,0.1', 'parent check cascades down');
 
+const treeApp = { currentSource: 'L:g', getSelection: () => [], currentView: 'board' };
+const treeLibrary = { hasSource: () => true, getSource: () => ({ parsed: { structure: [] } }) };
+const treeUI = make('components/structure/StructureUI.js', 'StructureUI', {
+  App: treeApp, Library: treeLibrary, Progress: { marksBySection: () => ({}) },
+  Collections: { isListId: id => id.startsWith('L:') } });
+assert.strictEqual(treeUI.viewModel().selectable, false, 'a list has no selection');
+treeApp.currentSource = 'file';
+assert.strictEqual(treeUI.viewModel().selectable, true);
+
 const expanded = StructureUI.expandedByDefault(structure, new Set(['0.1']));
 assert(expanded.has('0') && !expanded.has('1'), 'branches with selection are open');
 
@@ -60,19 +70,28 @@ assert(html.includes('A&lt;b&gt;') && !html.includes('A<b>'));
 
 // InfobarUI.viewModel
 let App = { currentSource: 'src', night: true, selectedEntries: () => [1, 2, 3] };
-let Library = { hasSource: id => id === 'src' };
+let Library = { hasSource: id => id === 'src' || id === 'L:g', labelOf: id => id === 'L:g' ? 'L: G' : id };
 let InfobarUI = make('components/infobar/InfobarUI.js', 'InfobarUI', { App, Library });
 assert.deepStrictEqual(InfobarUI.viewModel(), { source: 'src', count: '3', night: true });
+App.currentSource = 'L:g';
+assert.strictEqual(InfobarUI.viewModel().source, 'L: G', 'a list is shown by its label');
+App.currentSource = 'src';
 App.currentSource = 'missing';
 assert.deepStrictEqual(InfobarUI.viewModel(), { source: '', count: '', night: true });
 
 // PromptUI.viewModel
-let Prompt = { state: { open: true, text: 't', notify: true } };
-const PromptUI = make('components/prompt/PromptUI.js', 'PromptUI', { Prompt });
+let Prompt = { state: { open: true, text: 't', notify: true, choice: null } };
+const DropdownUI = make('components/dropdown/DropdownUI.js', 'DropdownUI');
+const PromptUI = make('components/prompt/PromptUI.js', 'PromptUI', { Prompt, DropdownUI });
 assert.deepStrictEqual(PromptUI.viewModel(),
-  { open: true, text: 't', notify: true, confirmLabel: 'OK' });
-Prompt.state = { open: true, text: 'q', notify: false };
+  { open: true, text: 't', notify: true, choice: null, confirmLabel: 'OK' });
+Prompt.state = { open: true, text: 'q', notify: false, choice: null };
 assert.strictEqual(PromptUI.viewModel().confirmLabel, 'Confirm');
+assert.strictEqual(PromptUI.template(PromptUI.viewModel()), '', 'no choice, no dropdown');
+Prompt.state.choice = { items: [{ value: 'g"1', label: '<G>' }], value: 'g"1' };
+const choiceHtml = PromptUI.template(PromptUI.viewModel());
+assert(choiceHtml.includes('id="promptChoiceSelect"') && choiceHtml.includes('select-button'));
+assert(choiceHtml.includes('data-value="g&quot;1"') && choiceHtml.includes('&lt;G&gt;') && !choiceHtml.includes('<G>'));
 
 // DataViewUI: pure helpers and templates
 const DataViewUI = make('components/data-view/DataViewUI.js', 'DataViewUI');
@@ -190,6 +209,10 @@ assert(cardHtml.includes('R&lt;r&gt;') && cardHtml.includes('i&lt;n&gt;') && !ca
 cardHtml = CardUI.template(Object.assign({}, baseCard, {
   expanded: true, side: Object.assign({}, baseCard.side, { speakable: false }), info: null }));
 assert(!cardHtml.includes('cardSpeak') && !cardHtml.includes('cardReading') && !cardHtml.includes('cardInfoToggle'));
+assert(!cardHtml.includes('cardAddToList'), 'no add button unless the view offers it');
+assert(CardUI.template(Object.assign({}, baseCard, { expanded: true, canAddToList: true })).includes('cardAddToList'));
+assert(!CardUI.template(Object.assign({}, baseCard, { canAddToList: true })).includes('cardAddToList'),
+  'only the open card has actions');
 assert(CardUI.template(Object.assign({}, baseCard, { covered: true })).includes('covered'));
 assert(!CardUI.template(Object.assign({}, baseCard, { covered: true })).includes('style='), 'no size, no style');
 assert(CardUI.template(Object.assign({}, baseCard, { reversed: false })).indexOf('reversedShown') < 0);
@@ -242,6 +265,39 @@ assert.strictEqual(
   BoardUI.template(BoardUI.viewModel(boardUi).zones.source).match(/style="[^"]*"/)[0],
   'style="width:120px;height:31px"');
 assert.strictEqual(BoardUI.template([]), '');
+assert(boardVm.expanded.canAddToList && !boardVm.zones.source[0].canAddToList, 'the open Board card can be added to a list');
+assert(CardUI.template(boardVm.expanded).includes('cardAddToList'));
+
+// BoardUI.addToList: asks for a list, adds a copy, reports a duplicate
+let asked = null;
+const added = [];
+const notified = [];
+let addResult = true;
+const boardPrompt = { ask: options => { asked = options; }, notify: text => notified.push(text) };
+const boardCollections = {
+  DEFAULT_ID: 'global',
+  choices: () => [{ value: 'global', label: 'Global' }],
+  nameOf: id => id.toUpperCase(),
+  add: (listId, entry) => { added.push([listId, entry.id]); return addResult; },
+};
+const ListBoardUI = make('components/board/BoardUI.js', 'BoardUI', {
+  App: boardApp, BoardState, Cards, CardUI, CardZones, Parser: { ENTRY_TAG },
+  Prompt: boardPrompt, Collections: boardCollections });
+ListBoardUI.entries = BoardUI.entries;
+ListBoardUI.expanded = null;
+ListBoardUI.addToList();
+assert.strictEqual(asked, null, 'no open card, no prompt');
+ListBoardUI.expanded = { id: 2 };
+ListBoardUI.addToList();
+assert.strictEqual(asked.choice.value, 'global', 'Global is the default');
+assert.strictEqual(asked.choice.items[0].label, 'Global');
+asked.onConfirm('global');
+assert.deepStrictEqual(added, [['global', 2]]);
+assert.strictEqual(notified.length, 0);
+addResult = false;
+asked.onConfirm('global');
+assert(notified[0].includes('Already') && notified[0].includes('GLOBAL'), 'a duplicate is reported');
+assert.strictEqual(ListBoardUI.expanded.id, 2, 'the card stays open');
 BoardUI.expanded = null;
 BoardUI.infoOpen = false;
 
@@ -283,6 +339,7 @@ PanelUI.expanded = { id: 3, top: 10, width: 80, height: 29, sideIndex: 1 };
 panelVm = PanelUI.viewModel(panelUi);
 assert.strictEqual(panelVm.expanded.side.index, 1, 'the open card shows its turned side');
 assert.strictEqual(panelVm.expanded.place, null, 'the open card lies in the overlay');
+assert(!CardUI.template(panelVm.expanded).includes('cardAddToList'), 'the Panel does not offer adding to a list');
 assert(panelVm.zones['3'].cards[0].covered);
 PanelUI.closeCard();
 PanelUI.sideOrders = {};
