@@ -22,5 +22,8 @@
   box-sizing: border-box;
   border-radius: 5px;
   background: var(--boardItemPlaceholder);
-  flex: 0 0 auto;
+  /* Shrinks like a card (the basis is set inline by DragDrop) and must not
+     widen its zone. */
+  flex: 0 1 auto;
+  min-width: 0;
 }

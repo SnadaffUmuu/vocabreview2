@@ -235,7 +235,12 @@ const DragDrop = {
 
     g.placeholder = document.createElement('div');
     g.placeholder.className = 'dragPlaceholder';
-    g.placeholder.style.width = `${rect.width}px`;
+    /*
+      The width goes to flex-basis, not to width: a fixed width would be the
+      min-content size of the placeholder and would stretch a narrow zone,
+      while a card is shrunk to the zone. With flex-basis it shrinks like a card.
+    */
+    g.placeholder.style.flexBasis = `${rect.width}px`;
     g.placeholder.style.height = `${rect.height}px`;
 
     g.card.classList.add('dragged');
