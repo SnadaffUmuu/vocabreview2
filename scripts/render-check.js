@@ -129,6 +129,11 @@ assert(dataHtml.includes('class="dataEntryRemove iconButton"') && dataHtml.inclu
   'a list entry has a remove button');
 dataHtml = DataViewUI.template({ query: '', entries: [Object.assign({}, dataEntry, { id: 'a"b', removable: true })] });
 assert(dataHtml.includes('data-entry-id="a&quot;b"'), 'the id is escaped');
+assert(!dataHtml.includes('dataEntryAdd'), 'no copy button unless the entry is copyable');
+dataHtml = DataViewUI.template({ query: '', entries: [Object.assign({}, dataEntry, { id: 7, removable: true, copyable: true })] });
+assert(/class="dataEntryAdd iconButton"[^>]*data-entry-id="7"[^>]*data-source-id="s&quot;1"/.test(dataHtml.replace(/\s+/g, ' '))
+  && dataHtml.indexOf('dataEntryAdd') < dataHtml.indexOf('dataEntryRemove'),
+'a list entry has a copy button to the left of the remove button');
 
 // DataViewUI.viewModel: only a list entry shown without a search can be removed
 const dataIsList = id => typeof id === 'string' && id.startsWith('L:');
@@ -142,24 +147,54 @@ const ListDataUI = make('components/data-view/DataViewUI.js', 'DataViewUI', {
   App: dataApp, Library: dataLibrary, Collections: { isListId: dataIsList } });
 let dataVm = ListDataUI.viewModel();
 assert(dataVm.isList && dataVm.entries[0].removable && dataVm.entries[0].id === 3, 'a list entry is removable');
+assert(dataVm.entries[0].copyable, 'and copyable');
 dataApp.currentSource = 'file';
 dataVm = ListDataUI.viewModel();
-assert(!dataVm.isList && !dataVm.entries[0].removable, 'a file entry is not');
+assert(!dataVm.isList && !dataVm.entries[0].removable && dataVm.entries[0].copyable,
+  'a file entry is copyable, but not removable');
 dataApp.currentSource = 'L:g';
 ListDataUI.searchValue = 'x';
 assert.strictEqual(ListDataUI.viewModel().entries.length, 0, 'the search looks in the files, not in the list');
 ListDataUI.searchValue = '';
+dataLibrary.listIds = () => ['file'];
+dataLibrary.getSource = () => ({ parsed: { structure: [], allEntries: [{ id: 3, lines: [{ text: 'x' }] }] } });
+ListDataUI.searchValue = 'x';
+dataVm = ListDataUI.viewModel();
+assert(dataVm.entries.length === 1 && dataVm.entries[0].copyable && !dataVm.entries[0].removable
+  && dataVm.entries[0].sourceId === 'file', 'a search result can be copied, with its own source, but not removed');
+ListDataUI.searchValue = '';
+dataLibrary.listIds = () => [];
+dataLibrary.getSource = () => ({ parsed: { structure: [], allEntries: [{ id: 3, lines: [] }] } });
 
-// DataViewUI.removeFromList asks ListPrompts for the current list only
+// DataViewUI.removeFromList asks ListPrompts for the current list only;
+// addToList hands over the entry of the source named by the button
 const dataCalls = [];
+const askedSources = [];
 const RemovingDataUI = make('components/data-view/DataViewUI.js', 'DataViewUI', {
-  App: dataApp, Library: dataLibrary, Collections: { isListId: dataIsList, listIdOf: id => id.slice(2) },
-  ListPrompts: { removeEntry: (listId, entryId) => dataCalls.push([listId, entryId]) } });
+  App: dataApp,
+  Library: Object.assign({}, dataLibrary, {
+    getSource: id => {
+      askedSources.push(id);
+      return id === 'nowhere' ? undefined : dataLibrary.getSource(id);
+    },
+  }),
+  Collections: { isListId: dataIsList, listIdOf: id => id.slice(2) },
+  ListPrompts: {
+    removeEntry: (listId, entryId) => dataCalls.push([listId, entryId]),
+    addEntry: entry => dataCalls.push(['add', entry.id]),
+  } });
 RemovingDataUI.removeFromList({ dataset: { entryId: '3' } });
 dataApp.currentSource = 'file';
 RemovingDataUI.removeFromList({ dataset: { entryId: '3' } });
 assert.deepStrictEqual(dataCalls, [['g', 3]], 'a file source has nothing to remove from');
+RemovingDataUI.addToList({ dataset: { entryId: '3', sourceId: 'file' } });
+assert.deepStrictEqual(dataCalls[1], ['add', 3], 'an entry of a file is handed to the prompt');
 dataApp.currentSource = 'L:g';
+RemovingDataUI.addToList({ dataset: { entryId: '3', sourceId: 'file' } });
+assert.deepStrictEqual(askedSources.slice(-1), ['file'], 'the source comes from the button, not from the current source');
+RemovingDataUI.addToList({ dataset: { entryId: '99', sourceId: 'file' } });
+RemovingDataUI.addToList({ dataset: { entryId: '3', sourceId: 'nowhere' } });
+assert.strictEqual(dataCalls.length, 3, 'an unknown entry or source is ignored');
 
 // PromptUI: the input field
 Prompt.state = { open: true, text: 'name', notify: false, choice: null,

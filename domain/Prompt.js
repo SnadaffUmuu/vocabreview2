@@ -13,7 +13,9 @@
    A confirm prompt may carry a choice: one value out of a list of items
    { value, label }, chosen before confirming. onConfirm then receives the
    chosen value; the initial one is choice.value. The choice is part of the
-   prompt state, so PromptUI only projects it.
+   prompt state, so PromptUI only projects it. Values listed in choice.confirmOn
+   are not a pick to be confirmed later but an action: choosing one confirms the
+   prompt at once (e.g. "new list", which continues with its own prompt).
 
    A confirm prompt may carry a text input instead: { value, validate }, where
    validate(value) returns an error message or ''. The typed value and its error
@@ -57,13 +59,15 @@ const Prompt = {
       };
   },
 
-  // choice: { items: [{ value, label }], value } and input: { value, validate }
-  // are optional, see the header.
+  // choice: { items: [{ value, label }], value, confirmOn } and
+  // input: { value, validate } are optional, see the header.
   ask({ text, choice = null, input = null, onConfirm = () => {}, onCancel = () => {} }) {
     this._open({
       text,
       notify: false,
-      choice: choice ? { items: choice.items, value: choice.value } : null,
+      choice: choice
+        ? { items: choice.items, value: choice.value, confirmOn: choice.confirmOn || [] }
+        : null,
       input: input ? this._newInput(input) : null,
       onConfirm,
       onCancel,
@@ -97,6 +101,10 @@ const Prompt = {
     const choice = this.current?.choice;
     if(!choice || !choice.items.some(item => String(item.value) === String(value))) return;
     choice.value = value;
+    if(choice.confirmOn.some(item => String(item) === String(value))) {
+      this.confirm();
+      return;
+    }
     Bus.emit(Bus.events.promptChanged);
   },
 

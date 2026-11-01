@@ -19,18 +19,20 @@ const ListPrompts = {
   },
 
   // Asks for a name; onName gets it as typed (Collections trims it).
-  askName({ text, value = '', exceptListId = null, onName }) {
+  askName({ text, value = '', exceptListId = null, onName, onCancel = () => {} }) {
     Prompt.ask({
       text,
       input: { value, validate: name => Collections.nameError(name, exceptListId) },
       onConfirm: onName,
+      onCancel,
     });
   },
 
-  // A new empty list; onCreated(listId) runs when it exists.
-  createList(onCreated = () => {}) {
+  // A new empty list; onCreated(listId) runs when it exists, onCancel when the name is not given.
+  createList(onCreated = () => {}, onCancel = () => {}) {
     this.askName({
       text: 'Name of the new list',
+      onCancel,
       onName: name => {
         const result = Collections.create(name);
         if(result.ok) onCreated(result.listId);
@@ -68,8 +70,15 @@ const ListPrompts = {
   },
 
   /*
-    Asks for the list to add a copy of the entry to (Global by default, or a new
-    list), adds it and reports a duplicate. The card stays where it is.
+    Asks for the list to add a copy of the entry to (the one chosen last, Global
+    at first, or a new list), adds it and reports a duplicate. The card stays
+    where it is.
+    Choosing "new list" does not wait for Confirm: the name is asked at once.
+    Cancelling the name prompt closes only that prompt: the choice is asked
+    again (from its default), so the user steps back and does not lose the flow.
+    The list becomes the default of the next time once it is chosen, also when
+    the card turns out to be a duplicate; a cancelled prompt or a failed write
+    changes nothing.
   */
   addEntry(entry) {
     const items = [
@@ -78,16 +87,20 @@ const ListPrompts = {
     ];
     Prompt.ask({
       text: 'Add the card to a list',
-      choice: { items, value: Collections.DEFAULT_ID },
+      choice: { items, value: Collections.defaultTarget(), confirmOn: [Collections.NEW_LIST] },
       onConfirm: listId => {
-        if(listId === Collections.NEW_LIST) this.createList(newId => this.addTo(newId, entry));
-        else this.addTo(listId, entry);
+        if(listId === Collections.NEW_LIST) {
+          this.createList(newId => this.addTo(newId, entry), () => this.addEntry(entry));
+        } else {
+          this.addTo(listId, entry);
+        }
       },
     });
   },
 
   addTo(listId, entry) {
     const result = Collections.add(listId, entry);
+    if(result !== 'storage') App.setAddTarget(listId);
     if(result === 'duplicate') {
       Prompt.notify(`Already in the list "${Collections.nameOf(listId)}".`);
     } else if(result === 'storage') {

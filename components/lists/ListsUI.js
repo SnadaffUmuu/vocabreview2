@@ -1,6 +1,8 @@
 /*
    ListsUI: modal catalog of the custom lists, empty ones included (the sources
-   menu shows only lists with entries). A tap on a name switches to the list;
+   menu shows only lists with entries). A tap on a name switches to the list and
+   opens it in Data, where its entries can be managed; working with it in another
+   View is done by opening it from the sources menu;
    rename, delete and creation go through ListPrompts. It is a dialog and not a
    View: it manages the lists themselves, while Views show the entries of the
    current source, and it must not take over the persisted current view.
@@ -9,6 +11,9 @@
 */
 const ListsUI = {
   name: 'ListsUI',
+
+  // The viewName of DataViewUI: the View where the entries of a list are managed.
+  DATA_VIEW: 'data',
 
   selectors: {
     root: '#lists',
@@ -126,6 +131,7 @@ const ListsUI = {
   pickList(el) {
     Busy.beginAndRun(() => {
       App.selectSource(el.dataset.listPick);
+      App.setView(this.DATA_VIEW);
       this.close();
     });
   },

@@ -9,7 +9,7 @@
      vocabreview2.collections custom lists: { [listId]: { name, nextId, entries } }
      vocabreview2.views       progress per source per view (written often)
      vocabreview2.selections  selected section ids per source
-     vocabreview2.settings    theme, current source, current view
+     vocabreview2.settings    theme, current source, current view, last list added to
 */
 const Storage = {
 

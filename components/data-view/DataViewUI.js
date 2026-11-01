@@ -10,8 +10,9 @@
    the input itself (caret, IME); render() never writes it back. It becomes
    state when the user commits it (Enter / the search event).
 
-   Data is read-only for the text of entries. The one action it has is on the
-   entries of a custom list: removing an entry from the list for good (with its
+   Data is read-only for the text of entries. Every entry, wherever it comes
+   from (a file, a search result, a list), can be copied to a custom list. An
+   entry of the current list can also be removed from it for good (with its
    progress), after a confirmation. The list is shown whole, so "only selection"
    is hidden for it. Search results come from the files, not from the list, and
    cannot be removed.
@@ -34,7 +35,10 @@ const DataViewUI = {
     keydown: { '@searchEl': 'doSearch' },
     search: { '@searchEl': 'doSearchValue' },
     change: { '@filteredEl': 'changeFiltered' },
-    click: { '#dataOutput .dataEntryRemove': 'removeFromList' },
+    click: {
+      '#dataOutput .dataEntryAdd': 'addToList',
+      '#dataOutput .dataEntryRemove': 'removeFromList',
+    },
   },
 
   onlyFiltered: true,
@@ -72,6 +76,20 @@ const DataViewUI = {
   changeFiltered(el) {
     this.onlyFiltered = el.checked;
     this.render();
+  },
+
+  /*
+     Copies an entry to a list chosen in the prompt (the same flow as the "+" of
+     an open card). The entry is found by its own source: search results come
+     from several sources, and their ids repeat. The target may be the list the
+     entry is in: a copy that the list already has is refused as a duplicate.
+     Together with the removal this makes moving an entry between lists.
+  */
+  addToList(el) {
+    const source = Library.getSource(el.dataset.sourceId);
+    const entryId = Number(el.dataset.entryId);
+    const entry = source?.parsed.allEntries.find(item => item.id === entryId);
+    if(entry) ListPrompts.addEntry(entry);
   },
 
   // Confirmed by ListPrompts; the list announces the change and render() follows.
@@ -116,7 +134,11 @@ const DataViewUI = {
     const removable = vm.isList && !this.searchValue;
     vm.count = String(entries.length);
     vm.entries = entries.map(entry =>
-      Object.assign(this.entryViewModel(entry, sourceId), { id: entry.id, removable }));
+      Object.assign(this.entryViewModel(entry, sourceId), {
+        id: entry.id,
+        removable,
+        copyable: true,
+      }));
     return vm;
   },
 
@@ -205,15 +227,24 @@ const DataViewUI = {
             ${entry.info ? `
             <div class="entryInfo">ⓘ&nbsp;${Utils.escapeHtml(entry.info)}</div>` : ''}
           </div>
-          ${entry.reviewLevel || entry.removable ? `
+          ${entry.reviewLevel || entry.removable || entry.copyable ? `
           <div class="dataEntryAside">
             ${entry.reviewLevel ? `
             <div class="reviewLevel tag">${Utils.escapeHtml(entry.reviewLevel)}</div>` : ''}
-            ${entry.removable ? `
-            <button class="dataEntryRemove iconButton" type="button"
-              aria-label="Remove from the list"
-              data-entry-id="${Utils.escapeHtml(entry.id)}"
-              >🗑</button>` : ''}
+            ${entry.removable || entry.copyable ? `
+            <div class="dataEntryActions">
+              ${entry.copyable ? `
+              <button class="dataEntryAdd iconButton" type="button"
+                aria-label="Add to a list"
+                data-entry-id="${Utils.escapeHtml(entry.id)}"
+                data-source-id="${Utils.escapeHtml(entry.sourceId)}"
+                >＋</button>` : ''}
+              ${entry.removable ? `
+              <button class="dataEntryRemove iconButton" type="button"
+                aria-label="Remove from the list"
+                data-entry-id="${Utils.escapeHtml(entry.id)}"
+                >🗑</button>` : ''}
+            </div>` : ''}
           </div>` : ''}
         </div>
         <div class="section">${query ? `

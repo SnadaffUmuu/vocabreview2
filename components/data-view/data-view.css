@@ -52,7 +52,7 @@
   min-width: 0;
 }
 
-/* The review level on top, the remove button below it. */
+/* The review level on top, the action buttons below it. */
 #dataView .dataEntry .dataEntryAside {
   flex: 0 0 auto;
   display: flex;
@@ -62,6 +62,13 @@
   gap: 8px;
 }
 
+#dataView .dataEntry .dataEntryActions {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: 4px;
+}
+
+#dataView .dataEntry .dataEntryAdd,
 #dataView .dataEntry .dataEntryRemove {
   /* width: 34px; */
   height: 34px;

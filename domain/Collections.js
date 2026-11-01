@@ -134,6 +134,15 @@ const Collections = {
     }));
   },
 
+  /*
+    The list the "add to a list" choice starts with: the one chosen last, or
+    Global when there is none or it is gone (deleted, or lost with an import).
+  */
+  defaultTarget() {
+    const listId = App.addTarget;
+    return listId && this.lists[listId] ? listId : this.DEFAULT_ID;
+  },
+
   countOf(listId) {
     return this.lists[listId] ? this.lists[listId].entries.length : 0;
   },
@@ -280,6 +289,8 @@ const Collections = {
     const wasCurrent = App.currentSource === sourceId;
     App.clearViewsFor(sourceId);
     App.clearSelectionFor(sourceId);
+    // The id may be reused by another list: no stale target must point to it.
+    if(App.addTarget === listId) App.setAddTarget(null);
     this._announce(listId, 'deleted');
     if(wasCurrent) App.deselectSource();
     return true;

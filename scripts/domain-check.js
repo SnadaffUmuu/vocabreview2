@@ -615,31 +615,47 @@ loadRel('domain/ListPrompts.js');
   assert(Collections.nameOf('l1') === 'Nouns', 'rename applies');
 
   // Add to a new list: the choice, then the name, then the copy
+  App.setAddTarget(null);
+  assert(Collections.defaultTarget() === 'global', 'Global is the target until another is chosen');
   ListPrompts.addEntry(entries[5]);
   assert(Prompt.state.choice.value === 'global'
     && Prompt.state.choice.items[Prompt.state.choice.items.length - 1].value === Collections.NEW_LIST,
   'the choice ends with "new list"');
   Prompt.choose(Collections.NEW_LIST);
-  Prompt.confirm();
-  assert(Prompt.isOpen && Prompt.state.input, 'choosing "new list" opens the name prompt');
+  assert(Prompt.isOpen && Prompt.state.input, 'choosing "new list" opens the name prompt at once');
   Prompt.type('Fresh');
   Prompt.confirm();
   assert(!Prompt.isOpen && Collections.lists.l2.name === 'Fresh' && Collections.lists.l2.entries.length === 1,
     'the new list gets the card');
+  assert(App.addTarget === 'l2' && Storage.load(Storage.KEY.settings, {}).addTarget === 'l2',
+    'the new list becomes the target, and it is saved');
   ListPrompts.addEntry(entries[5]);
+  assert(Prompt.state.choice.value === 'l2', 'the prompt starts with the list chosen last');
   Prompt.choose('l2');
   Prompt.confirm();
   assert(Prompt.isOpen && Prompt.state.notify && Prompt.state.text.includes('Already'), 'a duplicate is reported');
   Prompt.cancel();
   ListPrompts.addEntry(entries[6]);
+  Prompt.choose('global');
   Prompt.confirm();
-  assert(!Prompt.isOpen && Collections.lists.global.entries.length === 1, 'Global is the default target');
+  assert(!Prompt.isOpen && Collections.lists.global.entries.length === 1, 'Global can still be chosen');
+  assert(App.addTarget === 'global', 'and becomes the target');
+  ListPrompts.addEntry(entries[9]);
+  Prompt.choose('l1');
+  Prompt.cancel();
+  assert(App.addTarget === 'global', 'a cancelled prompt keeps the target');
   ListPrompts.addEntry(entries[7]);
   Prompt.choose(Collections.NEW_LIST);
-  Prompt.confirm();
+  Prompt.cancel();
+  assert(Prompt.isOpen && Prompt.state.choice && Prompt.state.choice.value === 'global'
+    && Collections.lists.global.entries.length === 1 && !Collections.lists.l3,
+  'cancelling the name prompt returns to the choice and creates nothing');
   Prompt.cancel();
   assert(!Prompt.isOpen && Collections.lists.global.entries.length === 1 && !Collections.lists.l3,
-    'cancelling the name prompt adds nothing and creates nothing');
+    'cancelling the choice adds nothing');
+  ListPrompts.createList();
+  Prompt.cancel();
+  assert(!Prompt.isOpen, 'creating a list from the Lists dialog has no step back');
 
   Storage.failSaves = true;
   ListPrompts.addEntry(entries[8]);
@@ -647,6 +663,15 @@ loadRel('domain/ListPrompts.js');
   assert(Prompt.state.notify && Prompt.state.text === Collections.SAVE_FAILED_TEXT, 'a failed write is reported');
   Prompt.cancel();
   Storage.failSaves = false;
+  App.setAddTarget('l1');
+  ListPrompts.addEntry(entries[8]);
+  Storage.failSaves = true;
+  Prompt.choose('l2');
+  Prompt.confirm();
+  Prompt.cancel();
+  Storage.failSaves = false;
+  assert(App.addTarget === 'l1', 'a failed write does not change the target');
+  App.setAddTarget('global');
 
   ListPrompts.removeEntry('global', 0);
   assert(Prompt.state.text.includes('Global') && Prompt.state.text.includes('progress'), 'removal is confirmed');
@@ -655,10 +680,17 @@ loadRel('domain/ListPrompts.js');
   ListPrompts.removeEntry('global', 0);
   Prompt.confirm();
   assert(Collections.lists.global.entries.length === 0, 'confirm removes the entry');
+  App.setAddTarget('l2');
+  assert(Collections.defaultTarget() === 'l2', 'an existing list is the default target');
   ListPrompts.deleteList('l2');
   assert(Prompt.state.text.startsWith('Delete the list "Fresh" (1 card)'), 'deleting a list is confirmed with its size');
   Prompt.confirm();
   assert(!Collections.lists.l2, 'confirm deletes the list');
+  assert(App.addTarget === null && Collections.defaultTarget() === 'global',
+    'deleting the target list resets it to Global');
+  App.setAddTarget('l9');
+  assert(Collections.defaultTarget() === 'global', 'a target that does not exist falls back to Global');
+  App.setAddTarget(null);
   Collections.add('global', entries[9]);
   ListPrompts.deleteList('global');
   assert(Prompt.state.text.startsWith('Clear the list "Global"'), 'Global is cleared, not deleted');

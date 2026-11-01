@@ -7,7 +7,11 @@
   Data model:
     views[sourceId][viewName] = { progress: { [entryId]: {...} }, ui: {...} }
     selections[sourceId] = [sectionIds]
-    settings = { currentSource, currentView, night }
+    settings = { currentSource, currentView, night, addTarget }
+
+  addTarget is the listId last chosen in the "add to a list" prompt, offered
+  there by default. It may point to a list that no longer exists: the reader
+  (Collections.defaultTarget) falls back to Global.
 */
 const App = {
 
@@ -17,6 +21,7 @@ const App = {
     currentSource: null,
     currentView: 'data',
     night: false,
+    addTarget: null,
   },
 
   load() {
@@ -54,6 +59,7 @@ const App = {
   get night() { return this.settings.night; },
   get currentSource() { return this.settings.currentSource; },
   get currentView() { return this.settings.currentView; },
+  get addTarget() { return this.settings.addTarget; },
 
   _saveSettings() {
     Storage.save(Storage.KEY.settings, this.settings);
@@ -63,6 +69,13 @@ const App = {
     this.settings.night = !!val;
     this._saveSettings();
     Bus.emit(Bus.events.settingsChanged, { night: this.settings.night });
+  },
+
+  // No event: nothing shows the target; it is only read when the prompt opens.
+  setAddTarget(listId) {
+    if(this.settings.addTarget === listId) return;
+    this.settings.addTarget = listId;
+    this._saveSettings();
   },
 
   selectSource(id) {
