@@ -9,6 +9,12 @@
    The text typed into the search input is an uncommitted draft that lives in
    the input itself (caret, IME); render() never writes it back. It becomes
    state when the user commits it (Enter / the search event).
+
+   Data is read-only for the text of entries. The one action it has is on the
+   entries of a custom list: removing an entry from the list for good (with its
+   progress), after a confirmation. The list is shown whole, so "only selection"
+   is hidden for it. Search results come from the files, not from the list, and
+   cannot be removed.
 */
 const DataViewUI = {
   name: 'DataViewUI',
@@ -19,6 +25,7 @@ const DataViewUI = {
     root: '#dataView',
     searchEl: '#dataSearch',
     filteredEl: '#dataFiltered',
+    filteredBoxEl: '#dataFilteredBox',
     counterEl: '#dataResCounter',
     outputEl: '#dataOutput',
   },
@@ -27,6 +34,7 @@ const DataViewUI = {
     keydown: { '@searchEl': 'doSearch' },
     search: { '@searchEl': 'doSearchValue' },
     change: { '@filteredEl': 'changeFiltered' },
+    click: { '#dataOutput .dataEntryRemove': 'removeFromList' },
   },
 
   onlyFiltered: true,
@@ -39,6 +47,8 @@ const DataViewUI = {
     Bus.on(Bus.events.sourceSelected, () => this.render());
     Bus.on(Bus.events.selectionChanged, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
+    // Entries of the current list changed, or the list was renamed or deleted.
+    Bus.on(Bus.events.collectionsChanged, () => this.render());
   },
 
   ensureMarkup() {
@@ -46,7 +56,7 @@ const DataViewUI = {
     const html = `
       <div id="dataView" class="appView hidden">
         <div id="dataViewActions">
-          <label>only selection <input type="checkbox" id="dataFiltered"></label>
+          <label id="dataFilteredBox">only selection <input type="checkbox" id="dataFiltered"></label>
           <input type="search" id="dataSearch" placeholder="search">
           <div id="dataResCounter" class="tag"></div>
         </div>
@@ -62,6 +72,13 @@ const DataViewUI = {
   changeFiltered(el) {
     this.onlyFiltered = el.checked;
     this.render();
+  },
+
+  // Confirmed by ListPrompts; the list announces the change and render() follows.
+  removeFromList(el) {
+    const sourceId = App.currentSource;
+    if(!sourceId || !Collections.isListId(sourceId)) return;
+    ListPrompts.removeEntry(Collections.listIdOf(sourceId), Number(el.dataset.entryId));
   },
 
   // Enter on a mobile keyboard may report keyCode 229/0, so check e.key. The
@@ -87,6 +104,7 @@ const DataViewUI = {
     const sourceId = App.currentSource;
     const vm = {
       visible,
+      isList: Collections.isListId(sourceId),
       onlyFiltered: this.onlyFiltered,
       query: this.searchValue,
       count: '',
@@ -95,8 +113,10 @@ const DataViewUI = {
     if(!visible || !sourceId || !Library.hasSource(sourceId)) return vm;
 
     const entries = this.entriesToShow(sourceId);
+    const removable = vm.isList && !this.searchValue;
     vm.count = String(entries.length);
-    vm.entries = entries.map(entry => this.entryViewModel(entry, sourceId));
+    vm.entries = entries.map(entry =>
+      Object.assign(this.entryViewModel(entry, sourceId), { id: entry.id, removable }));
     return vm;
   },
 
@@ -184,6 +204,11 @@ const DataViewUI = {
         <ul class="linesList">${entry.lines.map(line => this.lineTemplate(line, query)).join('')}</ul>
         ${entry.info ? `
         <div class="entryInfo">ⓘ&nbsp;${Utils.escapeHtml(entry.info)}</div>` : ''}
+        ${entry.removable ? `
+        <button class="dataEntryRemove" type="button"
+          aria-label="Remove from the list"
+          data-entry-id="${Utils.escapeHtml(entry.id)}"
+          >－ remove from the list</button>` : ''}
         <div class="section">${query ? `
           <span class="entrySource">${Utils.escapeHtml(entry.sourceId)}</span> ` : ''}
           ${Utils.escapeHtml(entry.breadcrumbs)}
@@ -219,6 +244,7 @@ const DataViewUI = {
     const vm = this.viewModel();
     this.dom.root.classList.toggle('hidden', !vm.visible);
     this.dom.filteredEl.checked = vm.onlyFiltered;
+    this.dom.filteredBoxEl.classList.toggle('hidden', vm.isList);
     this.dom.counterEl.textContent = vm.count;
     this.dom.outputEl.innerHTML = this.template(vm);
   },

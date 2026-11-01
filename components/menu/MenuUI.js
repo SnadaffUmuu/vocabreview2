@@ -7,8 +7,10 @@
    and the menu only calls App.setView().
 
    The sources dropdown lists the hard-coded sources, followed by the custom
-   lists that have entries ("L: name"). A list has no file, so it cannot be
-   reloaded or updated.
+   lists that have entries ("L: name"), and the current list even when it is
+   empty. A list has no file, so it cannot be reloaded or updated. The "L"
+   button opens the catalog of lists (ListsUI); it is not a view and has no
+   active state.
   
    Reset and import replace the whole persisted state and then reload the page:
    views keep in-memory state of their own, and a reload is the only reliable
@@ -35,6 +37,7 @@ const MenuUI = {
     viewSwitcherEl: '#menuViewSwitcher',
     reloadEl: '#menuReload',
     sessionsEl: '#menuSessions',
+    listsEl: '#menuLists',
   },
 
   events: {
@@ -44,6 +47,7 @@ const MenuUI = {
       '#menuViewSwitcher .switchView': 'switchView',
       '@reloadEl': 'reloadCurrent',
       '@sessionsEl': 'showSessions',
+      '@listsEl': 'showLists',
     },
   },
 
@@ -72,7 +76,7 @@ const MenuUI = {
   sourceItems() {
     return [
       ...SOURCES_LIST.map(id => ({ value: id })),
-      ...Collections.menuItems(),
+      ...Collections.menuItems(App.currentSource),
     ];
   },
 
@@ -102,6 +106,7 @@ const MenuUI = {
             })}
           </div>
           <div id="menuViewRow">
+            <button id="menuLists" type="button" aria-label="Lists">L</button>
             <div id="menuViewSwitcher">${switchers}
             </div>
           </div>
@@ -127,6 +132,11 @@ const MenuUI = {
 
   showSessions() {
     Bus.emit(Bus.events.sessionsRequested);
+    this.setMenuOpened(false);
+  },
+
+  showLists() {
+    Bus.emit(Bus.events.listsRequested);
     this.setMenuOpened(false);
   },
 

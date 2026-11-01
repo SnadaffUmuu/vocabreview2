@@ -22,6 +22,7 @@ function load(file) {
 load('core/Utils.js');
 load('core/Storage.js');
 load('domain/sources-list.js');
+load('domain/Collections.js');
 load('domain/Backup.js');
 
 const listed = SOURCES_LIST[0];
@@ -64,6 +65,35 @@ const goodCollections = JSON.stringify({
   data: { [Storage.KEY.collections]: { global: { name: 'Global', nextId: 0, entries: [] } } },
 });
 assert.equal(Backup.parse(goodCollections).ok, true, 'collections are exported and imported');
+
+// The structure of every list is validated, so a bad list is never imported (and never dropped silently later).
+const withLists = lists => JSON.stringify({
+  format: Backup.FORMAT, version: 1, data: { [Storage.KEY.collections]: lists },
+});
+const goodList = { name: 'L', nextId: 1, entries: [{ id: 0, lines: [] }] };
+assert.equal(Backup.parse(withLists({ l1: goodList })).ok, true, 'a valid list is accepted');
+for(const [what, list] of [
+  ['no name', { nextId: 0, entries: [] }],
+  ['no nextId', { name: 'L', entries: [] }],
+  ['entries not an array', { name: 'L', nextId: 0, entries: {} }],
+  ['an entry without lines', { name: 'L', nextId: 1, entries: [{ id: 0 }] }],
+  ['an entry without an id', { name: 'L', nextId: 1, entries: [{ lines: [] }] }],
+  ['not an object', 5],
+]) {
+  const result = Backup.parse(withLists({ l1: goodList, bad: list }));
+  assert.equal(result.ok, false, `a broken list is rejected: ${what}`);
+  assert(result.error.includes('"bad"'), 'the broken list is named');
+}
+
+// A write that fails is reported to the caller.
+const realSetItem = localStorage.setItem;
+localStorage.setItem = () => { throw new Error('QuotaExceededError'); };
+const consoleError = console.error;
+console.error = () => {};
+assert.equal(Storage.save(Storage.KEY.collections, {}), false, 'a failed write is reported');
+console.error = consoleError;
+localStorage.setItem = realSetItem;
+assert.equal(Storage.save(Storage.KEY.collections, { stale: true }), true, 'a successful write is reported');
 
 // Bad files are rejected, and parse() never touches storage.
 const snapshot = Array.from(data);

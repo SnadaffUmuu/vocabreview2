@@ -21,6 +21,7 @@ const SliderUI = {
   name: 'SliderUI',
   viewName: 'slider',
   viewLabel: 'S',
+  canAddToList: true,
 
   selectors: {
     root: '#sliderView',
@@ -67,6 +68,9 @@ const SliderUI = {
     DropdownUI.on('sliderCardMode', mode => this.changeMode(mode));
     Bus.on(Bus.events.sourceSelected, () => this.rebuild());
     Bus.on(Bus.events.sourcesChanged, () => this.rebuild());
+    Bus.on(Bus.events.collectionsChanged, change => {
+      if(Collections.isContentChange(change, App.currentSource)) this.rebuild();
+    });
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
       if(sourceId !== App.currentSource) return;
       SliderState.resetNavigation(sourceId);

@@ -20,6 +20,8 @@
      resetLayoutState() - optional: drops the View's own layout state on rebuild
      canAddToList       - optional: true when the open card offers "add to a list".
                           The View then handles the click of .cardAddToList itself.
+                          In a list the card also offers "remove from the list"
+                          (.cardRemoveFromList), handled by the View as well.
 */
 const CardZones = {
 
@@ -167,6 +169,8 @@ const CardZones = {
         top: asExpanded ? this.expanded.top : 0,
         lineExpanded: asExpanded && this.lineExpanded,
         canAddToList: asExpanded && !!this.canAddToList,
+        canRemoveFromList: asExpanded && !!this.canAddToList
+          && Collections.isListId(App.currentSource),
         covered: !asExpanded && isOpen,
         size: !asExpanded && isOpen
           ? { width: this.expanded.width, height: this.expanded.height }

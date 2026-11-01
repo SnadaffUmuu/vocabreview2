@@ -10,7 +10,11 @@ const AppInit = {
     Collections.load();
     Storage.removeUnlistedSources(SOURCES_LIST);
     // Lists have no file; their progress must survive the cleanup of old sources.
-    App.removeUnlistedSources([...SOURCES_LIST, ...Collections.sourceIds()]);
+    App.removeUnlistedSources([
+      ...SOURCES_LIST,
+      ...Collections.sourceIds(),
+      ...Collections.unrecognizedSourceIds(),
+    ]);
     Library.load();
     Events.init();
 

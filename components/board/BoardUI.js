@@ -56,6 +56,7 @@ const BoardUI = {
       '@expandedEl': 'collapseCard',
       ...CardZones.overlayClicks('#boardExpanded'),
       '#boardExpanded .cardAddToList': 'addToList',
+      '#boardExpanded .cardRemoveFromList': 'removeFromList',
     },
   },
 
@@ -71,6 +72,9 @@ const BoardUI = {
     Bus.on(Bus.events.viewChanged, () => this.rebuild());
     Bus.on(Bus.events.sourceSelected, () => this.rebuild());
     Bus.on(Bus.events.sourcesChanged, () => this.rebuild());
+    Bus.on(Bus.events.collectionsChanged, change => {
+      if(Collections.isContentChange(change, App.currentSource)) this.rebuild();
+    });
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
       BoardState.resetSourceOrder(sourceId);
       if(sourceId === App.currentSource) this.rebuild();
@@ -216,21 +220,23 @@ const BoardUI = {
   },
 
   /*
-     The card stays open. The list is chosen in the prompt (Global by default);
-     the entry is copied, so the card keeps its place in the source. A copy that
-     the list already has is not added again.
+     The card stays open. The list is chosen in the prompt (Global by default, or
+     a new list); the entry is copied, so the card keeps its place in the source.
+     A copy that the list already has is not added again.
   */
   addToList() {
     const entry = this.expanded ? this.entries[this.expanded.id] : null;
-    if(!entry) return;
-    Prompt.ask({
-      text: 'Add the card to a list',
-      choice: { items: Collections.choices(), value: Collections.DEFAULT_ID },
-      onConfirm: listId => {
-        if(Collections.add(listId, entry)) return;
-        Prompt.notify(`Already in the list "${Collections.nameOf(listId)}".`);
-      },
-    });
+    if(entry) ListPrompts.addEntry(entry);
+  },
+
+  /*
+     Only in a list, and unlike the removal of a card (which only hides it in this
+     View) it is final. The Board rebuilds when the list announces the change.
+  */
+  removeFromList() {
+    const sourceId = this.loadedSource();
+    if(!sourceId || !this.expanded || !Collections.isListId(sourceId)) return;
+    ListPrompts.removeEntry(Collections.listIdOf(sourceId), this.expanded.id);
   },
 
   reset() {

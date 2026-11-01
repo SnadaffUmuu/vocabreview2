@@ -30,6 +30,8 @@ const SessionsUI = {
     Bus.on(Bus.events.viewsChanged, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
     Bus.on(Bus.events.sourceReloaded, () => this.render());
+    // A renamed or deleted list, or an entry removed together with its progress.
+    Bus.on(Bus.events.collectionsChanged, () => this.render());
   },
 
   ensureMarkup() {

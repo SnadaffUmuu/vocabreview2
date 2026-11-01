@@ -269,7 +269,8 @@
   box-shadow: 4px 5px 7px -2px var(--boardInfoShadow);
 }
 
-.cardAction.cardAddToList {
-  font-size: 20px;
+.cardAction.cardAddToList,
+.cardAction.cardRemoveFromList {
   font-weight: bold;
+  line-height: 100%;
 }

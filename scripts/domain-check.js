@@ -58,7 +58,12 @@ global.Storage = {
   PREFIX: 'vocabreview2.',
   sourceKey(id) { return 'vocabreview2.src.' + id; },
   load(k, d) { return memStore[k] !== undefined ? JSON.parse(memStore[k]) : d; },
-  save(k, v) { memStore[k] = JSON.stringify(v); },
+  failSaves: false,
+  save(k, v) {
+    if(this.failSaves) return false;
+    memStore[k] = JSON.stringify(v);
+    return true;
+  },
   remove(k) { delete memStore[k]; },
   loadSource(id) { return memStore['vocabreview2.src.' + id] !== undefined
     ? JSON.parse(memStore['vocabreview2.src.' + id]) : null; },
@@ -312,10 +317,10 @@ loadRel('domain/Prompt.js');
   Prompt.cancel();
   assert(!Prompt.isOpen && log[2] === 'closed', 'notify closes through either path');
 
-  assert(JSON.stringify(Prompt.state) === '{"open":false,"text":"","notify":false,"choice":null}',
+  assert(JSON.stringify(Prompt.state) === '{"open":false,"text":"","notify":false,"choice":null,"input":null,"canConfirm":true,"serial":' + Prompt.serial + '}',
     'state of a closed prompt');
   Prompt.notify('msg');
-  assert(JSON.stringify(Prompt.state) === '{"open":true,"text":"msg","notify":true,"choice":null}',
+  assert(JSON.stringify(Prompt.state) === '{"open":true,"text":"msg","notify":true,"choice":null,"input":null,"canConfirm":true,"serial":' + Prompt.serial + '}',
     'state of an open prompt carries no callbacks');
   Prompt.cancel();
 
@@ -352,7 +357,7 @@ loadRel('domain/Prompt.js');
     && !Collections.menuItems().length, 'a list that does not exist is not a source');
   assert(Storage.load(Storage.KEY.collections, null) === null, 'offering Global creates nothing');
 
-  assert(Collections.add('global', origin) === true, 'the first add creates the list');
+  assert(Collections.add('global', origin) === 'added', 'the first add creates the list');
   const list = Collections.lists.global;
   assert(list.name === 'Global' && list.entries.length === 1 && list.nextId === 1, 'list shape');
   const copy = list.entries[0];
@@ -365,9 +370,9 @@ loadRel('domain/Prompt.js');
   assert(JSON.stringify(Storage.load(Storage.KEY.collections, null)) === JSON.stringify(Collections.lists),
     'the list is saved at once');
 
-  assert(Collections.add('global', origin) === false && list.entries.length === 1,
+  assert(Collections.add('global', origin) === 'duplicate' && list.entries.length === 1,
     'the same text is not added twice');
-  assert(Collections.add('global', other) === true && list.entries[1].id === 1 && list.nextId === 2,
+  assert(Collections.add('global', other) === 'added' && list.entries[1].id === 1 && list.nextId === 2,
     'ids go on counting');
 
   assert(Library.hasSource(listSource) && Library.getSource(listSource).parsed.structure.length === 0,
@@ -427,6 +432,246 @@ loadRel('domain/Prompt.js');
   App.clearViewsFor(listSource);
   App.settings.currentSource = savedCurrent;
 }
+// ---- Collections: managing lists and their entries ------------------------
+loadRel('domain/ListPrompts.js');
+{
+  const savedCurrent = App.settings.currentSource;
+  const entries = Library.getSource('goshogun2').parsed.allEntries;
+  const events = [];
+  const onChange = payload => events.push(`${payload.kind}:${payload.sourceId}`);
+  Bus.on(Bus.events.collectionsChanged, onChange);
+  Collections.lists = {};
+  Collections.unrecognized = {};
+  Storage.remove(Storage.KEY.collections);
+
+  // Names
+  assert(Collections.nameError('') !== '' && Collections.nameError('   ') !== '', 'an empty name is refused');
+  assert(Collections.nameError('x'.repeat(41)) !== '' && Collections.nameError('x'.repeat(40)) === '',
+    'the name length is limited');
+  assert(Collections.nameError('global') !== '' && Collections.nameError(' GLOBAL ') !== '',
+    'the name of Global is reserved, without regard to case');
+
+  // Create
+  const made = Collections.create('  Keigo  ');
+  assert(made.ok && made.listId === 'l1' && Collections.lists.l1.name === 'Keigo'
+    && Collections.lists.l1.entries.length === 0 && Collections.lists.l1.nextId === 0,
+  'a list is created empty, with a stable id and a trimmed name');
+  assert(!Collections.create('keigo').ok && Collections.create('keigo').error === 'This name is taken.',
+    'a name is unique without regard to case');
+  assert(Collections.create('Two').listId === 'l2', 'ids are handed out in order');
+  assert(Collections.menuItems().length === 0, 'an empty list is not in the menu');
+  assert(Collections.menuItems('L:l1').length === 1 && Collections.menuItems('L:l1')[0].label === 'L: Keigo',
+    'the current list is in the menu even when empty');
+  assert(Collections.overview().map(item => item.name).join() === 'Global,Keigo,Two'
+    && Collections.overview()[0].exists === false && Collections.overview()[1].count === 0,
+  'the catalog shows every list: Global first, empty ones included');
+  assert(JSON.stringify(Storage.load(Storage.KEY.collections, null)) === JSON.stringify(Collections.lists),
+    'a created list is saved at once');
+
+  // Rename
+  assert(Collections.rename('l1', 'Honorifics').ok && Collections.nameOf('l1') === 'Honorifics'
+    && Collections.lists.l1.nextId === 0, 'rename changes the name only');
+  assert(Collections.rename('l1', 'honorifics').ok, 'a list may keep its own name (in another case)');
+  assert(!Collections.rename('l1', 'Two').ok, 'rename refuses a taken name');
+  assert(!Collections.rename('global', 'Other').ok, 'Global cannot be renamed');
+  assert(!Collections.rename('nope', 'Other').ok, 'a list that does not exist cannot be renamed');
+
+
+  // Entries and their progress
+  assert(Collections.add('l1', entries[0]) === 'added' && Collections.add('l1', entries[1]) === 'added'
+    && Collections.add('l1', entries[2]) === 'added', 'entries are added');
+  const l1 = 'L:l1';
+  SliderState.toggleSideMark(l1, 1, 'hits', 0);
+  SliderState.toggleSideMark(l1, 2, 'hits', 0);
+  BoardState.move(l1, 1, 'good');
+  BoardState.move(l1, 2, 'learn');
+  ViewState.setUi(l1, 'slider', { random: true, order: [2, 1, 0], currentEntryId: 1, sideIndexes: { 1: 2, 2: 1 } });
+  ViewState.setUi(l1, 'board', { sourceOrder: [0, 1, 2], sideIndexes: { 1: 3 } });
+  events.length = 0;
+  assert(Collections.removeEntry('l1', 1) === true, 'an entry is removed');
+  assert(Collections.lists.l1.entries.map(entry => entry.id).join() === '0,2'
+    && Collections.lists.l1.nextId === 3, 'the other ids stay, nextId does not go back');
+  assert(!App.views[l1].slider.progress[1] && !App.views[l1].board.progress[1]
+    && !!App.views[l1].slider.progress[2] && !!App.views[l1].board.progress[2],
+  'the progress of the removed entry is dropped in every view, the others stay');
+  const sliderUi = App.views[l1].slider.ui;
+  const boardUi = App.views[l1].board.ui;
+  assert(sliderUi.order.join() === '2,0' && sliderUi.currentEntryId === null
+    && sliderUi.sideIndexes[1] === undefined && sliderUi.sideIndexes[2] === 1,
+  'no ui reference to the removed id stays in the Slider');
+  assert(boardUi.sourceOrder.join() === '0,2' && boardUi.sideIndexes[1] === undefined,
+    'no ui reference to the removed id stays in the Board');
+  assert(JSON.stringify(Storage.load(Storage.KEY.views, null)[l1]) === JSON.stringify(App.views[l1]),
+    'the cleaned progress is saved');
+  assert(Collections.removeEntry('l1', 99) === true && Collections.lists.l1.entries.length === 2,
+    'an entry that is not there is a no-op');
+  assert(Collections.add('l1', entries[3]) === 'added' && Collections.lists.l1.entries[2].id === 3,
+    'a new entry does not take the id of a removed one');
+  assert(Collections.isContentChange({ sourceId: l1, kind: 'removed' }, l1)
+    && Collections.isContentChange({ sourceId: l1, kind: 'added' }, l1)
+    && !Collections.isContentChange({ sourceId: l1, kind: 'renamed' }, l1)
+    && !Collections.isContentChange({ sourceId: l1, kind: 'removed' }, 'goshogun2')
+    && !Collections.isContentChange(undefined, l1),
+  'only added and removed entries of the current list change what a View shows');
+
+  // The last entry: the list stays, empty
+  Collections.removeEntry('l1', 0);
+  Collections.removeEntry('l1', 2);
+  Collections.removeEntry('l1', 3);
+  assert(Collections.lists.l1 && Collections.lists.l1.entries.length === 0, 'an empty list stays');
+  assert(Library.hasSource(l1) && App.selectedEntries(l1).length === 0, 'an empty list is still a source');
+
+
+  // Delete: the list, its progress and selection, and the current source
+  Collections.add('l1', entries[0]);
+  SliderState.toggleSideMark(l1, 4, 'hits', 0);
+  App.selectSource(l1);
+  events.length = 0;
+  assert(Collections.deleteList('l1') === true && !Collections.lists.l1, 'a list is deleted');
+  assert(!App.views[l1] && App.currentSource === null,
+    'its progress goes with it, and nothing is current any more');
+  assert(!Storage.load(Storage.KEY.views, {})[l1], 'the deleted progress is saved');
+  assert(Collections.create('Again').listId === 'l1' && Collections.lists.l1.nextId === 0
+    && !App.views[l1], 'a new list may reuse the id, and no old progress sticks to it');
+  Collections.deleteList('l1');
+  assert(Collections.deleteList('l1') === true, 'deleting a list that is not there is a no-op');
+
+  // Global: cleared, and created again by the next add
+  Collections.add('global', entries[0]);
+  Collections.deleteList('global');
+  assert(!Collections.lists.global && Collections.choices()[0].value === 'global',
+    'Global is emptied and is still offered');
+  assert(Collections.add('global', entries[0]) === 'added' && Collections.lists.global.nextId === 1,
+    'Global is created again by the next add');
+  Collections.deleteList('global');
+  Collections.deleteList('l2');
+
+  // Events
+  setTimeout(() => {
+    assert(events.includes('deleted:L:l1') && events.includes('deleted:L:global'),
+      'a deletion is announced');
+    Bus.off(Bus.events.collectionsChanged, onChange);
+  }, 20);
+
+  // A failed write takes the change back and tells the caller
+  Collections.lists = {};
+  Storage.remove(Storage.KEY.collections);
+  Collections.create('Keep');
+  const keep = JSON.stringify(Collections.lists);
+  Storage.failSaves = true;
+  assert(Collections.add('l1', entries[0]) === 'storage' && JSON.stringify(Collections.lists) === keep,
+    'add: a failed write changes nothing');
+  assert(!Collections.create('Lost').ok && JSON.stringify(Collections.lists) === keep,
+    'create: a failed write changes nothing');
+  assert(!Collections.rename('l1', 'Lost').ok && JSON.stringify(Collections.lists) === keep,
+    'rename: a failed write changes nothing');
+  Storage.failSaves = false;
+  Collections.add('l1', entries[0]);
+  Storage.failSaves = true;
+  const withEntry = JSON.stringify(Collections.lists);
+  App.views[l1] = { slider: { progress: { 0: { hits: [0] } }, ui: {} } };
+  assert(Collections.removeEntry('l1', 0) === false && JSON.stringify(Collections.lists) === withEntry
+    && !!App.views[l1].slider.progress[0], 'removeEntry: a failed write changes nothing, progress included');
+  assert(Collections.deleteList('l1') === false && !!Collections.lists.l1 && !!App.views[l1],
+    'deleteList: a failed write changes nothing, progress included');
+  Storage.failSaves = false;
+  Collections.deleteList('l1');
+
+
+  // A list that could not be recognized survives the changes of the others
+  Storage.save(Storage.KEY.collections, { bad: { name: 1 }, l1: { name: 'Ok', nextId: 0, entries: [] } });
+  Collections.load();
+  assert(Collections.unrecognized.bad && Collections.lists.l1, 'an unrecognized record is kept apart');
+  Collections.create('Another');
+  const stored = Storage.load(Storage.KEY.collections, {});
+  assert(stored.bad && stored.bad.name === 1 && stored.l1 && stored.l2,
+    'an unrecognized record is written back with the others');
+  assert(Collections.newListId() === 'l3' && Collections.sourceIds().join() === 'L:l1,L:l2'
+    && Collections.unrecognizedSourceIds().join() === 'L:bad', 'its id is never handed out');
+
+  // ListPrompts: the flows, over the real Prompt
+  const saw = [];
+  Collections.lists = {};
+  Collections.unrecognized = {};
+  Storage.remove(Storage.KEY.collections);
+  ListPrompts.createList(listId => saw.push(`created:${listId}`));
+  assert(Prompt.isOpen && Prompt.state.input.value === '' && Prompt.state.canConfirm === false,
+    'an empty name is not confirmable');
+  assert(Prompt.state.input.error === '', 'no error is shown before the user types');
+  Prompt.confirm();
+  assert(Prompt.isOpen, 'a prompt with an error stays open on confirm');
+  Prompt.type('Global');
+  assert(Prompt.state.input.error === 'This name is taken.' && !Prompt.state.canConfirm, 'a taken name is refused');
+  Prompt.type(' Verbs ');
+  assert(Prompt.state.canConfirm && Prompt.state.input.error === '', 'a good name is confirmable');
+  Prompt.confirm();
+  assert(!Prompt.isOpen && saw.join() === 'created:l1' && Collections.nameOf('l1') === 'Verbs',
+    'the list is created from the typed name');
+
+  ListPrompts.renameList('l1');
+  assert(Prompt.state.input.value === 'Verbs' && Prompt.state.canConfirm, 'rename starts from the current name');
+  Prompt.type('Nouns');
+  Prompt.confirm();
+  assert(Collections.nameOf('l1') === 'Nouns', 'rename applies');
+
+  // Add to a new list: the choice, then the name, then the copy
+  ListPrompts.addEntry(entries[5]);
+  assert(Prompt.state.choice.value === 'global'
+    && Prompt.state.choice.items[Prompt.state.choice.items.length - 1].value === Collections.NEW_LIST,
+  'the choice ends with "new list"');
+  Prompt.choose(Collections.NEW_LIST);
+  Prompt.confirm();
+  assert(Prompt.isOpen && Prompt.state.input, 'choosing "new list" opens the name prompt');
+  Prompt.type('Fresh');
+  Prompt.confirm();
+  assert(!Prompt.isOpen && Collections.lists.l2.name === 'Fresh' && Collections.lists.l2.entries.length === 1,
+    'the new list gets the card');
+  ListPrompts.addEntry(entries[5]);
+  Prompt.choose('l2');
+  Prompt.confirm();
+  assert(Prompt.isOpen && Prompt.state.notify && Prompt.state.text.includes('Already'), 'a duplicate is reported');
+  Prompt.cancel();
+  ListPrompts.addEntry(entries[6]);
+  Prompt.confirm();
+  assert(!Prompt.isOpen && Collections.lists.global.entries.length === 1, 'Global is the default target');
+  ListPrompts.addEntry(entries[7]);
+  Prompt.choose(Collections.NEW_LIST);
+  Prompt.confirm();
+  Prompt.cancel();
+  assert(!Prompt.isOpen && Collections.lists.global.entries.length === 1 && !Collections.lists.l3,
+    'cancelling the name prompt adds nothing and creates nothing');
+
+  Storage.failSaves = true;
+  ListPrompts.addEntry(entries[8]);
+  Prompt.confirm();
+  assert(Prompt.state.notify && Prompt.state.text === Collections.SAVE_FAILED_TEXT, 'a failed write is reported');
+  Prompt.cancel();
+  Storage.failSaves = false;
+
+  ListPrompts.removeEntry('global', 0);
+  assert(Prompt.state.text.includes('Global') && Prompt.state.text.includes('progress'), 'removal is confirmed');
+  Prompt.cancel();
+  assert(Collections.lists.global.entries.length === 1, 'cancel keeps the entry');
+  ListPrompts.removeEntry('global', 0);
+  Prompt.confirm();
+  assert(Collections.lists.global.entries.length === 0, 'confirm removes the entry');
+  ListPrompts.deleteList('l2');
+  assert(Prompt.state.text.startsWith('Delete the list "Fresh" (1 card)'), 'deleting a list is confirmed with its size');
+  Prompt.confirm();
+  assert(!Collections.lists.l2, 'confirm deletes the list');
+  Collections.add('global', entries[9]);
+  ListPrompts.deleteList('global');
+  assert(Prompt.state.text.startsWith('Clear the list "Global"'), 'Global is cleared, not deleted');
+  Prompt.cancel();
+
+  Collections.lists = {};
+  Collections.unrecognized = {};
+  Storage.remove(Storage.KEY.collections);
+  ['L:l1', 'L:l2', 'L:global'].forEach(id => App.clearViewsFor(id));
+  App.settings.currentSource = savedCurrent;
+}
+
+
 
 // ---- SliderState: ui defaults and visible entries --------------------------
 {

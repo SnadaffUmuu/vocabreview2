@@ -84,6 +84,24 @@ const ViewState = {
       !inside.has(entryId) && this.isEntryInProgress(viewName, progress[entryId])).length;
   },
 
+  /*
+    The entry is gone for good (removed from a list): its progress in every view
+    of the source and the references to its id in the ui of the views are
+    dropped, so that nothing dangles. A kind describes its own ui references
+    with forgetEntryInUi(ui, entryId). No event: the caller announces the change.
+  */
+  forgetEntry(sourceId, entryId) {
+    const viewStates = App.views[sourceId];
+    if(!viewStates) return;
+    Object.keys(viewStates).forEach(viewName => {
+      const state = viewStates[viewName];
+      if(state.progress) delete state.progress[String(entryId)];
+      const kind = this.kinds[viewName];
+      if(kind && kind.forgetEntryInUi && state.ui) kind.forgetEntryInUi(state.ui, entryId);
+    });
+    App.saveViews();
+  },
+
   // Clear progress of the given entries only (e.g. the current selection) and
   // restore the view's ui to defaults. Progress of other entries is kept.
   resetEntries(sourceId, viewName, entryIds, defaultUi = {}) {

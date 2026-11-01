@@ -20,7 +20,25 @@
 
   Hashes are used for duplicate detection only (see add()).
   The list "global" is always offered as a target; it is created by the first
-  entry added to it.
+  entry added to it. It cannot be renamed; deleting it empties it, and the next
+  add creates it again.
+
+  Identifiers and names: listId is stable and independent of the name ("global"
+  or "l<n>"); only the name changes on rename. A name is unique without regard
+  to case. A list id may be reused after its list is deleted, which is safe
+  because the progress of a deleted list is deleted with it: otherwise an old
+  mark would stick to a new entry with the same ordinal.
+
+  Removing an entry from a list is final and also drops its progress in every
+  View (see ViewState.forgetEntry). Every change is written at once; when the
+  write fails the change is taken back, so memory and storage never differ.
+
+  Every change is announced as collectionsChanged { sourceId, kind } with kind
+  one of created, added, removed, renamed, deleted: a View rebuilds only for
+  added and removed (see isContentChange()), a rename only changes names.
+
+  Lists that could not be recognized on load are kept as they are and written
+  back with the others, so a bad record never disappears silently.
 */
 const Collections = {
 
@@ -28,14 +46,24 @@ const Collections = {
   DEFAULT_ID: 'global',
   DEFAULT_NAME: 'Global',
 
+  // The value of the extra item of the "add to a list" choice that asks for a new list.
+  NEW_LIST: '+new',
+  NAME_MAX_LENGTH: 40,
+  SAVE_FAILED_TEXT: 'Could not save the lists: the storage is full or unavailable. The change was not made.',
+
   lists: {},
+
+  // Records of the saved lists that are not valid lists. Never shown, never lost.
+  unrecognized: {},
 
   load() {
     const saved = Storage.load(Storage.KEY.collections, {});
     this.lists = {};
+    this.unrecognized = {};
     if(!saved || typeof saved !== 'object' || Array.isArray(saved)) return;
     Object.keys(saved).forEach(listId => {
       if(this.isValidList(saved[listId])) this.lists[listId] = saved[listId];
+      else this.unrecognized[listId] = saved[listId];
     });
   },
 
@@ -68,6 +96,11 @@ const Collections = {
     return Object.keys(this.lists).map(listId => this.sourceIdOf(listId));
   },
 
+  // The progress of a list that could not be recognized is kept with it.
+  unrecognizedSourceIds() {
+    return Object.keys(this.unrecognized).map(listId => this.sourceIdOf(listId));
+  },
+
   // ---- queries -------------------------------------------------------------------
 
   has(sourceId) {
@@ -85,21 +118,47 @@ const Collections = {
     return `L: ${this.nameOf(this.listIdOf(sourceId))}`;
   },
 
-  // Targets for adding an entry: "global" first, even if it does not exist yet.
-  choices() {
+  // "global" first, even if it does not exist yet, then the others by name.
+  orderedIds() {
     const others = Object.keys(this.lists)
       .filter(listId => listId !== this.DEFAULT_ID)
       .sort((a, b) => this.nameOf(a).localeCompare(this.nameOf(b)));
-    return [this.DEFAULT_ID, ...others].map(listId => ({
+    return [this.DEFAULT_ID, ...others];
+  },
+
+  // Targets for adding an entry.
+  choices() {
+    return this.orderedIds().map(listId => ({
       value: listId,
       label: this.nameOf(listId),
     }));
   },
 
-  // Items of the sources menu: only the lists that have entries.
-  menuItems() {
+  countOf(listId) {
+    return this.lists[listId] ? this.lists[listId].entries.length : 0;
+  },
+
+  // Every list, empty ones and a not yet created Global included: the catalog.
+  overview() {
+    return this.orderedIds().map(listId => ({
+      listId,
+      sourceId: this.sourceIdOf(listId),
+      name: this.nameOf(listId),
+      count: this.countOf(listId),
+      exists: !!this.lists[listId],
+      isDefault: listId === this.DEFAULT_ID,
+    }));
+  },
+
+  /*
+    Items of the sources menu: the lists that have entries, and the current one
+    even when it is empty (its last entry was removed), so the menu still shows
+    where the user is.
+  */
+  menuItems(currentSourceId = null) {
     return Object.keys(this.lists)
-      .filter(listId => this.lists[listId].entries.length)
+      .filter(listId => this.lists[listId].entries.length
+        || this.sourceIdOf(listId) === currentSourceId)
       .sort((a, b) => this.nameOf(a).localeCompare(this.nameOf(b)))
       .map(listId => {
         const sourceId = this.sourceIdOf(listId);
@@ -127,34 +186,147 @@ const Collections = {
     };
   },
 
+  // ---- names -------------------------------------------------------------------
+
+  // A message for a name that cannot be used, or ''. exceptListId is the list
+  // that is being renamed: it may keep its own name.
+  nameError(name, exceptListId = null) {
+    const trimmed = String(name).trim();
+    if(!trimmed) return 'Enter a name.';
+    if(trimmed.length > this.NAME_MAX_LENGTH) {
+      return `At most ${this.NAME_MAX_LENGTH} characters.`;
+    }
+    const taken = Object.keys(this.lists)
+      .filter(listId => listId !== exceptListId)
+      .map(listId => this.nameOf(listId));
+    // The name of Global is reserved even while the list does not exist.
+    if(exceptListId !== this.DEFAULT_ID) taken.push(this.DEFAULT_NAME);
+    const wanted = trimmed.toLowerCase();
+    return taken.some(item => item.toLowerCase() === wanted) ? 'This name is taken.' : '';
+  },
+
+  newListId() {
+    let n = 1;
+    while(this.lists[`l${n}`] || this.unrecognized[`l${n}`]) n += 1;
+    return `l${n}`;
+  },
+
   // ---- changes -------------------------------------------------------------------
 
   hashOf(entry) {
     return Utils.hash(entry.lines.map(line => line.text).join('\n'));
   },
 
+  // Applies the change and writes it. A failed write takes the change back.
+  _change(apply) {
+    const before = JSON.stringify(this.lists);
+    apply();
+    const saved = Storage.save(
+      Storage.KEY.collections,
+      Object.assign({}, this.unrecognized, this.lists),
+    );
+    if(!saved) this.lists = JSON.parse(before);
+    return saved;
+  },
+
+  _announce(listId, kind) {
+    Bus.emit(Bus.events.collectionsChanged, { sourceId: this.sourceIdOf(listId), kind });
+  },
+
+  // Only these change what a View shows (see the header).
+  isContentChange(change, sourceId) {
+    return !!change && change.sourceId === sourceId
+      && (change.kind === 'added' || change.kind === 'removed');
+  },
+
+  /*
+    A new empty list. -> { ok: true, listId } | { ok: false, error }. The name is
+    validated again here: the prompt checks it only for the user's comfort.
+  */
+  create(name) {
+    const error = this.nameError(name);
+    if(error) return { ok: false, error };
+    const listId = this.newListId();
+    const saved = this._change(() => {
+      this.lists[listId] = { name: String(name).trim(), nextId: 0, entries: [] };
+    });
+    if(!saved) return { ok: false, error: this.SAVE_FAILED_TEXT };
+    this._announce(listId, 'created');
+    return { ok: true, listId };
+  },
+
+  // Global keeps its name: it is the one list that is always offered by name.
+  rename(listId, name) {
+    if(!this.lists[listId]) return { ok: false, error: 'The list does not exist.' };
+    if(listId === this.DEFAULT_ID) return { ok: false, error: 'This list cannot be renamed.' };
+    const error = this.nameError(name, listId);
+    if(error) return { ok: false, error };
+    const saved = this._change(() => {
+      this.lists[listId].name = String(name).trim();
+    });
+    if(!saved) return { ok: false, error: this.SAVE_FAILED_TEXT };
+    this._announce(listId, 'renamed');
+    return { ok: true, listId };
+  },
+
+  /*
+    Deletes the list with its progress and selection. When it was the current
+    source, nothing is current afterwards. Returns false when it could not be saved.
+  */
+  deleteList(listId) {
+    if(!this.lists[listId]) return true;
+    if(!this._change(() => { delete this.lists[listId]; })) return false;
+    const sourceId = this.sourceIdOf(listId);
+    const wasCurrent = App.currentSource === sourceId;
+    App.clearViewsFor(sourceId);
+    App.clearSelectionFor(sourceId);
+    this._announce(listId, 'deleted');
+    if(wasCurrent) App.deselectSource();
+    return true;
+  },
+
+  /*
+    Removes one entry for good and drops its progress. Returns false when it
+    could not be saved (nothing changes then). An entry that is not there counts
+    as removed. The list stays, even when it becomes empty. nextId is not lowered.
+  */
+  removeEntry(listId, entryId) {
+    const list = this.lists[listId];
+    if(!list || !list.entries.some(entry => entry.id === entryId)) return true;
+    const saved = this._change(() => {
+      list.entries = list.entries.filter(entry => entry.id !== entryId);
+    });
+    if(!saved) return false;
+    ViewState.forgetEntry(this.sourceIdOf(listId), entryId);
+    this._announce(listId, 'removed');
+    return true;
+  },
+
   /*
     Adds a copy of the entry to the list, creating the list on the first entry.
-    listId comes from choices(). Returns false when the list already has an
-    entry with the same text: nothing is changed then.
+    listId comes from choices(). Returns 'added', 'duplicate' (the list already
+    has an entry with the same text) or 'storage' (could not be saved). Nothing
+    is changed unless 'added'.
   */
   add(listId, entry) {
-    const list = this.lists[listId]
-      || { name: this.nameOf(listId), nextId: 0, entries: [] };
+    const existing = this.lists[listId];
     const hash = this.hashOf(entry);
-    if(list.entries.some(item => this.hashOf(item) === hash)) return false;
+    if(existing && existing.entries.some(item => this.hashOf(item) === hash)) return 'duplicate';
 
     const copy = JSON.parse(JSON.stringify(entry));
     delete copy.section;
     delete copy.sourceId;
-    copy.id = list.nextId;
-    copy.originalIndex = list.nextId;
-    list.nextId += 1;
-    list.entries.push(copy);
-
-    this.lists[listId] = list;
-    Storage.save(Storage.KEY.collections, this.lists);
-    Bus.emit(Bus.events.collectionsChanged, { sourceId: this.sourceIdOf(listId) });
-    return true;
+    const saved = this._change(() => {
+      const list = this.lists[listId]
+        || { name: this.nameOf(listId), nextId: 0, entries: [] };
+      copy.id = list.nextId;
+      copy.originalIndex = list.nextId;
+      list.nextId += 1;
+      list.entries.push(copy);
+      this.lists[listId] = list;
+    });
+    if(!saved) return 'storage';
+    this._announce(listId, 'added');
+    return 'added';
   },
 };

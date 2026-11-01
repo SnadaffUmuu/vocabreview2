@@ -120,6 +120,13 @@ const SliderState = {
     ViewState.setUi(sourceId, this.viewName, { sideIndexes });
   },
 
+  // The entry left the list for good: no ui reference to its id may stay.
+  forgetEntryInUi(ui, entryId) {
+    if(Array.isArray(ui.order)) ui.order = ui.order.filter(id => id !== entryId);
+    if(ui.currentEntryId === entryId) ui.currentEntryId = null;
+    if(ui.sideIndexes) delete ui.sideIndexes[entryId];
+  },
+
   // Selection changes reset navigation only, exactly as Slider v1 did. Review
   // marks and removed entries stay available when the old scope is restored.
   resetNavigation(sourceId) {

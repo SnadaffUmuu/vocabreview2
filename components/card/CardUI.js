@@ -19,6 +19,7 @@
      expanded, top,     // the open card with actions; top is its viewport offset
      lineExpanded,      // the current side is not clamped
      canAddToList,      // the open card offers the button that adds it to a custom list
+     canRemoveFromList, // ... and, in a list, the button that removes it from the list for good
      covered, size,     // the place of a card that is shown expanded elsewhere, and
                         // its frozen size { width, height } or null. The place must not
                         // follow the content of the card, or its neighbours would move
@@ -104,10 +105,11 @@ const CardUI = {
       <div class="cardActions">
         <div class="cardAction cardRemove">✖</div>
         <div class="cardAction cardLineToggle">⇕</div>
+        ${card.canAddToList ? '<div class="cardAction cardAddToList">＋</div>' : ''}
         <div class="cardAction cardRotateBack">←</div>
         ${speakable ? '<div class="cardAction cardSpeak">▶</div>' : ''}
         ${card.info ? '<div class="cardAction cardInfoToggle">ⓘ</div>' : ''}
-        ${card.canAddToList ? '<div class="cardAction cardAddToList">＋</div>' : ''}
+        ${card.canRemoveFromList ? '<div class="cardAction cardRemoveFromList">－</div>' : ''}
         ${speakable && card.reading ? `
         <div class="cardAction cardReading">${Utils.escapeHtml(card.reading)}</div>` : ''}
       </div>

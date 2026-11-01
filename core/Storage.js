@@ -36,11 +36,15 @@ const Storage = {
     }
   },
 
+  // Returns false when the write failed (e.g. the quota is exceeded). Callers
+  // that hold data the user cannot easily restore (lists) report it.
   save(key, data) {
     try {
       localStorage.setItem(key, JSON.stringify(data));
+      return true;
     } catch(e) {
       console.error('Storage.save failed for', key, e);
+      return false;
     }
   },
 

@@ -66,3 +66,27 @@
   min-width: 40vw;
   text-align: center;
 }
+
+.prompt-input {
+  margin-top: 20px;
+}
+
+/* 16px: smaller text makes mobile browsers zoom the page on focus. */
+.prompt-input input {
+  width: 100%;
+  min-width: 40vw;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 16px;
+}
+
+.prompt-input-error {
+  min-height: 18px;
+  margin-top: 5px;
+  font-size: 13px;
+  color: var(--boardRemoveItemTextColor);
+}
+
+.prompt-buttons button:disabled {
+  opacity: 0.4;
+}

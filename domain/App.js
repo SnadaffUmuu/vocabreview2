@@ -72,6 +72,14 @@ const App = {
     Bus.emit(Bus.events.sourceSelected, { id });
   },
 
+  // The current source went away (a deleted list): nothing is selected, as on
+  // the first start.
+  deselectSource() {
+    this.settings.currentSource = null;
+    this._saveSettings();
+    Bus.emit(Bus.events.sourceSelected, { id: null });
+  },
+
   setView(name) {
     this.settings.currentView = name;
     this._saveSettings();

@@ -124,9 +124,16 @@ Before considering a view converted to this model, check:
 
 - An entry added to a list is a detached copy (lines, tag, info, review level). It loses its section and its link to the source: reloading or updating a source never touches a list, and nothing is reconciled.
 - A list has no structure and no selection: the whole list is always shown, the section tree is hidden. It has no file, so it cannot be reloaded or updated.
-- The list `Global` is always offered as a target and is created by the first entry added to it. A list appears in the sources menu only when it is not empty.
+- The list `Global` is always offered as a target and is created by the first entry added to it. A list appears in the sources menu only when it is not empty, or while it is the current source (so the menu still shows where the user is after its last entry was removed). An empty current list stays current and shows empty Views.
 - Removing a card in a View only marks it removed in that View's progress (restored by the View's reset); it never removes the entry from the list.
+- Removing an entry from a list (button `－` on the open Board card, button in Data) is a different, final action, always confirmed. It deletes the entry and its progress in every View, including the ids kept in the View's `ui`. `nextId` never goes back, so an id is not handed to another entry.
 - Progress of a list is stored in `views` under the list's source id, exactly like the progress of a source.
+- Deleting a list deletes its progress and selection with it, and resets the current source if it was the list. This is required because ids restart from 0 when a list id is reused. `Global` cannot be renamed; deleting it only empties it (it is still offered and is created again by the next add).
+- A `listId` is stable and independent of the name (`global`, then `l<n>`); only the name changes on rename. Names are unique without regard to case, `Global` is reserved, at most 40 characters. The checks of `Collections` are authoritative; the name prompt validates for the user's comfort only.
+- Lists are managed in the Lists dialog (button `L` in the menu, `ListsUI`), which is a dialog and not a View: it manages lists, Views show entries of the current source. All dialogs of list management live in `ListPrompts`, so every component that offers them uses the same flow. A list can also be created from the "add to a list" prompt.
+- Data stays read-only for the text of entries. The one action it has is removing an entry from the current list.
+- Every change of a list is written at once; if the write fails, the change is taken back and the user is told. Records of lists that could not be recognized on load are kept and written back with the rest, never dropped silently; import validates the structure of every list.
+- `collectionsChanged` carries `{ sourceId, kind }` (`created`, `added`, `removed`, `renamed`, `deleted`). A View rebuilds only for `added` and `removed` of the current list (`Collections.isContentChange`); a rename must not rebuild a View.
 
 ### Persistence and Source Reloading
 

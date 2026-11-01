@@ -84,7 +84,8 @@ let Prompt = { state: { open: true, text: 't', notify: true, choice: null } };
 const DropdownUI = make('components/dropdown/DropdownUI.js', 'DropdownUI');
 const PromptUI = make('components/prompt/PromptUI.js', 'PromptUI', { Prompt, DropdownUI });
 assert.deepStrictEqual(PromptUI.viewModel(),
-  { open: true, text: 't', notify: true, choice: null, confirmLabel: 'OK' });
+  { open: true, text: 't', notify: true, choice: null, input: undefined,
+    canConfirm: undefined, serial: undefined, confirmLabel: 'OK' });
 Prompt.state = { open: true, text: 'q', notify: false, choice: null };
 assert.strictEqual(PromptUI.viewModel().confirmLabel, 'Confirm');
 assert.strictEqual(PromptUI.template(PromptUI.viewModel()), '', 'no choice, no dropdown');
@@ -122,6 +123,94 @@ dataHtml = DataViewUI.template({ query: 'z', entries: [dataEntry] });
 assert(dataHtml.includes('<span class="entrySource">s&quot;1</span>'));
 assert(dataHtml.includes('<strong>z</strong>'));
 assert.strictEqual(DataViewUI.template({ query: '', entries: [] }), '');
+assert(!dataHtml.includes('dataEntryRemove'), 'a file entry has no remove button');
+dataHtml = DataViewUI.template({ query: '', entries: [Object.assign({}, dataEntry, { id: 7, removable: true })] });
+assert(dataHtml.includes('class="dataEntryRemove"') && dataHtml.includes('data-entry-id="7"'),
+  'a list entry has a remove button');
+dataHtml = DataViewUI.template({ query: '', entries: [Object.assign({}, dataEntry, { id: 'a"b', removable: true })] });
+assert(dataHtml.includes('data-entry-id="a&quot;b"'), 'the id is escaped');
+
+// DataViewUI.viewModel: only a list entry shown without a search can be removed
+const dataIsList = id => typeof id === 'string' && id.startsWith('L:');
+const dataApp = { currentView: 'data', currentSource: 'L:g', selectedEntries: () => [{ id: 3, lines: [] }] };
+const dataLibrary = {
+  hasSource: () => true,
+  listIds: () => [],
+  getSource: () => ({ parsed: { structure: [], allEntries: [{ id: 3, lines: [] }] } }),
+};
+const ListDataUI = make('components/data-view/DataViewUI.js', 'DataViewUI', {
+  App: dataApp, Library: dataLibrary, Collections: { isListId: dataIsList } });
+let dataVm = ListDataUI.viewModel();
+assert(dataVm.isList && dataVm.entries[0].removable && dataVm.entries[0].id === 3, 'a list entry is removable');
+dataApp.currentSource = 'file';
+dataVm = ListDataUI.viewModel();
+assert(!dataVm.isList && !dataVm.entries[0].removable, 'a file entry is not');
+dataApp.currentSource = 'L:g';
+ListDataUI.searchValue = 'x';
+assert.strictEqual(ListDataUI.viewModel().entries.length, 0, 'the search looks in the files, not in the list');
+ListDataUI.searchValue = '';
+
+// DataViewUI.removeFromList asks ListPrompts for the current list only
+const dataCalls = [];
+const RemovingDataUI = make('components/data-view/DataViewUI.js', 'DataViewUI', {
+  App: dataApp, Library: dataLibrary, Collections: { isListId: dataIsList, listIdOf: id => id.slice(2) },
+  ListPrompts: { removeEntry: (listId, entryId) => dataCalls.push([listId, entryId]) } });
+RemovingDataUI.removeFromList({ dataset: { entryId: '3' } });
+dataApp.currentSource = 'file';
+RemovingDataUI.removeFromList({ dataset: { entryId: '3' } });
+assert.deepStrictEqual(dataCalls, [['g', 3]], 'a file source has nothing to remove from');
+dataApp.currentSource = 'L:g';
+
+// PromptUI: the input field
+Prompt.state = { open: true, text: 'name', notify: false, choice: null,
+  input: { value: 'a"b', error: 'bad <name>' }, canConfirm: false, serial: 4 };
+let promptVm = PromptUI.viewModel();
+assert(promptVm.input.value === 'a"b' && promptVm.canConfirm === false && promptVm.serial === 4);
+assert.strictEqual(PromptUI.template(promptVm), '', 'the field is static markup, not part of the template');
+const fields = {
+  inputBoxEl: { hidden: null, classList: { toggle(cls, on) { fields.inputBoxEl.hidden = on; } } },
+  inputErrorEl: { textContent: '' },
+  inputEl: { value: '', focused: 0, focus() { this.focused++; }, select() {} },
+};
+PromptUI.dom = fields;
+PromptUI.shownSerial = 0;
+PromptUI.renderInput(promptVm);
+assert(fields.inputBoxEl.hidden === false && fields.inputErrorEl.textContent === 'bad <name>',
+  'the field and its error are shown');
+assert(fields.inputEl.value === 'a"b' && fields.inputEl.focused === 1, 'a new prompt writes the field and focuses it');
+fields.inputEl.value = 'typed more';
+PromptUI.renderInput(PromptUI.viewModel());
+assert(fields.inputEl.value === 'typed more' && fields.inputEl.focused === 1,
+  'a render of the same prompt never overwrites what is being typed');
+Prompt.state = { open: true, text: 'name', notify: false, choice: null, input: { value: 'z', error: '' },
+  canConfirm: true, serial: 5 };
+PromptUI.renderInput(PromptUI.viewModel());
+assert(fields.inputEl.value === 'z' && fields.inputEl.focused === 2, 'the next prompt starts from its own value');
+Prompt.state = { open: true, text: 'q', notify: false, choice: null, input: null, canConfirm: true, serial: 6 };
+PromptUI.renderInput(PromptUI.viewModel());
+assert(fields.inputBoxEl.hidden === true && fields.inputErrorEl.textContent === '', 'no input, no field');
+
+// ListsUI: the catalog
+const ListsUI = make('components/lists/ListsUI.js', 'ListsUI');
+const catalog = [
+  { listId: 'global', sourceId: 'L:global', name: 'Global', count: 3, exists: true, isDefault: true, current: true },
+  { listId: 'l1', sourceId: 'L:l1', name: '<b>Verbs</b>', count: 0, exists: true, isDefault: false, current: false },
+  { listId: 'l2', sourceId: 'L:l2', name: 'Nouns', count: 2, exists: true, isDefault: false, current: false },
+];
+let listsHtml = ListsUI.template({ lists: catalog });
+assert(listsHtml.includes('data-list-pick="L:global"') && listsHtml.includes('data-list-pick="L:l2"'),
+  'a list with entries can be opened');
+assert(!listsHtml.includes('data-list-pick="L:l1"'), 'an empty list cannot be opened');
+assert(listsHtml.includes('&lt;b&gt;Verbs&lt;/b&gt;') && !listsHtml.includes('<b>Verbs'), 'the name is escaped');
+assert(!listsHtml.includes('data-list-rename="global"') && listsHtml.includes('data-list-rename="l1"'),
+  'Global cannot be renamed');
+assert(listsHtml.includes('data-list-delete="global"') && listsHtml.includes('aria-label="Clear"')
+  && listsHtml.includes('aria-label="Delete"'), 'Global is cleared, the others are deleted');
+assert(/listsItem\s+current/.test(listsHtml) && /listsItem\s+empty/.test(listsHtml), 'the current and empty rows are marked');
+listsHtml = ListsUI.template({ lists: [
+  { listId: 'global', sourceId: 'L:global', name: 'Global', count: 0, exists: false, isDefault: true, current: false }] });
+assert(!listsHtml.includes('data-list-delete') && !listsHtml.includes('data-list-rename'),
+  'Global that does not exist yet has nothing to rename or clear');
 
 // Cards: pure side rules shared by Slider and Board
 const Parser = { LINE_ROLE: { reading: 'reading' }, lineOrders: {
@@ -222,10 +311,13 @@ assert(CardUI.legendTemplate(['geo', 'a"b']).includes('data-tag="a&quot;b"'));
 const ENTRY_TAG = { geo: 'geo', name: 'name' };
 const boardApp = { currentView: 'board' };
 const BoardState = { zones: ['failed', 'learn', 'good'] };
+const isListId = id => typeof id === 'string' && id.startsWith('L:');
 const CardZones = make('components/card/CardZones.js', 'CardZones', {
-  App: boardApp, Cards, Parser: { ENTRY_TAG } });
+  App: boardApp, Cards, Parser: { ENTRY_TAG }, Collections: { isListId },
+  Library: { hasSource: () => true } });
 const BoardUI = make('components/board/BoardUI.js', 'BoardUI', {
-  App: boardApp, BoardState, Cards, CardUI, CardZones, Parser: { ENTRY_TAG } });
+  App: boardApp, BoardState, Cards, CardUI, CardZones, Parser: { ENTRY_TAG },
+  Collections: { isListId } });
 const bEntry = (id, extra) => Object.assign({ id, lines: [
   { originalIndex: 0, role: 'expression', text: 'E' + id },
   { originalIndex: 1, role: 'meaning', text: 'M' + id },
@@ -268,36 +360,42 @@ assert.strictEqual(BoardUI.template([]), '');
 assert(boardVm.expanded.canAddToList && !boardVm.zones.source[0].canAddToList, 'the open Board card can be added to a list');
 assert(CardUI.template(boardVm.expanded).includes('cardAddToList'));
 
-// BoardUI.addToList: asks for a list, adds a copy, reports a duplicate
-let asked = null;
-const added = [];
-const notified = [];
-let addResult = true;
-const boardPrompt = { ask: options => { asked = options; }, notify: text => notified.push(text) };
-const boardCollections = {
-  DEFAULT_ID: 'global',
-  choices: () => [{ value: 'global', label: 'Global' }],
-  nameOf: id => id.toUpperCase(),
-  add: (listId, entry) => { added.push([listId, entry.id]); return addResult; },
+// Open card of a list: "remove from the list" next to "add"; a file source has no such button
+assert(!boardVm.expanded.canRemoveFromList, 'a file source card is not removed from a list');
+boardApp.currentSource = 'L:global';
+assert(BoardUI.viewModel(boardUi).expanded.canRemoveFromList, 'the open card of a list can be removed from it');
+assert(!BoardUI.viewModel(boardUi).zones.source[0].canRemoveFromList, 'only the open card has actions');
+assert(CardUI.template(BoardUI.viewModel(boardUi).expanded).includes('cardRemoveFromList'));
+assert(!CardUI.template(boardVm.expanded).includes('cardRemoveFromList'));
+boardApp.currentSource = 'src';
+
+// BoardUI.addToList / removeFromList only hand the card over to ListPrompts
+const listCalls = [];
+const boardListPrompts = {
+  addEntry: entry => listCalls.push(['add', entry.id]),
+  removeEntry: (listId, entryId) => listCalls.push(['remove', listId, entryId]),
 };
+const boardCollections = { isListId, listIdOf: id => id.slice(2) };
+const boardLibrary = { hasSource: () => true };
 const ListBoardUI = make('components/board/BoardUI.js', 'BoardUI', {
   App: boardApp, BoardState, Cards, CardUI, CardZones, Parser: { ENTRY_TAG },
-  Prompt: boardPrompt, Collections: boardCollections });
+  ListPrompts: boardListPrompts, Collections: boardCollections, Library: boardLibrary });
 ListBoardUI.entries = BoardUI.entries;
 ListBoardUI.expanded = null;
 ListBoardUI.addToList();
-assert.strictEqual(asked, null, 'no open card, no prompt');
+ListBoardUI.removeFromList();
+assert.deepStrictEqual(listCalls, [], 'no open card, nothing is asked');
 ListBoardUI.expanded = { id: 2 };
 ListBoardUI.addToList();
-assert.strictEqual(asked.choice.value, 'global', 'Global is the default');
-assert.strictEqual(asked.choice.items[0].label, 'Global');
-asked.onConfirm('global');
-assert.deepStrictEqual(added, [['global', 2]]);
-assert.strictEqual(notified.length, 0);
-addResult = false;
-asked.onConfirm('global');
-assert(notified[0].includes('Already') && notified[0].includes('GLOBAL'), 'a duplicate is reported');
-assert.strictEqual(ListBoardUI.expanded.id, 2, 'the card stays open');
+assert.deepStrictEqual(listCalls, [['add', 2]]);
+boardApp.currentSource = 'src';
+ListBoardUI.removeFromList();
+assert.strictEqual(listCalls.length, 1, 'a file source has nothing to remove a card from');
+boardApp.currentSource = 'L:global';
+ListBoardUI.removeFromList();
+assert.deepStrictEqual(listCalls[1], ['remove', 'global', 2]);
+assert.strictEqual(ListBoardUI.expanded.id, 2, 'the card stays open until the list announces the change');
+boardApp.currentSource = 'src';
 BoardUI.expanded = null;
 BoardUI.infoOpen = false;
 

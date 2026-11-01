@@ -16,6 +16,7 @@ const Bus = {
     viewsChanged: 'viewsChanged',
     sessionsRequested: 'sessionsRequested',
     collectionsChanged: 'collectionsChanged',
+    listsRequested: 'listsRequested',
     settingsChanged: 'settingsChanged',
     busyChanged: 'busyChanged',
     promptChanged: 'promptChanged',

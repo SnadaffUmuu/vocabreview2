@@ -135,6 +135,12 @@ const BoardState = {
     ViewState.setEntry(sourceId, this.viewName, entryId, { removed: true });
   },
 
+  // The entry left the list for good: no ui reference to its id may stay.
+  forgetEntryInUi(ui, entryId) {
+    if(Array.isArray(ui.sourceOrder)) ui.sourceOrder = ui.sourceOrder.filter(id => id !== entryId);
+    if(ui.sideIndexes) delete ui.sideIndexes[entryId];
+  },
+
   // A new card mode starts every card from its first side.
   setMode(sourceId, mode) {
     ViewState.setUi(sourceId, this.viewName, { mode, sideIndexes: {} });

@@ -41,6 +41,7 @@ const PanelUI = {
   viewName: 'panel',
   viewLabel: 'P',
   kind: PanelState,
+  canAddToList: true,
 
   selectors: {
     root: '#panelView',
@@ -79,6 +80,9 @@ const PanelUI = {
     Bus.on(Bus.events.viewChanged, () => this.rebuild());
     Bus.on(Bus.events.sourceSelected, () => this.rebuild());
     Bus.on(Bus.events.sourcesChanged, () => this.rebuild());
+    Bus.on(Bus.events.collectionsChanged, change => {
+      if(Collections.isContentChange(change, App.currentSource)) this.rebuild();
+    });
     Bus.on(Bus.events.selectionChanged, ({ sourceId }) => {
       if(sourceId === App.currentSource) this.rebuild();
     });

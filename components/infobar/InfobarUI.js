@@ -22,6 +22,8 @@ const InfobarUI = {
     Bus.on(Bus.events.sourceSelected, () => this.render());
     Bus.on(Bus.events.selectionChanged, () => this.render());
     Bus.on(Bus.events.sourcesChanged, () => this.render());
+    // The name and the number of entries of the current list.
+    Bus.on(Bus.events.collectionsChanged, () => this.render());
     Bus.on(Bus.events.settingsChanged, () => this.render());
   },
 

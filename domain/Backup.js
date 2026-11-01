@@ -87,6 +87,9 @@ const Backup = {
         }
       } else if(mapKeys.includes(key) && !this._isObject(value)) {
         return `broken section "${key}".`;
+      } else if(key === Storage.KEY.collections) {
+        const broken = Object.keys(value).find(listId => !Collections.isValidList(value[listId]));
+        if(broken) return `broken list "${broken}".`;
       }
     }
     return '';

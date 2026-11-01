@@ -40,6 +40,12 @@
   position: relative;
 }
 
+#dataView .dataEntry .dataEntryRemove {
+  margin-top: 8px;
+  height: 30px;
+  font-size: 14px;
+}
+
 #dataView .dataEntry .reviewLevel {
   position: absolute;
   right: 0;
