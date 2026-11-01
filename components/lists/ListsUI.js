@@ -107,15 +107,18 @@ const ListsUI = {
         >
         <span class="listsName"
           ${list.count ? `data-list-pick="${Utils.escapeHtml(list.sourceId)}"` : ''}
-          >${Utils.escapeHtml(list.name)}</span>
-        <span class="listsCount tag">${Utils.escapeHtml(list.count)}</span>
-        ${list.isDefault || !list.exists ? '' : `
-        <button class="listsAction iconButton" type="button" aria-label="Rename"
-          data-list-rename="${id}">✎</button>`}
-        ${canDelete ? `
-        <button class="listsAction iconButton" type="button"
-          aria-label="${list.isDefault ? 'Clear' : 'Delete'}"
-          data-list-delete="${id}">🗑</button>` : ''}
+          >${Utils.escapeHtml(list.name)}
+        </span>
+        <span class="listsActions">
+          <span class="listsCount tag">${Utils.escapeHtml(list.count)}</span>
+          ${list.isDefault || !list.exists ? '' : `
+          <button class="listsAction iconButton" type="button" aria-label="Rename"
+            data-list-rename="${id}">✎</button>`}
+          ${canDelete ? `
+          <button class="listsAction iconButton" type="button"
+            aria-label="${list.isDefault ? 'Clear' : 'Delete'}"
+            data-list-delete="${id}">🗑</button>` : ''}
+        </span>
       </li>
       `;
   },

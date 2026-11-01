@@ -435,6 +435,7 @@ loadRel('domain/Prompt.js');
 }
 // ---- Collections: managing lists and their entries ------------------------
 loadRel('domain/ListPrompts.js');
+loadRel('domain/EntrySearch.js');
 {
   const savedCurrent = App.settings.currentSource;
   const entries = Library.getSource('goshogun2').parsed.allEntries;
@@ -701,6 +702,156 @@ loadRel('domain/ListPrompts.js');
   Collections.unrecognized = {};
   Storage.remove(Storage.KEY.collections);
   ['L:l1', 'L:l2', 'L:global'].forEach(id => App.clearViewsFor(id));
+  App.settings.currentSource = savedCurrent;
+}
+
+
+// ---- Parser marks: tags, comments, service marks ---------------------------
+{
+  const parse = text => Parser.parse(`T\n====\n${text}`).allEntries;
+  const first = text => parse(text)[0];
+  assert(first('ぶらぶら\nболтать\n::onomat').tag === 'onomatopoeia', '::onomat is the onomatopoeia tag');
+  assert(first('ぶらぶら\nболтать\n::onomatopoeia').tag === 'onomatopoeia', '::onomatopoeia is the same tag');
+  const withComment = first('ぶらぶら\nболтать\n::onomat::комментарий');
+  assert(withComment.tag === 'onomatopoeia' && withComment.info === 'комментарий',
+    'the comment of a mark goes to info and the tag is the same');
+  const geoComment = first('東京\nТокио\n::geo::столица');
+  assert(geoComment.tag === 'geo' && geoComment.info === 'столица', 'any mark takes a comment');
+  const infoMark = first('縁がなかった\nえん\nне судьба\n::info::縁 - связь');
+  assert(!infoMark.tag && infoMark.info === '縁 - связь', '::info is a comment, not a tag');
+  const diffMark = first('計る\nизмерять\n::diff 測る 量る');
+  assert(!diffMark.tag && diffMark.info === '測る 量る', '::diff text is a comment, not a tag');
+  const diffBare = first('計る\nизмерять\n::diff');
+  assert(!diffBare.tag && !diffBare.info, 'a bare ::diff marks nothing');
+  assert(first('さくさく\nхрустящий\n::onomat \n').tag === 'onomatopoeia', 'trailing spaces do not matter');
+}
+
+// ---- EntrySearch: criteria, kinds, counts -----------------------------------
+{
+  const entries = Library.getSource('osarai-house').parsed.allEntries;
+  const sources = [{ sourceId: 'a', entries }, { sourceId: 'b', entries: entries.slice(0, 5) }];
+  const none = EntrySearch.analyze(sources, {});
+  assert(!EntrySearch.isActive({}) && !EntrySearch.isActive({ query: '', tag: '', kind: '' })
+    && EntrySearch.isActive({ kind: 'reading' }), 'no criterion is not a search');
+  assert(none.items.length === entries.length + 5 && none.kindCounts[''] === none.items.length,
+    'without criteria everything is found');
+
+  const word = entries[0].lines[0].text;
+  const byText = EntrySearch.analyze(sources, { query: word.toUpperCase() });
+  assert(byText.items.length > 0 && byText.items.every(item =>
+    item.entry.lines.some(line => line.text.toLowerCase().includes(word.toLowerCase()))
+    || (item.entry.info || '').toLowerCase().includes(word.toLowerCase())), 'text matches the lines and the info');
+  const infoEntry = { id: 0, lines: [{ text: 'x', role: 'expression' }], info: 'ВОДА в комментарии' };
+  assert(EntrySearch.analyze([{ sourceId: 's', entries: [infoEntry] }], { query: 'вода' }).items.length === 1,
+    'a Russian comment is found without regard to case');
+
+  const role = Parser.LINE_ROLE;
+  const line = (text, r) => ({ text, role: r });
+  const flags = lines => EntrySearch.kindFlags({ lines });
+  assert(flags([line('長年', role.expression), line('ながねん', role.reading)]).reading, 'an expression with kanji and its reading is a reading card');
+  assert(!flags([line('よっぽど', role.expression), line('= よほど', role.meaning), line('(余程)', role.alt_reading)]).reading,
+    'a kana expression with an "=" synonym is not a reading card');
+  assert(!flags([line('長年', role.expression), line('ながねん', role.reading), line('долгие годы', role.meaning)]).reading,
+    'with a meaning it is not a reading card');
+  assert(!flags([line('これ', role.expression), line('これ', role.reading)]).reading, 'no kanji, no reading card');
+  assert(flags([line('長年', role.expression)]).reminder && !flags([line('長年', role.expression)]).regular, 'one line is a reminder');
+  const reversedFlags = EntrySearch.kindFlags({ reversed: true,
+    lines: [line('вода', role.meaning), line('水', role.expression), line('水を飲む', role.example)] });
+  assert(reversedFlags.reversed && reversedFlags.examples && !reversedFlags.regular,
+    'examples are a criterion of their own: reversed is not "without examples"');
+  const regularFlags = flags([line('水', role.expression), line('вода', role.meaning), line('水を飲む', role.example)]);
+  assert(regularFlags.regular && regularFlags.examples, 'a regular card may have examples');
+
+  // Counts of a facet ignore its own criterion; a source that is not chosen is only counted
+  const geo = { id: 1, tag: 'geo', lines: [line('東京', role.expression), line('Токио', role.meaning)] };
+  const plain = { id: 2, lines: [line('水', role.expression), line('вода', role.meaning)] };
+  const pair = [{ sourceId: 'x', entries: [geo, plain] }, { sourceId: 'y', entries: [Object.assign({}, geo, { id: 3 })] }];
+  const tagged = EntrySearch.analyze(pair, { tag: 'geo' }, id => id === 'x');
+  assert(tagged.items.length === 1 && tagged.sourceCounts.x === 1 && tagged.sourceCounts.y === 1,
+    'a source that is off is not searched but is counted');
+  assert(tagged.tagCounts.geo === 1, 'the counts of tags are for the sources that are on');
+  assert(EntrySearch.analyze(pair, { tag: 'geo', kind: 'regular' }).kindCounts.regular === 2,
+    'the counts of kinds ignore the kind itself');
+}
+
+// ---- Collections.addMany: one write for a batch -----------------------------
+{
+  const savedCurrent = App.settings.currentSource;
+  const entries = Library.getSource('goshogun2').parsed.allEntries;
+  Collections.lists = {};
+  Collections.unrecognized = {};
+  Storage.remove(Storage.KEY.collections);
+  let writes = 0;
+  const saveBefore = Storage.save;
+  Storage.save = function(k, v) { if(k === Storage.KEY.collections) writes += 1; return saveBefore.call(this, k, v); };
+  // Bus delivers later: count what is emitted.
+  const announced = [];
+  const emitBefore = Bus.emit;
+  Bus.emit = function(event, payload) {
+    if(event === Bus.events.collectionsChanged) announced.push(payload.kind);
+    return emitBefore.call(this, event, payload);
+  };
+
+  const batch = [entries[0], entries[1], entries[2], entries[1]];
+  const result = Collections.addMany('global', batch);
+  assert(result.added === 3 && result.skipped === 1 && !result.storage, 'a copy inside the batch is skipped');
+  assert(writes === 1, 'one write for the whole batch');
+  assert(Collections.lists.global.entries.map(entry => entry.id).join() === '0,1,2'
+    && Collections.lists.global.nextId === 3, 'ids go on counting');
+  const again = Collections.addMany('global', [entries[0], entries[3]]);
+  assert(again.added === 1 && again.skipped === 1 && Collections.lists.global.entries.length === 4,
+    'only what the list does not have yet is added');
+  const nothing = Collections.addMany('global', [entries[0]]);
+  assert(nothing.added === 0 && nothing.skipped === 1 && writes === 2, 'nothing new: no write');
+  assert(Collections.addMany('l9', []).added === 0 && !Collections.lists.l9, 'an empty batch creates no list');
+
+  const sameWord = Object.assign({}, entries[0], { lines: entries[0].lines.map((l, i) => i === 1
+    ? Object.assign({}, l, { text: l.text + ' (another translation)' }) : l) });
+  assert(Collections.addMany('global', [sameWord]).added === 1,
+    'the same word with another translation is another card');
+
+  Storage.failSaves = true;
+  const failed = Collections.addMany('global', [entries[5], entries[6]]);
+  Storage.failSaves = false;
+  assert(failed.storage && Collections.lists.global.entries.length === 5
+    && Collections.lists.global.nextId === 5, 'a failed write takes the whole batch back');
+  assert(announced.filter(kind => kind === 'added').length === 3, 'one announcement per batch that changed something');
+
+  // ListPrompts.addEntries: the flow over the real Prompt
+  App.setAddTarget(null);
+  ListPrompts.addEntries([entries[7], entries[8], entries[7]]);
+  assert(Prompt.isOpen && Prompt.state.text.startsWith('Add 3 cards to a list.')
+    && !Prompt.state.text.includes('hardly'), 'the prompt says how many cards go');
+  let done = 0;
+  Prompt.cancel();
+  ListPrompts.addEntries([entries[7], entries[8], entries[7]], () => { done += 1; });
+  Prompt.confirm();
+  assert(done === 1 && Collections.lists.global.entries.length === 7 && App.addTarget === 'global',
+    'confirm adds, remembers the list and calls onDone');
+  assert(Prompt.state.notify && Prompt.state.text === 'Added 2 to the list "Global", skipped 1 identical.',
+    'the report says how many were added and skipped');
+  Prompt.cancel();
+  ListPrompts.addEntries([entries[9]], () => { done += 1; });
+  Prompt.cancel();
+  assert(done === 1 && Collections.lists.global.entries.length === 7, 'a cancelled prompt adds nothing and keeps the ticks');
+  Storage.failSaves = true;
+  ListPrompts.addEntries([entries[9]], () => { done += 1; });
+  Prompt.confirm();
+  Storage.failSaves = false;
+  assert(done === 1 && Prompt.state.text === Collections.SAVE_FAILED_TEXT, 'a failed write is reported and keeps the ticks');
+  Prompt.cancel();
+  ListPrompts.addEntries(Array.from({ length: ListPrompts.BIG_BATCH + 1 }, () => entries[0]));
+  assert(Prompt.state.text.includes('hardly usable'), 'a big batch is announced, not refused');
+  Prompt.cancel();
+  ListPrompts.addEntries([]);
+  assert(!Prompt.isOpen, 'nothing ticked, nothing asked');
+
+  Bus.emit = emitBefore;
+  Storage.save = saveBefore;
+  Collections.lists = {};
+  Storage.remove(Storage.KEY.collections);
+  App.clearViewsFor('L:global');
+  App.setAddTarget(null);
   App.settings.currentSource = savedCurrent;
 }
 

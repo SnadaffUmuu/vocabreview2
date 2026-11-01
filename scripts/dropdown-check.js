@@ -31,4 +31,16 @@ written = null;
 DropdownUI.setItems('missing', []);
 assert.strictEqual(written, null, 'an unknown dropdown is ignored');
 delete global.document;
+// An open list is scrolled to the chosen item by its own scrollTop, never by scrollIntoView,
+// which would scroll the page under it as well.
+const scrolled = { scrollIntoViewCalled: false, scrollTop: -1 };
+const fakeMenu = item => ({
+  querySelector: () => item,
+  set scrollTop(value) { scrolled.scrollTop = value; },
+});
+DropdownUI.scrollToSelected(fakeMenu({ offsetTop: 120, scrollIntoView() { scrolled.scrollIntoViewCalled = true; } }));
+assert.strictEqual(scrolled.scrollTop, 120, 'the list is scrolled to the chosen item');
+assert(!scrolled.scrollIntoViewCalled, 'the ancestors are not scrolled');
+DropdownUI.scrollToSelected(fakeMenu(null));
+assert.strictEqual(scrolled.scrollTop, 0, 'nothing chosen: the list starts from its top');
 console.log('dropdown-check ok');

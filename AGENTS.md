@@ -2,11 +2,6 @@
 
 ## Project References
 
-### KanbanMvd — architectural reference
-`/home/mvd/AndroidStudioProjects/KanbanMvd/app/src/main/assets`
-
-Use this project as a reference for separating domain logic from UI. Reuse relevant architectural patterns, not domain-specific implementation.
-
 ### Version 1 — functional reference
 `/home/mvd/Documents/MyJsAndStuff/vocabreview`
 
@@ -144,7 +139,7 @@ Before considering a view converted to this model, check:
 - Reloading a source resets its View progress and selection, after confirmation.
 - Do not reconcile old progress with reloaded source data or introduce automatic synchronization.
 - Update (menu action) is the exception to the reset: it replaces only the raw text of the current source and keeps progress and selection, without confirmation or any check. It exists for fixing typos in the file; the user is responsible for leaving the number and order of entries, lines and sections unchanged. A changed structure requires a reload.
-- State export/import/reset (`Backup`) covers only the `vocabreview2.` storage namespace and includes raw source texts. A file is fully validated before the current state is replaced. Version 1 exports are rejected, not converted. After a reset or import the page reloads, because Views hold in-memory state.
+- State export/import/reset (`Backup`) covers only the `vocabreview2.` storage namespace and includes raw source texts. A file is fully validated before the current state is replaced. After a reset or import the page reloads, because Views hold in-memory state.
 
 ### Input Safety
 

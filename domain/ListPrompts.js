@@ -14,6 +14,9 @@ const ListPrompts = {
 
   NEW_LIST_LABEL: '＋ new list…',
 
+  // Above this many cards in one batch the prompt warns about the size.
+  BIG_BATCH: 300,
+
   reportSaveFailed() {
     Prompt.notify(Collections.SAVE_FAILED_TEXT);
   },
@@ -106,6 +109,53 @@ const ListPrompts = {
     } else if(result === 'storage') {
       this.reportSaveFailed();
     }
+  },
+
+  /*
+    The same flow for several entries at once (the ticked results of a search):
+    the prompt says how many cards are going to the list, and a report follows
+    ("added N, skipped M"). A card whose text the list already has is skipped.
+    onDone runs once the cards are in, not when the prompt is cancelled or the
+    write failed: the caller keeps the user's ticks then.
+    A big batch is not refused, only announced: a Board over many cards is
+    hardly usable.
+  */
+  addEntries(entries, onDone = () => {}) {
+    if(!entries.length) return;
+    const items = [
+      ...Collections.choices(),
+      { value: Collections.NEW_LIST, label: this.NEW_LIST_LABEL },
+    ];
+    const count = entries.length === 1 ? '1 card' : `${entries.length} cards`;
+    const warning = entries.length > this.BIG_BATCH
+      ? ' That is a lot for one list: Board and Panel are hardly usable with so many cards.'
+      : '';
+    Prompt.ask({
+      text: `Add ${count} to a list.${warning}`,
+      choice: { items, value: Collections.defaultTarget(), confirmOn: [Collections.NEW_LIST] },
+      onConfirm: listId => {
+        if(listId === Collections.NEW_LIST) {
+          this.createList(
+            newId => this.addManyTo(newId, entries, onDone),
+            () => this.addEntries(entries, onDone),
+          );
+        } else {
+          this.addManyTo(listId, entries, onDone);
+        }
+      },
+    });
+  },
+
+  addManyTo(listId, entries, onDone) {
+    const result = Collections.addMany(listId, entries);
+    if(result.storage) {
+      this.reportSaveFailed();
+      return;
+    }
+    App.setAddTarget(listId);
+    onDone();
+    const skipped = result.skipped ? `, skipped ${result.skipped} identical` : '';
+    Prompt.notify(`Added ${result.added} to the list "${Collections.nameOf(listId)}"${skipped}.`);
   },
 
   // Final, unlike the removal of a card in a View: the progress goes with it.

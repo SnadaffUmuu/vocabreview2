@@ -30,6 +30,11 @@ const Utils = {
       .replace(/'/g, '&#39;');
   },
 
+  // Makes a text safe to be a literal part of a RegExp.
+  escapeRegExp(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  },
+
   // Stable 53-bit string hash (cyrb53). Used only for duplicate detection
   // when adding an entry to a custom collection, not for IDs.
   hash(str) {

@@ -55,6 +55,11 @@ const Library = {
     return Object.keys(this.sources);
   },
 
+  // Every listed source, loaded or not.
+  knownIds() {
+    return SOURCES_LIST.slice();
+  },
+
   // Listed sources whose text has not been loaded yet.
   missingIds() {
     return SOURCES_LIST.filter(id => !this.sources[id]);

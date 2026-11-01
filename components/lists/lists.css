@@ -67,7 +67,7 @@
 }
 
 .listsName {
-  flex: 0 0 60%;
+  flex: 0 0 50%;
   min-width: 0;
   padding: 8px 0;
   overflow: hidden;
@@ -77,6 +77,14 @@
 
 .listsItem:not(.empty) .listsName {
   cursor: pointer;
+}
+
+.listsActions {
+  flex: 1 1 auto;
+  display: flex;
+  flex-flow: row nowrap;
+  justify-content: space-between;
+  align-items: baseline;
 }
 
 .listsAction {

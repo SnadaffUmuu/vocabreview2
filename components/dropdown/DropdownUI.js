@@ -111,7 +111,18 @@ const DropdownUI = {
     this.position(menu, trigger);
     menu.classList.remove('hidden');
     trigger.classList.add('is-active');
-    menu.querySelector('.dropdown-item.selected')?.scrollIntoView(true);
+    this.scrollToSelected(menu);
+  },
+
+  /*
+    Brings the chosen item to the top of the open list by scrolling the list
+    itself. scrollIntoView() is not used: it scrolls every scrollable ancestor
+    as well, and would move the page under the dropdown.
+  */
+  scrollToSelected(menu) {
+    const item = menu.querySelector('.dropdown-item.selected');
+    // The menu is positioned, so it is the offsetParent of its items.
+    menu.scrollTop = item ? item.offsetTop : 0;
   },
 
   closeAll() {
@@ -144,13 +155,14 @@ const DropdownUI = {
       }
     }
 
-    // Absolute menus are placed relative to their positioned ancestor.
+    // Absolute menus are placed relative to their positioned ancestor, and move
+    // with its content when it is scrolled.
     let offsetLeft = 0;
     let offsetTop = 0;
     if(getComputedStyle(menu).position === 'absolute' && offsetParent) {
       const parentRect = offsetParent.getBoundingClientRect();
-      offsetLeft = parentRect.left + offsetParent.clientLeft;
-      offsetTop = parentRect.top + offsetParent.clientTop;
+      offsetLeft = parentRect.left + offsetParent.clientLeft - offsetParent.scrollLeft;
+      offsetTop = parentRect.top + offsetParent.clientTop - offsetParent.scrollTop;
     }
     menu.style.left = `${left - offsetLeft}px`;
     menu.style.top = `${rect.bottom - offsetTop}px`;

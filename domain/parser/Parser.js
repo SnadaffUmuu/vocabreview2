@@ -189,7 +189,7 @@ const Parser = {
     } else {
       index = structure.length;
     }
-    const id = parent ? parent.id + '.' + index : String(index);
+    const id = parent ? `${parent.id}.${index}` : String(index);
     const node = { id, name, index };
     if(parent) {
       node.parentId = parent.id;
@@ -199,6 +199,32 @@ const Parser = {
       structure.push(node);
     }
     return node;
+  },
+
+  /*
+    A line that starts with "::" marks the entry: "::tag" or "::tag::comment".
+    The comment goes to entry.info. "info" and "diff" are not tags but service
+    marks of a comment ("::info::text", "::diff text"): they never become entry.tag.
+    Whatever follows a third "::" is not interpreted: the file is to be fixed.
+  */
+  _applyMark(entry, lineText) {
+    const parts = lineText.split('::');
+    const name = (parts[1] || '').trim();
+    const service = /^(info|diff)(\s|$)/.exec(name);
+    if(service) {
+      const comment = parts.length > 2 ? parts[2] : name.slice(service[1].length).trim();
+      if(comment) entry.info = comment;
+      return;
+    }
+    if(parts.length > 2) entry.info = parts[2];
+    const tag = this.normalizeTag(name);
+    if(tag) entry.tag = tag;
+  },
+
+  // Every spelling of the onomatopoeia mark ("onomat", "onomatopoeia") is one tag.
+  normalizeTag(name) {
+    const tag = String(name).trim();
+    return tag.startsWith('onomat') ? this.ENTRY_TAG.onomatopoeia : tag;
   },
 
   _parseEntry(block, id, currentSection, upper, excludedLines) {
@@ -222,16 +248,7 @@ const Parser = {
       const lineText = l.trim();
 
       if(lineText.startsWith('::')) {
-        let tag = null;
-        const parts = lineText.split('::');
-        if(parts.length > 2) {
-          if(!lineText.startsWith('::diff')) tag = parts[1];
-          resEntry.info = parts[2];
-        } else {
-          if(parts[1] && parts[1].startsWith('onomat')) tag = 'onomatopoeia';
-          else tag = parts[1];
-        }
-        if(tag) resEntry.tag = tag.trim();
+        this._applyMark(resEntry, lineText);
       } else {
         if(this.linesFilter(lineText)) {
           let text = lineText;
@@ -240,7 +257,7 @@ const Parser = {
             const asterisk = this.reviewLevelMarks[1];
             if(text.endsWith(triangle)) {
               const n = Utils.countCharOccurrencesInString(text, triangle);
-              resEntry.reviewLevel = n + '00';
+              resEntry.reviewLevel = `${n}00`;
             } else if(text.endsWith(asterisk)) {
               const n = Utils.countCharOccurrencesInString(text, asterisk);
               resEntry.reviewLevel = String(n);
@@ -351,7 +368,7 @@ const Parser = {
         // Previous line has a role and this one is a following non-Japanese
         // line, i.e. an explanation.
         if(entry.info) {
-          entry.info = entry.info + '\n' + l.text;
+          entry.info = `${entry.info}\n${l.text}`;
         } else {
           entry.info = l.text;
           infoRoleLine = l;

@@ -95,7 +95,14 @@ assert(choiceHtml.includes('id="promptChoiceSelect"') && choiceHtml.includes('se
 assert(choiceHtml.includes('data-value="g&quot;1"') && choiceHtml.includes('&lt;G&gt;') && !choiceHtml.includes('<G>'));
 
 // DataViewUI: pure helpers and templates
-const DataViewUI = make('components/data-view/DataViewUI.js', 'DataViewUI');
+const searchParser = {
+  LINE_ROLE: { expression: 'expression', reading: 'reading', meaning: 'meaning', example: 'example' },
+  isWithKanji: text => /[\u4e00-\u9fff]/.test(text),
+};
+const EntrySearch = make('domain/EntrySearch.js', 'EntrySearch', { Parser: searchParser });
+const DropdownForData = make('components/dropdown/DropdownUI.js', 'DropdownUI');
+const DataViewUI = make('components/data-view/DataViewUI.js', 'DataViewUI',
+  { EntrySearch, DropdownUI: DropdownForData });
 assert.strictEqual(DataViewUI.reviewLevelStyle('2'),
   'color:var(--revLevelMinorTextColor); border-bottom:1px solid var(--revLevelMinorTextColor);');
 assert.strictEqual(DataViewUI.reviewLevelStyle('200'),
@@ -105,6 +112,8 @@ assert.strictEqual(DataViewUI.breadcrumbs(tree, '0.0'), 'A / a1');
 assert.strictEqual(DataViewUI.breadcrumbs(tree, '1'), 'B');
 assert.strictEqual(DataViewUI.breadcrumbs(tree, null), '');
 assert.strictEqual(DataViewUI.highlight('a<b>c', 'b'), 'a&lt;<strong>b</strong>&gt;c');
+assert.strictEqual(DataViewUI.highlight('Вода и вода', 'вода'), '<strong>Вода</strong> и <strong>вода</strong>', 'highlight ignores case');
+assert.strictEqual(DataViewUI.highlight('a.b', '.'), 'a<strong>.</strong>b', 'the query is not a pattern');
 const dataEntry = {
   sourceId: 's"1', tag: 'grammar', info: '<i>', reviewLevel: '2', breadcrumbs: 'A / a1',
   lines: [
@@ -119,10 +128,15 @@ assert(dataHtml.includes('data-review-level="2"') && dataHtml.includes('style="c
 assert(dataHtml.includes('x&lt;y') && !dataHtml.includes('x<y') && !dataHtml.includes('<i>'));
 assert(dataHtml.includes('class="compact"') && dataHtml.includes('(trans.l.index: 3)'));
 assert(!dataHtml.includes('entrySource'), 'source tag only while searching');
-dataHtml = DataViewUI.template({ query: 'z', entries: [dataEntry] });
+dataHtml = DataViewUI.template({ query: 'z', entries: [Object.assign({}, dataEntry, { fromSearch: true, pickKey: 's"1|7', picked: true })] });
 assert(dataHtml.includes('<span class="entrySource">s&quot;1</span>'));
 assert(dataHtml.includes('<strong>z</strong>'));
+assert(dataHtml.includes('class="dataPick"') && dataHtml.includes('data-pick-key="s&quot;1|7"')
+  && /\bchecked\b/.test(dataHtml), 'a result has a tick that is escaped and keeps its state');
 assert.strictEqual(DataViewUI.template({ query: '', entries: [] }), '');
+let hiddenHtml = DataViewUI.template({ hiddenCount: 250, query: '', entries: [] });
+assert(hiddenHtml.includes('250 entries found') && hiddenHtml.includes('class="dataShow"'), 'a big result is announced');
+assert(!DataViewUI.template({ query: '', entries: [dataEntry] }).includes('dataPick'), 'no tick outside a search');
 assert(!dataHtml.includes('dataEntryRemove'), 'a file entry has no remove button');
 dataHtml = DataViewUI.template({ query: '', entries: [Object.assign({}, dataEntry, { id: 7, removable: true })] });
 assert(dataHtml.includes('class="dataEntryRemove iconButton"') && dataHtml.includes('data-entry-id="7"'),
@@ -141,13 +155,16 @@ const dataApp = { currentView: 'data', currentSource: 'L:g', selectedEntries: ()
 const dataLibrary = {
   hasSource: () => true,
   listIds: () => [],
+  knownIds: () => ['file', 'other', 'unloaded'],
   getSource: () => ({ parsed: { structure: [], allEntries: [{ id: 3, lines: [] }] } }),
 };
-const ListDataUI = make('components/data-view/DataViewUI.js', 'DataViewUI', {
-  App: dataApp, Library: dataLibrary, Collections: { isListId: dataIsList } });
+const dataGlobals = {
+  App: dataApp, Library: dataLibrary, Collections: { isListId: dataIsList },
+  EntrySearch, DropdownUI: DropdownForData };
+const ListDataUI = make('components/data-view/DataViewUI.js', 'DataViewUI', dataGlobals);
 let dataVm = ListDataUI.viewModel();
 assert(dataVm.isList && dataVm.entries[0].removable && dataVm.entries[0].id === 3, 'a list entry is removable');
-assert(dataVm.entries[0].copyable, 'and copyable');
+assert(dataVm.entries[0].copyable && !dataVm.searching && !dataVm.entries[0].fromSearch, 'and copyable, with no ticks');
 dataApp.currentSource = 'file';
 dataVm = ListDataUI.viewModel();
 assert(!dataVm.isList && !dataVm.entries[0].removable && dataVm.entries[0].copyable,
@@ -156,21 +173,91 @@ dataApp.currentSource = 'L:g';
 ListDataUI.searchValue = 'x';
 assert.strictEqual(ListDataUI.viewModel().entries.length, 0, 'the search looks in the files, not in the list');
 ListDataUI.searchValue = '';
-dataLibrary.listIds = () => ['file'];
-dataLibrary.getSource = () => ({ parsed: { structure: [], allEntries: [{ id: 3, lines: [{ text: 'x' }] }] } });
-ListDataUI.searchValue = 'x';
-dataVm = ListDataUI.viewModel();
-assert(dataVm.entries.length === 1 && dataVm.entries[0].copyable && !dataVm.entries[0].removable
-  && dataVm.entries[0].sourceId === 'file', 'a search result can be copied, with its own source, but not removed');
-ListDataUI.searchValue = '';
+
+// searching: the scope, the limit, the ticks
+const searchEntry = (id, text, extra) => Object.assign({ id, lines: [{ text, role: 'expression' }] }, extra);
+const searchSources = {
+  file: [searchEntry(1, 'Water', { tag: 'geo' }), searchEntry(2, 'fire'), searchEntry(3, 'water too', { info: 'x' })],
+  other: [searchEntry(1, 'WATER again')],
+};
+dataLibrary.listIds = () => ['file', 'other'];
+dataLibrary.getSource = id => ({ parsed: { structure: [], allEntries: searchSources[id] || [] } });
+dataApp.selectedEntries = () => [searchSources.file[0]];
+const SearchingUI = make('components/data-view/DataViewUI.js', 'DataViewUI', dataGlobals);
+SearchingUI.render = () => {}; // no DOM here: the state and the view model are checked
+SearchingUI.searchValue = 'water';
+dataApp.currentSource = 'file';
+dataVm = SearchingUI.viewModel();
+assert(dataVm.searching && dataVm.entries.length === 3 && dataVm.count === '3', 'text ignores case, all files by default');
+assert(dataVm.entries.every(entry => entry.fromSearch && entry.copyable && !entry.removable), 'results can be ticked and copied, not removed');
+assert(dataVm.entries.map(entry => entry.sourceId).join() === 'file,file,other', 'each result knows its source');
+assert(dataVm.picker.visible && dataVm.picker.pickedCount === 0, 'the bar of ticks appears for a mounted result');
+assert(dataVm.filters.tagItems.some(item => item.value === 'geo' && item.label === 'geo (1)'), 'tags are counted');
+
+SearchingUI.onlySelection = true;
+SearchingUI.resetResult();
+dataVm = SearchingUI.viewModel();
+assert(dataVm.entries.length === 1 && dataVm.narrowed, 'only selection narrows to the selection of the current file');
+SearchingUI.onlySelection = false;
+dataApp.currentSource = 'L:g';
+SearchingUI.onlySelection = true;
+SearchingUI.resetResult();
+assert.strictEqual(SearchingUI.viewModel().entries.length, 3, 'a list has no selection to narrow to');
+SearchingUI.onlySelection = false;
+
+SearchingUI.sourcesOff = new Set(['other']);
+SearchingUI.resetResult();
+assert.strictEqual(SearchingUI.viewModel().entries.length, 2, 'a source taken off is not searched');
+SearchingUI.adjustOpen = true;
+dataVm = SearchingUI.viewModel();
+assert(dataVm.sources.length === 3 && dataVm.sources[1].count === 1 && !dataVm.sources[1].taken
+  && !dataVm.sources[2].loaded, 'sources: a count each even when taken off; unloaded ones are marked');
+SearchingUI.adjustOpen = false;
+SearchingUI.sourcesOff = new Set();
+SearchingUI.resetResult();
+
+const many = Array.from({ length: 150 }, (_, i) => searchEntry(i, 'water ' + i));
+searchSources.file = many;
+SearchingUI.resetResult();
+dataVm = SearchingUI.viewModel();
+assert(dataVm.hiddenCount === 151 && dataVm.entries.length === 0 && dataVm.count === '151', 'a big result is counted, not mounted');
+assert(!dataVm.picker.visible, 'nothing to tick while it is not mounted');
+SearchingUI.pickAll();
+assert.strictEqual(SearchingUI.picked.size, 0, 'a result that is not mounted cannot be ticked');
+SearchingUI.showResult();
+dataVm = SearchingUI.viewModel();
+assert(dataVm.entries.length === 151 && !dataVm.hiddenCount, 'show mounts it');
+SearchingUI.pickAll();
+assert.strictEqual(SearchingUI.picked.size, 151, 'select all ticks what is shown');
+assert(SearchingUI.viewModel().entries.every(entry => entry.picked), 'and the ticks are in the view model');
+SearchingUI.chooseKind('reminder');
+assert(!SearchingUI.showAll && SearchingUI.picked.size === 0, 'a new result has to be confirmed and ticked anew');
+// the reset button of a chosen filter
+assert(!SearchingUI.filtersTemplate({ tag: '', kind: '', tagItems: [], kindItems: [] }).includes('dataFilterClear'),
+  'nothing chosen, nothing to reset');
+const chosenHtml = SearchingUI.filtersTemplate({ tag: 'a"b', kind: '', tagItems: [], kindItems: [] });
+assert(chosenHtml.split('dataFilterClear').length === 2 && chosenHtml.includes('data-filter="tag"'),
+  'a chosen tag has its own reset button');
+SearchingUI.searchValue = '';
+SearchingUI.chooseTag('geo');
+SearchingUI.chooseKind('reminder');
+SearchingUI.clearFilter({ dataset: { filter: 'tag' } });
+assert(SearchingUI.tag === '' && SearchingUI.kind === 'reminder', 'the tag is reset, the kind is not');
+SearchingUI.clearFilter({ dataset: { filter: 'kind' } });
+assert(SearchingUI.kind === '' && !SearchingUI.viewModel().searching, 'both reset: no criterion, no search');
+SearchingUI.searchValue = '';
+SearchingUI.kind = '';
+searchSources.file = [searchEntry(1, 'Water', { tag: 'geo' }), searchEntry(2, 'fire'), searchEntry(3, 'water too', { info: 'x' })];
 dataLibrary.listIds = () => [];
 dataLibrary.getSource = () => ({ parsed: { structure: [], allEntries: [{ id: 3, lines: [] }] } });
+dataApp.selectedEntries = () => [{ id: 3, lines: [] }];
 
 // DataViewUI.removeFromList asks ListPrompts for the current list only;
 // addToList hands over the entry of the source named by the button
 const dataCalls = [];
 const askedSources = [];
 const RemovingDataUI = make('components/data-view/DataViewUI.js', 'DataViewUI', {
+  EntrySearch, DropdownUI: DropdownForData,
   App: dataApp,
   Library: Object.assign({}, dataLibrary, {
     getSource: id => {

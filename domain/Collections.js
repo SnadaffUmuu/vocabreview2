@@ -320,24 +320,47 @@ const Collections = {
     is changed unless 'added'.
   */
   add(listId, entry) {
-    const existing = this.lists[listId];
-    const hash = this.hashOf(entry);
-    if(existing && existing.entries.some(item => this.hashOf(item) === hash)) return 'duplicate';
+    const result = this.addMany(listId, [entry]);
+    if(result.storage) return 'storage';
+    return result.added ? 'added' : 'duplicate';
+  },
 
-    const copy = JSON.parse(JSON.stringify(entry));
-    delete copy.section;
-    delete copy.sourceId;
+  /*
+    Adds copies of the entries with one write and one announcement. An entry whose
+    text is exactly the text of an entry that the list already has, or that comes
+    earlier in the batch, is skipped. Entries that only look alike (another
+    translation of the same word) are not duplicates: they are different cards.
+    -> { added, skipped, storage }. Nothing is changed when storage is true.
+  */
+  addMany(listId, entries) {
+    const existing = this.lists[listId];
+    const known = new Set(existing ? existing.entries.map(item => this.hashOf(item)) : []);
+    const fresh = [];
+    entries.forEach(entry => {
+      const hash = this.hashOf(entry);
+      if(known.has(hash)) return;
+      known.add(hash);
+      const copy = JSON.parse(JSON.stringify(entry));
+      delete copy.section;
+      delete copy.sourceId;
+      fresh.push(copy);
+    });
+    const result = { added: fresh.length, skipped: entries.length - fresh.length, storage: false };
+    if(!fresh.length) return result;
+
     const saved = this._change(() => {
       const list = this.lists[listId]
         || { name: this.nameOf(listId), nextId: 0, entries: [] };
-      copy.id = list.nextId;
-      copy.originalIndex = list.nextId;
-      list.nextId += 1;
-      list.entries.push(copy);
+      fresh.forEach(copy => {
+        copy.id = list.nextId;
+        copy.originalIndex = list.nextId;
+        list.nextId += 1;
+        list.entries.push(copy);
+      });
       this.lists[listId] = list;
     });
-    if(!saved) return 'storage';
+    if(!saved) return { added: 0, skipped: 0, storage: true };
     this._announce(listId, 'added');
-    return 'added';
+    return result;
   },
 };
