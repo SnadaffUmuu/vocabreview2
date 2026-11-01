@@ -23,7 +23,7 @@ A mobile-only web application for reviewing Japanese vocabulary collected in use
 - Persisted data: raw source text, custom lists, per-source selections, per-view progress and UI state, and application settings. Parsed results are rebuilt in memory, not persisted.
 - Storage access is isolated from UI components.
 
-## Version 1: Functionality to Preserve
+## Version 2: Functionality preserved from Version 1
 
 - Existing visual design and color scheme where appropriate.
 - Importing and parsing user-maintained text files.
@@ -36,7 +36,7 @@ A mobile-only web application for reviewing Japanese vocabulary collected in use
 ## Version 1: Features Not to Reintroduce
 
 - Lapse tracking in Board and Panel Views.
-- Global vocabulary pool; planned custom collections will replace it.
+- Global vocabulary pool; planned custom collections replace it.
 - Matching View.
 - Built-in tests and editor in DataView.
 
@@ -112,6 +112,8 @@ Before considering a view converted to this model, check:
 - There is no saved-snapshot entity for sessions. A selection is a window over entries, not a separately persisted copy.
 - Progress is bound to entries and survives changes to the current selection.
 - In the UI, a session means a source + View combination with actual progress.
+- The setup of a View's work area (hidden columns, zoom, and the like) is not progress: it lives in the View's `ui`, survives a reload and never makes a session. A View's own progress rules are documented in its domain file.
+- Removing a card or a row in a View only marks it removed in that View's progress, without confirmation; the View's reset restores it. It never removes the entry from its source or list.
 
 ### Identifiers
 
@@ -125,23 +127,13 @@ Before considering a view converted to this model, check:
 - An entry added to a list is a detached copy (lines, tag, info, review level). It loses its section and its link to the source: reloading or updating a source never touches a list, and nothing is reconciled.
 - A list has no structure and no selection: the whole list is always shown, the section tree is hidden. It has no file, so it cannot be reloaded or updated.
 - The list `Global` is always offered as a target and is created by the first entry added to it. A list appears in the sources menu only when it is not empty, or while it is the current source (so the menu still shows where the user is after its last entry was removed). An empty current list stays current and shows empty Views.
-- Removing a card in a View only marks it removed in that View's progress (restored by the View's reset); it never removes the entry from the list.
-- Removing an entry from a list (button `－` on the open Board card, button in Data) is a different, final action, always confirmed. It deletes the entry and its progress in every View, including the ids kept in the View's `ui`. `nextId` never goes back, so an id is not handed to another entry.
-- Progress of a list is stored in `views` under the list's source id, exactly like the progress of a source.
+- Removing an entry from a list is a different action from removing a card in a View: it is final, always confirmed, and deletes the entry and its progress in every View, including the ids kept in the View's `ui`. `nextId` never goes back, so an id is not handed to another entry.
 - Deleting a list deletes its progress and selection with it, and resets the current source if it was the list. This is required because ids restart from 0 when a list id is reused. `Global` cannot be renamed; deleting it only empties it (it is still offered and is created again by the next add).
 - A `listId` is stable and independent of the name (`global`, then `l<n>`); only the name changes on rename. Names are unique without regard to case, `Global` is reserved, at most 40 characters. The checks of `Collections` are authoritative; the name prompt validates for the user's comfort only.
-- Lists are managed in the Lists dialog (button `L` in the menu, `ListsUI`), which is a dialog and not a View: it manages lists, Views show entries of the current source. All dialogs of list management live in `ListPrompts`, so every component that offers them uses the same flow. A list can also be created from the "add to a list" prompt.
+- List management is a dialog, not a View. Its prompts live in `ListPrompts`, so every component that offers them uses the same flow; a list can also be created from the "add to a list" prompt.
 - The "add to a list" prompt starts with the list chosen last (`settings.addTarget`), Global at first. The list is remembered once chosen, also when the card is a duplicate; a cancelled prompt or a failed write changes nothing. Deleting the list resets it (its id may be reused), and a target that no longer exists falls back to Global.
-- Data stays read-only for the text of entries. Its actions are adding any entry (of a file, a search result or a list) to a list, which also copies one list's entry to another, and removing an entry from the current list.
 - Every change of a list is written at once; if the write fails, the change is taken back and the user is told. Records of lists that could not be recognized on load are kept and written back with the rest, never dropped silently; import validates the structure of every list.
-- `collectionsChanged` carries `{ sourceId, kind }` (`created`, `added`, `removed`, `renamed`, `deleted`). A View rebuilds only for `added` and `removed` of the current list (`Collections.isContentChange`); a rename must not rebuild a View.
-
-### Table View
-
-- Progress of the Table is exactly: cells opened by the user (`revealed`), the order of the rows (a number on every shown row after any move) and removed rows. Hiding or showing cells and columns, the order of the columns, "Hide others" and the zoom are the setup of the work area: they live in `ui`, survive a reload and never make a session. Showing a column only lifts "hidden"; it never opens cells.
-- Rows are dragged by their handle only and columns by their head; cells are not draggable. Taps are matched by the exact target on purpose: a tap on the text of a cell does nothing, so it reaches the dictionary plugin the app is used with.
-- Removing a row (the cross column) only marks it removed in this View, without confirmation, like the other Views.
-- Known limitation inherited from Version 1: the zoom is a CSS `transform`, so with a zoom below 1 the sticky head leaves the visible area while scrolling down.
+- A View rebuilds only when the content of the current list changes (`Collections.isContentChange`); a rename must not rebuild a View.
 
 ### Persistence and Source Reloading
 

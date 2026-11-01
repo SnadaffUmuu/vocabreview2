@@ -21,6 +21,10 @@
    Exception to a full render (see AGENTS.md): the scroll position of the table
    container is read before the table is rewritten and restored after it; every
    tap re-renders the whole table, and the user must stay where they are.
+
+   Known limitation inherited from Version 1: the zoom is a CSS transform, so
+   with a zoom below 1 the sticky head leaves the visible area while scrolling
+   down.
 */
 const TableUI = {
   name: 'TableUI',
