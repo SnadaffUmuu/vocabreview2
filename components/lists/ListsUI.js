@@ -105,10 +105,11 @@ const ListsUI = {
           >${Utils.escapeHtml(list.name)}</span>
         <span class="listsCount tag">${Utils.escapeHtml(list.count)}</span>
         ${list.isDefault || !list.exists ? '' : `
-        <button class="listsAction" type="button" aria-label="Rename"
+        <button class="listsAction iconButton" type="button" aria-label="Rename"
           data-list-rename="${id}">✎</button>`}
         ${canDelete ? `
-        <button class="listsAction" type="button" aria-label="${list.isDefault ? 'Clear' : 'Delete'}"
+        <button class="listsAction iconButton" type="button"
+          aria-label="${list.isDefault ? 'Clear' : 'Delete'}"
           data-list-delete="${id}">🗑</button>` : ''}
       </li>
       `;

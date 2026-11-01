@@ -213,6 +213,13 @@ button {
   padding: 3px 10px;
 }
 
+/* A button that is only its icon: no background, the text color of the surroundings. */
+button.iconButton {
+  /* padding: 0; */
+  background: transparent;
+  color: inherit;
+}
+
 .hidden {
   display: none !important;
 }

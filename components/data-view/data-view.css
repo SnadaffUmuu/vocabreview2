@@ -40,16 +40,32 @@
   position: relative;
 }
 
-#dataView .dataEntry .dataEntryRemove {
-  margin-top: 8px;
-  height: 30px;
-  font-size: 14px;
+#dataView .dataEntry .dataEntryRow {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: stretch;
+  gap: 8px;
 }
 
-#dataView .dataEntry .reviewLevel {
-  position: absolute;
-  right: 0;
-  top: 5px;
+#dataView .dataEntry .dataEntryMain {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The review level on top, the remove button below it. */
+#dataView .dataEntry .dataEntryAside {
+  flex: 0 0 auto;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#dataView .dataEntry .dataEntryRemove {
+  /* width: 34px; */
+  height: 34px;
+  font-size: 17px;
 }
 
 #dataView .dataEntry .linesList {

@@ -197,18 +197,25 @@ const DataViewUI = {
   entryTemplate(entry, query) {
     return `
       <article class="dataEntry">
-        ${entry.reviewLevel ? `
-        <div class="reviewLevel tag">${Utils.escapeHtml(entry.reviewLevel)}</div>` : ''}
-        ${entry.tag ? `
-        <div class="tag">${Utils.escapeHtml(entry.tag)}</div>` : ''}
-        <ul class="linesList">${entry.lines.map(line => this.lineTemplate(line, query)).join('')}</ul>
-        ${entry.info ? `
-        <div class="entryInfo">ⓘ&nbsp;${Utils.escapeHtml(entry.info)}</div>` : ''}
-        ${entry.removable ? `
-        <button class="dataEntryRemove" type="button"
-          aria-label="Remove from the list"
-          data-entry-id="${Utils.escapeHtml(entry.id)}"
-          >－ remove from the list</button>` : ''}
+        <div class="dataEntryRow">
+          <div class="dataEntryMain">
+            ${entry.tag ? `
+            <div class="tag">${Utils.escapeHtml(entry.tag)}</div>` : ''}
+            <ul class="linesList">${entry.lines.map(line => this.lineTemplate(line, query)).join('')}</ul>
+            ${entry.info ? `
+            <div class="entryInfo">ⓘ&nbsp;${Utils.escapeHtml(entry.info)}</div>` : ''}
+          </div>
+          ${entry.reviewLevel || entry.removable ? `
+          <div class="dataEntryAside">
+            ${entry.reviewLevel ? `
+            <div class="reviewLevel tag">${Utils.escapeHtml(entry.reviewLevel)}</div>` : ''}
+            ${entry.removable ? `
+            <button class="dataEntryRemove iconButton" type="button"
+              aria-label="Remove from the list"
+              data-entry-id="${Utils.escapeHtml(entry.id)}"
+              >🗑</button>` : ''}
+          </div>` : ''}
+        </div>
         <div class="section">${query ? `
           <span class="entrySource">${Utils.escapeHtml(entry.sourceId)}</span> ` : ''}
           ${Utils.escapeHtml(entry.breadcrumbs)}

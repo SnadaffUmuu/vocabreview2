@@ -125,7 +125,7 @@ assert(dataHtml.includes('<strong>z</strong>'));
 assert.strictEqual(DataViewUI.template({ query: '', entries: [] }), '');
 assert(!dataHtml.includes('dataEntryRemove'), 'a file entry has no remove button');
 dataHtml = DataViewUI.template({ query: '', entries: [Object.assign({}, dataEntry, { id: 7, removable: true })] });
-assert(dataHtml.includes('class="dataEntryRemove"') && dataHtml.includes('data-entry-id="7"'),
+assert(dataHtml.includes('class="dataEntryRemove iconButton"') && dataHtml.includes('data-entry-id="7"'),
   'a list entry has a remove button');
 dataHtml = DataViewUI.template({ query: '', entries: [Object.assign({}, dataEntry, { id: 'a"b', removable: true })] });
 assert(dataHtml.includes('data-entry-id="a&quot;b"'), 'the id is escaped');
@@ -437,7 +437,10 @@ PanelUI.expanded = { id: 3, top: 10, width: 80, height: 29, sideIndex: 1 };
 panelVm = PanelUI.viewModel(panelUi);
 assert.strictEqual(panelVm.expanded.side.index, 1, 'the open card shows its turned side');
 assert.strictEqual(panelVm.expanded.place, null, 'the open card lies in the overlay');
-assert(!CardUI.template(panelVm.expanded).includes('cardAddToList'), 'the Panel does not offer adding to a list');
+assert(panelVm.expanded.canAddToList && !panelVm.zones['3'].cards[0].canAddToList,
+  'the open Panel card can be added to a list');
+assert(CardUI.template(panelVm.expanded).includes('cardAddToList'), 'the open Panel card offers adding to a list');
+assert(!CardUI.template(panelVm.zones['3'].cards[0]).includes('cardAddToList'), 'only the open card has actions');
 assert(panelVm.zones['3'].cards[0].covered);
 PanelUI.closeCard();
 PanelUI.sideOrders = {};

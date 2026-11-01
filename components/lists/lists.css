@@ -62,8 +62,12 @@
   opacity: 0.5;
 }
 
+.listsItem .tag {
+  margin-right: 12px;
+}
+
 .listsName {
-  flex: 1 1 auto;
+  flex: 0 0 60%;
   min-width: 0;
   padding: 8px 0;
   overflow: hidden;
@@ -77,8 +81,7 @@
 
 .listsAction {
   flex: 0 0 auto;
-  width: 34px;
+  /* width: 34px; */
   height: 34px;
-  padding: 0;
   font-size: 17px;
 }

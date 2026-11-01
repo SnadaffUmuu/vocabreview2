@@ -102,14 +102,16 @@ const PromptUI = {
     if(vm.choice) DropdownUI.setValue(this.CHOICE_ID, vm.choice.value);
     this.dom.confirmEl.textContent = vm.confirmLabel;
     this.dom.confirmEl.disabled = !vm.canConfirm;
-    this.renderInput(vm);
     this.dom.cancelEl.classList.toggle('hidden', vm.notify);
     this.dom.root.classList.toggle('hidden', !vm.open);
+    // After the overlay is shown: an element inside display:none cannot get the focus.
+    this.renderInput(vm);
   },
 
   /*
     Exception (see the header): the text of the field is written once per
     prompt, and the field gets the focus then. Focus has no state to project.
+    The overlay must already be visible, see render().
   */
   renderInput(vm) {
     this.dom.inputBoxEl.classList.toggle('hidden', !vm.input);
@@ -118,7 +120,7 @@ const PromptUI = {
     this.shownSerial = vm.serial;
     this.dom.inputEl.value = vm.input.value;
     this.dom.inputEl.focus();
-    this.dom.inputEl.select();
+    //this.dom.inputEl.select();
   },
 
   // DOM-touching: reports the draft of the field (see the header).

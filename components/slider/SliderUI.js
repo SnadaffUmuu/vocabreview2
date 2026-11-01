@@ -27,6 +27,7 @@ const SliderUI = {
     root: '#sliderView',
     matchingEl: '#sliderOnlyMatching',
     randomEl: '#sliderRandomOrder',
+    addToListEl: '#sliderAddToList',
     resetEl: '#sliderReset',
     currentEl: '#sliderCurrentIndex',
     totalEl: '#sliderDataCount',
@@ -43,6 +44,7 @@ const SliderUI = {
       '@randomEl': 'changeRandom',
     },
     click: {
+      '@addToListEl': 'addToList',
       '@resetEl': 'reset',
       '@lapseEl': 'toggleLapse',
       '@hitEl': 'toggleHit',
@@ -97,6 +99,9 @@ const SliderUI = {
           })}
           <label>Omm <input type="checkbox" id="sliderOnlyMatching"></label>
           <label>R <input type="checkbox" id="sliderRandomOrder"></label>
+          ${this.canAddToList ? `
+          <button id="sliderAddToList" class="iconButton" type="button"
+            aria-label="Add to a list">＋</button>` : ''}
           <button id="sliderReset">Reset</button>
           <div id="sliderCounters">
             <span id="sliderCurrentIndex"></span>
@@ -359,6 +364,13 @@ const SliderUI = {
       currentEntryId: null,
     });
     this.rebuild();
+  },
+
+  // The card stays where it is; the list is chosen in the prompt.
+  addToList() {
+    const entryId = this.currentEntryId();
+    const entry = this.entries.find(item => item.id === entryId);
+    if(entry) ListPrompts.addEntry(entry);
   },
 
   reset() {
