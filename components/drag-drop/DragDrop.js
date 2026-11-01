@@ -10,6 +10,25 @@
                                  instead of being inserted into the flow (Board)
      [data-drag-id="<id>"]       a draggable card
      [data-drag-scroll]          a box that scrolls while a card is held near its edge
+  
+   Rows and columns of a table (the Table View) are cards too, with a few more
+   optional attributes. Nothing of this changes how the cards of a Board or a
+   Panel behave:
+     [data-drag-handle="<selector>"] on a card: a gesture starts only on that
+                                 part of it; the rest stays free for taps and
+                                 for the text selection a dictionary plugin needs
+     [data-drag-kind="<kind>"]   on a card, and [data-drop-accepts="<kind>"] on a
+                                 zone: the zone takes only cards of that kind. A
+                                 zone inside another zone is looked for outwards
+                                 until one accepts the card
+     [data-drop-mode="rows"|"cols"]  on a zone: its cards of the same kind are
+                                 laid out along y (rows) or x (columns). They
+                                 cannot leave the table, so there is no
+                                 placeholder: the target is shown by the classes
+                                 dropBefore / dropAfter on a card
+     [data-drag-label="<text>"]  on a card: a small ghost with this text follows
+                                 the pointer instead of a clone, and the card
+                                 stays where it is (class dragSource)
    Event payload: { scope, id, zone, beforeId, x, y }. beforeId is the card of
    the zone the dropped one goes in front of (null = to the end); a free zone has
    no order, so it is always null there. x, y is the top-left of the dropped card
@@ -48,6 +67,10 @@ const DragDrop = {
   zoneSelector: '[data-drop-zone]',
   scrollSelector: '[data-drag-scroll]',
   freeMode: 'free',
+  // The mode of a zone of table rows / table columns, and the axis it lays out.
+  axisModes: { rows: 'y', cols: 'x' },
+  // Distance of the ghost label from the pointer.
+  ghostOffset: 20,
 
   longPressMs: 250,
   moveTolerance: 8,
@@ -61,8 +84,10 @@ const DragDrop = {
     document.addEventListener('touchstart', e => this.onTouchStart(e), { passive: true });
     document.addEventListener('mousedown', e => this.onMouseDown(e));
     // The long press that starts a drag must not open the browser context menu.
+    // A card with a handle is only draggable by the handle: elsewhere the menu
+    // (and the text selection that a dictionary plugin relies on) is left alone.
     document.addEventListener('contextmenu', e => {
-      if(this.gesture || e.target.closest?.(this.cardSelector)) e.preventDefault();
+      if(this.gesture || this.cardAt(e.target)) e.preventDefault();
     });
   },
 
@@ -117,6 +142,19 @@ const DragDrop = {
     return 0;
   },
 
+  /*
+    Index of the card the pointer is in front of, for cards laid out in one line
+    (rows of a table along y, columns along x): the first card whose middle is
+    after the pointer. rects.length means "after the last card".
+  */
+  axisInsertionIndex(rects, pos, axis) {
+    const middle = rect => axis === 'x'
+      ? (rect.left + rect.right) / 2
+      : (rect.top + rect.bottom) / 2;
+    const at = rects.findIndex(rect => pos < middle(rect));
+    return at < 0 ? rects.length : at;
+  },
+
   // ---- gesture start ---------------------------------------------------------------
 
   onTouchStart(e) {
@@ -136,7 +174,10 @@ const DragDrop = {
 
   cardAt(target) {
     const card = target.closest?.(this.cardSelector);
-    return card && card.closest(this.scopeSelector) ? card : null;
+    if(!card || !card.closest(this.scopeSelector)) return null;
+    const handle = card.dataset.dragHandle;
+    if(handle && !target.closest(handle)) return null;
+    return card;
   },
 
   begin(card, x, y, kind) {
@@ -219,17 +260,8 @@ const DragDrop = {
     g.width = rect.width;
     g.height = rect.height;
 
-    g.clone = g.card.cloneNode(true);
-    g.clone.removeAttribute('data-drag-id');
-    g.clone.classList.add('dragClone');
-    g.clone.style.width = `${rect.width}px`;
-    // A freely placed card carries its own z-index inline; the clone must stay
-    // above everything, which only the stylesheet guarantees.
-    g.clone.style.removeProperty('z-index');
-    // The color of a zone reaches its cards through an inherited variable; the
-    // clone is outside the zone, so it takes the resolved value along.
-    const cardBg = getComputedStyle(g.card).getPropertyValue('--cardBg');
-    if(cardBg) g.clone.style.setProperty('--cardBg', cardBg);
+    g.ghost = g.card.dataset.dragLabel != null;
+    g.clone = g.ghost ? this.createGhost(g) : this.createClone(g, rect);
     // Inside the scope, not in <body>: the View's CSS variables must reach it.
     g.scope.appendChild(g.clone);
 
@@ -243,11 +275,36 @@ const DragDrop = {
     g.placeholder.style.flexBasis = `${rect.width}px`;
     g.placeholder.style.height = `${rect.height}px`;
 
-    g.card.classList.add('dragged');
+    g.card.classList.add(g.ghost ? 'dragSource' : 'dragged');
     this.updateDrag();
     // The band the drag starts in is remembered as not armed.
     this.autoScroll(g, true);
     g.raf = requestAnimationFrame(() => this.autoScrollLoop());
+  },
+
+  createClone(g, rect) {
+    const clone = g.card.cloneNode(true);
+    clone.removeAttribute('data-drag-id');
+    clone.classList.add('dragClone');
+    clone.style.width = `${rect.width}px`;
+    // A freely placed card carries its own z-index inline; the clone must stay
+    // above everything, which only the stylesheet guarantees.
+    clone.style.removeProperty('z-index');
+    // The color of a zone reaches its cards through an inherited variable; the
+    // clone is outside the zone, so it takes the resolved value along.
+    const cardBg = getComputedStyle(g.card).getPropertyValue('--cardBg');
+    if(cardBg) clone.style.setProperty('--cardBg', cardBg);
+    return clone;
+  },
+
+  // A small label that follows the pointer; the card itself stays in its place.
+  createGhost(g) {
+    const ghost = document.createElement('div');
+    ghost.className = 'dragClone dragGhost';
+    ghost.textContent = g.card.dataset.dragLabel;
+    g.offsetX = this.ghostOffset;
+    g.offsetY = this.ghostOffset;
+    return ghost;
   },
 
   updateDrag() {
@@ -257,6 +314,7 @@ const DragDrop = {
     g.clone.style.top = `${g.y - g.offsetY}px`;
 
     g.zone = this.zoneAt(g);
+    this.clearMarks(g);
     if(g.zone) {
       this.placeIndicator(g);
     } else {
@@ -265,14 +323,53 @@ const DragDrop = {
     }
   },
 
-  // The clone has pointer-events: none, so the point hits what is under it.
+  /*
+    The zone under the pointer that takes this card. The clone has
+    pointer-events: none, so the point hits what is under it. A zone that does
+    not accept the kind of the card is skipped and the next one outwards is
+    tried (a column can be dropped anywhere over a table, not only over its head).
+  */
   zoneAt(g) {
-    const zone = document.elementFromPoint(g.x, g.y)?.closest(this.zoneSelector);
+    let zone = document.elementFromPoint(g.x, g.y)?.closest(this.zoneSelector);
+    while(zone && !this.accepts(zone, g.card)) {
+      zone = zone.parentElement?.closest(this.zoneSelector);
+    }
     return zone && zone.closest(this.scopeSelector) === g.scope ? zone : null;
+  },
+
+  accepts(zone, card) {
+    const kind = zone.dataset.dropAccepts;
+    return !kind || kind === card.dataset.dragKind;
   },
 
   isFree(zone) {
     return zone.dataset.dropMode === this.freeMode;
+  },
+
+  // 'x' / 'y' for a zone of table columns / rows, null for any other zone.
+  axisOf(zone) {
+    return this.axisModes[zone.dataset.dropMode] || null;
+  },
+
+  clearMarks(g) {
+    g.scope.querySelectorAll('.dropBefore, .dropAfter').forEach(el =>
+      el.classList.remove('dropBefore', 'dropAfter'));
+  },
+
+  /*
+    Cards of a table zone are laid out along one axis and cannot leave the
+    table, so the target is only marked: before the card the pointer is in front
+    of, or after the last one.
+  */
+  placeAxisIndicator(g, axis) {
+    const cards = Array.from(g.zone.querySelectorAll(this.cardSelector))
+      .filter(card => card !== g.card && card.dataset.dragKind === g.card.dataset.dragKind);
+    const rects = cards.map(card => card.getBoundingClientRect());
+    const at = this.axisInsertionIndex(rects, axis === 'x' ? g.x : g.y, axis);
+    const before = cards[at] || null;
+    g.beforeId = before ? before.dataset.dragId : null;
+    if(before) before.classList.add('dropBefore');
+    else if(cards.length) cards[cards.length - 1].classList.add('dropAfter');
   },
 
   /*
@@ -282,6 +379,11 @@ const DragDrop = {
   */
   placeIndicator(g) {
     g.placeholder.remove();
+    const axis = this.axisOf(g.zone);
+    if(axis) {
+      this.placeAxisIndicator(g, axis);
+      return;
+    }
     if(this.isFree(g.zone)) {
       g.beforeId = null;
       return;
@@ -413,7 +515,8 @@ const DragDrop = {
     g.listeners.forEach(([type, handler, options]) =>
       document.removeEventListener(type, handler, options));
     if(g.dragging) {
-      g.card.classList.remove('dragged');
+      g.card.classList.remove('dragged', 'dragSource');
+      this.clearMarks(g);
       g.clone.remove();
       g.placeholder.remove();
     }

@@ -37,6 +37,7 @@ const AppInit = {
       SliderUI.render();
       BoardUI.render();
       PanelUI.render();
+      TableUI.render();
     });
   },
 };

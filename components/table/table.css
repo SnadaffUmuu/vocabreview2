@@ -1,0 +1,419 @@
+/*
+   Ported from Version 1 almost line by line: the layout of the cells was tuned
+   carefully, so values are kept as they were. What changed is only naming
+   (#table -> #tableGrid, .draggableContainer -> .tableCell, .draggableContainerInner
+   -> .cellInner, .cellContentDraggable -> .cellLine, td.hidden -> .cellHidden: the
+   global .hidden of base.css is display:none), and what was dropped with the
+   features that are gone (dragging of cell content, add column).
+*/
+#tableView {
+  flex: 1 1 auto;
+  overflow: auto;
+  /* Text stays selectable (a dictionary plugin reads it); only the handle of a
+     row is not. DragDrop switches selection off for the whole scope. */
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+#tableContainer {
+  overflow: auto;
+  /* The sticky head has a z-index: it must stay inside the table and never rise
+     above the menu or the dialogs. */
+  isolation: isolate;
+}
+
+#tableActions {
+  box-sizing: border-box;
+  padding: 0 7px 10px;
+  width: 100%;
+  display: flex;
+  flex-flow: row wrap;
+  font-size: 13px;
+  gap: 10px;
+  align-items: center;
+  box-shadow: inset 0px -3px 4px 0px var(--panelFocusedBoxShadow);
+}
+
+#tableGrid {
+  border-collapse: collapse;
+  font-size: 15px;
+  margin-bottom: 30px;
+  height: 1px;
+}
+
+#tableGrid tbody {
+  background-color: var(--bg);
+}
+
+#tableGrid th {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 500;
+}
+
+#tableGrid td,
+#tableGrid th {
+  border: 1px solid var(--tableCellBorder);
+}
+
+#tableGrid td:first-child {
+  vertical-align: top;
+}
+
+/* ---- the head of a column ---- */
+
+/* The drag mark and the title are in one row: the title is new, and the two
+   must not wrap under each other. */
+#tableGrid th .colHead {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: flex-start;
+}
+
+#tableGrid th .drag,
+#tableGrid th .colName {
+  box-sizing: border-box;
+  padding: 10px 5px;
+}
+
+#tableGrid th .drag {
+  flex: 0 0 auto;
+  margin-right: 5px;
+  cursor: move;
+}
+
+#tableGrid th .colName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: normal;
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.7;
+}
+
+#tableGrid th .toggle {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 3px 5px 7px;
+  border-bottom: 1px solid var(--tableCellBorder);
+}
+
+/* ---- the controls of a row ---- */
+
+#tableGrid td .rowDrag {
+  cursor: move;
+  width: 80px;
+  height: 40px;
+  box-sizing: border-box;
+  text-align: center;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#tableGrid .moveToTop,
+#tableGrid .moveToBottom {
+  box-sizing: border-box;
+  display: inline-block;
+  height: 40px;
+  width: 40px;
+  text-align: center;
+  display: inline-flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  border-top: 1px solid var(--paleBorder);
+}
+
+#tableGrid .moveToBottom {
+  border-left: 1px solid var(--paleBorder);
+}
+
+/* The narrow last column with the red cross; its head is empty. */
+#tableGrid .tableRemoveCell {
+  vertical-align: top;
+}
+
+#tableGrid .tableRemove {
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: center;
+  align-items: center;
+  color: var(--boardRemoveItemTextColor);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* ---- the cell ---- */
+
+.tableCell {
+  vertical-align: top;
+}
+
+.cellInner {
+  flex-flow: column nowrap;
+  position: relative;
+  padding: 0 0 10px;
+  box-sizing: border-box;
+  justify-content: flex-start;
+}
+
+#tableGrid td .cellLine {
+  box-sizing: border-box;
+  padding: 3px 0 10px;
+  height: 100%;
+  min-height: 30px;
+  min-width: 190px;
+  max-width: 290px;
+  flex: 1 1 auto;
+}
+
+#tableGrid td .cellLine[data-role="expression"] {
+  font-size: 19px;
+}
+
+#tableGrid td .cellLine + .cellLine {
+  border-top: 1px solid var(--paleBorder);
+}
+
+/* A hidden cell: dimmed background, blurred text. A cell that has a reading
+   is tinted differently. */
+.tableCell.cellHidden:has(.cellLine) {
+  background: var(--tableHiddenContentBg);
+}
+
+.tableCell.cellHidden:has([data-reading]) {
+  background: var(--tableHiddenReadableContentBg);
+}
+
+#tableGrid td.cellHidden .line-text {
+  filter: blur(20px);
+}
+
+#tableGrid .ellipsis {
+  overflow: hidden;
+  max-height: 80px;
+}
+
+#tableGrid .expand {
+  height: 20px;
+  cursor: pointer;
+}
+
+#tableGrid .speakme {
+  cursor: pointer;
+  box-sizing: border-box;
+  height: 100%;
+  width: 35px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+}
+
+.cellHidden .speakme {
+  border: 1px dotted var(--paleBorder);
+}
+
+#tableGrid .line-text {
+  display: inline-block;
+  margin-right: 35px;
+  position: relative;
+  padding-left: 35px;
+}
+
+/* The mark in front of an example comes from .line-text (base.css); the cell
+   and the line themselves carry none in a table. */
+#tableGrid [data-role="example"]::before,
+#tableGrid [data-role="example_translation"]::before {
+  content: '';
+  display: none;
+}
+
+/* ---- review level of the first line ---- */
+
+#tableGrid [data-review-level] .line-text {
+  padding-bottom: 2px;
+  text-decoration: underline;
+  text-decoration-line: solid;
+  text-underline-offset: 5px;
+}
+
+#tableGrid [data-review-level="100"] .line-text,
+#tableGrid [data-review-level="200"] .line-text,
+#tableGrid [data-review-level="300"] .line-text {
+  color: var(--revLevelTextColor);
+  font-size: 25px !important;
+}
+
+#tableGrid [data-review-level="1"] .line-text,
+#tableGrid [data-review-level="2"] .line-text,
+#tableGrid [data-review-level="3"] .line-text {
+  color: var(--revLevelMinorTextColor);
+  font-size: 22px !important;
+}
+
+#tableGrid [data-review-level="1"] .line-text,
+#tableGrid [data-review-level="100"] .line-text {
+  text-decoration-thickness: 1px;
+}
+
+#tableGrid [data-review-level="2"] .line-text,
+#tableGrid [data-review-level="200"] .line-text {
+  text-decoration-thickness: 2px;
+}
+
+#tableGrid [data-review-level="3"] .line-text {
+  text-decoration-thickness: 3px;
+}
+
+#tableGrid [data-review-level="300"] .line-text {
+  border-bottom-width: 3px;
+}
+
+/* ---- the tag of a row: a pattern on the whole row ---- */
+
+#tableGrid tr[data-tag] .line-text {
+  background: var(--bg);
+  box-shadow: 0px 0px 6px 4px var(--bg);
+}
+
+#tableGrid tr[data-tag="grammar"] {
+  background: repeating-linear-gradient(
+    30deg,
+    var(--tagBgGrammar),
+    var(--tagBgGrammar) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+}
+
+#tableGrid tr[data-tag="onomatopoeia"] {
+  background: repeating-linear-gradient(
+    150deg,
+    var(--tagBgOnoma),
+    var(--tagBgOnoma) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+}
+
+#tableGrid tr[data-tag="geo"] {
+  background: repeating-linear-gradient(
+    0deg,
+    var(--tagBgGeo),
+    var(--tagBgGeo) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+}
+
+#tableGrid tr[data-tag="name"] {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--tagBgName),
+    var(--tagBgName) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+}
+
+#tableGrid tr[data-tag="term"] {
+  background-image: radial-gradient(var(--tagBgTerm) 1px, transparent 0px);
+  background-repeat: repeat;
+  background-size: 10px 10px;
+  background-position: center;
+}
+
+#tableGrid tr[data-tag="dialect"] {
+  background-image: radial-gradient(var(--tagBgDialect) 1px, transparent 0px);
+  background-repeat: repeat;
+  background-size: 10px 10px;
+  background-position: center;
+}
+
+#tableGrid tr[data-tag="pattern"] {
+  background-image: radial-gradient(var(--tagBgPattern) 3px, transparent 0px);
+  background-repeat: repeat;
+  background-size: 15px 15px;
+  background-position: center;
+}
+
+#tableGrid tr[data-tag="counter"] {
+  background-image: radial-gradient(var(--tagBgCounter) 2px, transparent 0px);
+  background-repeat: repeat;
+  background-size: 13px 13px;
+  background-position: center;
+}
+
+#tableGrid tr[data-tag="suffix"] {
+  background: repeating-linear-gradient(
+    0deg,
+    var(--tagBgSuffix),
+    var(--tagBgSuffix) 1px,
+    transparent 1px,
+    transparent 7px
+  );
+}
+
+#tableGrid tr[data-tag="yojijukugo"] {
+  background: repeating-linear-gradient(
+    30deg,
+    var(--tagBgYoji),
+    var(--tagBgYoji) 1px,
+    transparent 1px,
+    transparent 10px
+  ),
+  repeating-linear-gradient(
+    150deg,
+    var(--tagBgYoji),
+    var(--tagBgYoji) 1px,
+    transparent 1px,
+    transparent 10px
+  );
+}
+
+/* The legend sits under the table and uses the borders of the table. */
+#tableView .tagsLegend {
+  border-left: 1px solid var(--tableCellBorder);
+  border-top: 1px solid var(--tableCellBorder);
+}
+
+#tableView .tagsLegend [data-tag] {
+  /* In the table the swatches lie on the page, not on a card. */
+  --cardBg: transparent;
+  border-right: 1px solid var(--tableCellBorder);
+  border-bottom: 1px solid var(--tableCellBorder);
+}
+
+/* ---- a drag in progress (the visuals themselves are made by DragDrop) ---- */
+
+#tableGrid tr.dragSource,
+#tableGrid th.dragSource {
+  opacity: 0.5;
+}
+
+#tableGrid tr.dropBefore > td {
+  box-shadow: inset 0 4px 0 0 var(--tableDropMark);
+}
+
+#tableGrid tr.dropAfter > td {
+  box-shadow: inset 0 -4px 0 0 var(--tableDropMark);
+}
+
+#tableGrid th.dropBefore {
+  box-shadow: inset 4px 0 0 0 var(--tableDropMark);
+}
+
+#tableGrid th.dropAfter {
+  box-shadow: inset -4px 0 0 0 var(--tableDropMark);
+}

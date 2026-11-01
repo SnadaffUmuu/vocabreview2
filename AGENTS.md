@@ -136,6 +136,13 @@ Before considering a view converted to this model, check:
 - Every change of a list is written at once; if the write fails, the change is taken back and the user is told. Records of lists that could not be recognized on load are kept and written back with the rest, never dropped silently; import validates the structure of every list.
 - `collectionsChanged` carries `{ sourceId, kind }` (`created`, `added`, `removed`, `renamed`, `deleted`). A View rebuilds only for `added` and `removed` of the current list (`Collections.isContentChange`); a rename must not rebuild a View.
 
+### Table View
+
+- Progress of the Table is exactly: cells opened by the user (`revealed`), the order of the rows (a number on every shown row after any move) and removed rows. Hiding or showing cells and columns, the order of the columns, "Hide others" and the zoom are the setup of the work area: they live in `ui`, survive a reload and never make a session. Showing a column only lifts "hidden"; it never opens cells.
+- Rows are dragged by their handle only and columns by their head; cells are not draggable. Taps are matched by the exact target on purpose: a tap on the text of a cell does nothing, so it reaches the dictionary plugin the app is used with.
+- Removing a row (the cross column) only marks it removed in this View, without confirmation, like the other Views.
+- Known limitation inherited from Version 1: the zoom is a CSS `transform`, so with a zoom below 1 the sticky head leaves the visible area while scrolling down.
+
 ### Persistence and Source Reloading
 
 - Persist only raw source text, custom lists, per-source selections, per-view progress/UI state, and application settings.

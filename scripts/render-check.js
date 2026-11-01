@@ -1,7 +1,7 @@
 /*
    Checks the pure parts (viewModel helpers and template) of SessionsUI,
-   StructureUI, InfobarUI, PromptUI, DataViewUI, SliderUI, CardUI, BoardUI, PanelUI
-   and the geometry of DragDrop without a DOM.
+   StructureUI, InfobarUI, PromptUI, DataViewUI, SliderUI, CardUI, BoardUI, PanelUI,
+   TableUI and the geometry of DragDrop without a DOM.
 */
 const fs = require('fs');
 const assert = require('assert');
@@ -498,6 +498,68 @@ PanelUI.resetLayoutState();
 assert(!PanelUI.focused && !Object.keys(PanelUI.positions).length && !Object.keys(PanelUI.sizes).length);
 boardApp.currentView = 'board';
 
+// TableUI: view model and template
+const tableEntry = (id, extra) => Object.assign({ id, lines: [
+  { originalIndex: 0, role: 'expression', text: 'E<' + id + '>' },
+  { originalIndex: 1, role: 'meaning', text: 'M"' + id },
+  { originalIndex: 2, role: 'reading', text: 'R' + id, speakable: true },
+  { originalIndex: 3, role: 'weird', text: 'W' + id },
+] }, extra);
+const tableEntries = [tableEntry(1, { tag: 'geo', reviewLevel: 2, info: 'I<1>' }), tableEntry(2)];
+const tableRoles = ['expression', 'meaning', 'reading', 'example', 'example_translation', 'alt_reading', 'info', 'unknown'];
+const TableStateStub = {
+  roles: tableRoles,
+  defaultUi: () => ({ hideOthers: true }),
+  uiOf: () => ({ hideOthers: false, zoom: 1.2, hidden: { 2: ['meaning'] } }),
+  layout: () => ({ entries: tableEntries, columns: ['expression', 'meaning', 'info', 'unknown'] }),
+  isHidden: (ui, id, role) => !!ui.hidden[id]?.includes(role),
+  hasContent: (entry, role) => role === 'info' ? !!entry.info
+    : entry.lines.some(l => (tableRoles.includes(l.role) ? l.role : 'unknown') === role),
+  cellLines: (entry, role) => role === 'info' ? []
+    : entry.lines.filter(l => (tableRoles.includes(l.role) ? l.role : 'unknown') === role),
+};
+const tableApp = { currentView: 'table', currentSource: 'src' };
+const TableUI = make('components/table/TableUI.js', 'TableUI', {
+  App: tableApp, TableState: TableStateStub, CardUI, Parser: { ENTRY_TAG },
+  Library: { hasSource: () => true } });
+let tableVm = TableUI.viewModel();
+assert.deepStrictEqual(tableVm.columns.map(c => c.label), ['expression', 'meaning', 'info', 'other'], 'columns have titles');
+assert.strictEqual(tableVm.zoom, 1.2);
+assert.strictEqual(tableVm.hideOthers, false);
+assert.deepStrictEqual(tableVm.legend, ['geo'], 'only the tags of the shown rows');
+assert(tableVm.rows[1].cells[1].hidden && !tableVm.rows[0].cells[1].hidden, 'hidden comes from the state');
+assert(!tableVm.rows[1].cells[2].filled && tableVm.rows[1].cells[2].lines.length === 0, 'a row without info has an empty info cell');
+assert.strictEqual(tableVm.rows[0].cells[0].lines[0].reviewLevel, 2, 'the review level marks the first line');
+assert.strictEqual(tableVm.rows[0].cells[1].lines[0].reviewLevel, null, 'and only the first line');
+let tableHtml = TableUI.template(tableVm);
+assert(tableHtml.includes('data-drop-zone="cols"') && tableHtml.includes('data-drop-zone="rows"'), 'zones of columns and rows');
+assert(tableHtml.includes('transform:scale(1.2)'), 'zoom is a scale of the table');
+assert(tableHtml.includes('>info</div>') && tableHtml.includes('>other</div>'), 'titles are in the heads');
+assert(tableHtml.includes('data-drag-id="meaning"') && tableHtml.includes('data-drag-kind="col"'), 'a head is a draggable column');
+assert(tableHtml.includes('data-drag-handle=".rowDrag"'), 'a row is dragged by its handle only');
+assert.strictEqual((tableHtml.match(/class="tableRemove"/g) || []).length, 2, 'every row has a cross');
+assert(tableHtml.includes('tableRemoveHead'), 'the head of the cross column is empty');
+assert.strictEqual((tableHtml.match(/cellHidden/g) || []).length, 1, 'one hidden cell');
+assert(!/class="[^"]*\bhidden\b/.test(tableHtml.replace('tableView', '')), 'the global .hidden is not used for cells');
+assert(tableHtml.includes('E&lt;1&gt;') && !tableHtml.includes('E<1>'), 'text is escaped');
+assert(tableHtml.includes('ⓘ&nbsp;I&lt;1&gt;'), 'info is a line with a mark, escaped');
+assert(tableHtml.includes('data-reading="R1"') === false, 'a column that is not shown has no reading');
+assert(tableHtml.includes('data-tag="geo"') && tableHtml.includes('class="tagsLegend"'), 'tag and legend');
+assert(tableHtml.includes('data-review-level="2"'));
+assert(/class="cellInner ellipsis"/.test(tableHtml), 'cells are clamped');
+TableUI.expandedRows = new Set([1]);
+assert(TableUI.template(TableUI.viewModel()).split('cellInner ellipsis').length === TableUI.template(tableVm).split('cellInner ellipsis').length - 4,
+  'an expanded row loses the clamp of its four filled cells');
+TableUI.expandedRows = new Set();
+TableStateStub.uiOf = () => ({ hideOthers: true, zoom: 1, hidden: {} });
+assert(!TableUI.template(TableUI.viewModel()).includes('transform'), 'no zoom, no transform');
+TableStateStub.layout = () => ({ entries: [], columns: [] });
+assert.strictEqual(TableUI.template(TableUI.viewModel()), '', 'no rows, no table');
+tableApp.currentView = 'board';
+assert.strictEqual(TableUI.viewModel().visible, false);
+assert.deepStrictEqual(TableUI.viewModel().rows, [], 'a hidden View reads no domain');
+tableApp.currentView = 'board';
+
 // DragDrop: pure geometry
 const DragDrop = make('components/drag-drop/DragDrop.js', 'DragDrop');
 const box = (left, top, right, bottom) => ({ left, top, right, bottom });
@@ -528,5 +590,29 @@ assert.strictEqual(DragDrop.scrollDelta(290, 0, 300), DragDrop.scrollStep);
 assert.strictEqual(DragDrop.scrollDelta(150, 0, 300), 0);
 assert.strictEqual(DragDrop.scrollDelta(40, 0, 80), 0, 'a small box keeps a middle without scrolling');
 assert.strictEqual(DragDrop.scrollDelta(10, 0, 80), -DragDrop.scrollStep);
+
+// DragDrop: rows and columns of a table
+const colRects = [box(0, 0, 100, 40), box(100, 0, 220, 40), box(220, 0, 300, 40)];
+assert.strictEqual(DragDrop.axisInsertionIndex(colRects, 10, 'x'), 0, 'left half of the first column');
+assert.strictEqual(DragDrop.axisInsertionIndex(colRects, 60, 'x'), 1, 'right half: before the next column');
+assert.strictEqual(DragDrop.axisInsertionIndex(colRects, 290, 'x'), 3, 'right half of the last: to the end');
+assert.strictEqual(DragDrop.axisInsertionIndex([], 5, 'x'), 0);
+const rowRects = [box(0, 0, 300, 50), box(0, 50, 300, 110)];
+assert.strictEqual(DragDrop.axisInsertionIndex(rowRects, 20, 'y'), 0);
+assert.strictEqual(DragDrop.axisInsertionIndex(rowRects, 40, 'y'), 1, 'the lower half goes before the next row');
+assert.strictEqual(DragDrop.axisInsertionIndex(rowRects, 100, 'y'), 2, 'below the middle of the last row: to the end');
+assert.strictEqual(DragDrop.axisOf({ dataset: { dropMode: 'rows' } }), 'y');
+assert.strictEqual(DragDrop.axisOf({ dataset: { dropMode: 'cols' } }), 'x');
+assert.strictEqual(DragDrop.axisOf({ dataset: { dropMode: 'free' } }), null, 'other modes are not an axis');
+assert.strictEqual(DragDrop.axisOf({ dataset: {} }), null);
+assert.strictEqual(DragDrop.accepts({ dataset: {} }, { dataset: { dragKind: 'row' } }), true, 'a zone without a kind takes every card');
+assert.strictEqual(DragDrop.accepts({ dataset: { dropAccepts: 'row' } }, { dataset: { dragKind: 'row' } }), true);
+assert.strictEqual(DragDrop.accepts({ dataset: { dropAccepts: 'row' } }, { dataset: { dragKind: 'col' } }), false, 'a column is not a row');
+const handleCard = { dataset: { dragHandle: '.rowDrag' }, closest: sel => sel === '[data-drag-scope]' ? {} : null };
+const viaTarget = (match, card) => ({ closest: sel => sel === '[data-drag-id]' ? card : (sel === '.rowDrag' && match ? {} : null) });
+assert.strictEqual(DragDrop.cardAt(viaTarget(true, handleCard)), handleCard, 'a card is taken by its handle');
+assert.strictEqual(DragDrop.cardAt(viaTarget(false, handleCard)), null, 'and not by the rest of it');
+const plainCard = { dataset: {}, closest: sel => sel === '[data-drag-scope]' ? {} : null };
+assert.strictEqual(DragDrop.cardAt(viaTarget(false, plainCard)), plainCard, 'a card without a handle is taken anywhere');
 
 console.log('render-check ok');

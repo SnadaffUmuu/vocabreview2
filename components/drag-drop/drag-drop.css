@@ -27,3 +27,19 @@
   flex: 0 1 auto;
   min-width: 0;
 }
+
+/* A small label that follows the pointer instead of a clone of the card (rows
+   and columns of a table). */
+.dragGhost {
+  box-sizing: border-box;
+  max-width: 60vw;
+  padding: 6px 10px;
+  border-radius: 5px;
+  background: var(--tableDraggingBg);
+  color: var(--text-color);
+  font-size: 15px;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

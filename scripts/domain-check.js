@@ -86,6 +86,7 @@ loadRel('domain/ViewState.js');
 loadRel('domain/SliderState.js');
 loadRel('domain/BoardState.js');
 loadRel('domain/PanelState.js');
+loadRel('domain/TableState.js');
 loadRel('domain/Progress.js');
 
 // ---- exercise --------------------------------------------------------------
@@ -902,6 +903,109 @@ loadRel('domain/ListPrompts.js');
   assert(idsOf(layoutOf().source) === all.join() && !panelSession(), 'reset returns every card to the start area');
   assert(PanelState.uiOf(source).mode === 'original', 'reset restores the mode');
 }
+
+// ---- TableState: columns, cells, rows, what is progress --------------------
+{
+  const source = 'osarai-house';
+  App.setSelection(source, []);
+  const all = App.selectedEntries(source).map(e => e.id);
+  const layoutOf = () => TableState.layout(source);
+  const idsOf = list => list.map(e => e.id).join();
+  const tableSession = () => Progress.activeSessions()
+    .some(s => s.views.some(v => v.name === 'table' && v.label === 'T'));
+  const progressOf = id => App.views[source].table?.progress[id];
+
+  const columns = layoutOf().columns;
+  assert(columns[0] === 'expression' && columns.includes('meaning'), 'columns follow the default order of roles');
+  assert(columns.every(role => TableState.roles.includes(role)), 'columns are known roles only');
+  assert(idsOf(layoutOf().entries) === all.join() && !tableSession(), 'untouched table is not a session');
+
+  // Hiding is a setting, not progress.
+  TableState.toggleColumn(source, 'expression', true);
+  assert(Object.keys(TableState.uiOf(source).hidden).length > 0 && !tableSession(),
+    'hiding the other columns is not a session');
+  assert(TableState.isHidden(TableState.uiOf(source), all[0], 'meaning')
+    && !TableState.isHidden(TableState.uiOf(source), all[0], 'expression'),
+  'hide others hides the cells of the other columns only');
+  assert(JSON.parse(JSON.stringify(App.views))[source].table.ui.hidden[all[0]].includes('meaning'),
+    'hidden cells are persisted in ui');
+
+  // Showing a column is a setting too: nothing is opened.
+  TableState.toggleColumn(source, 'expression', true);
+  assert(!Object.keys(TableState.uiOf(source).hidden).length, 'showing the columns lifts hidden');
+  assert(!tableSession() && !progressOf(all[0]), 'showing a column does not open cells nor start a session');
+
+  // Hide one column, open one cell: a guess checked is progress.
+  TableState.toggleColumn(source, 'meaning', false);
+  TableState.toggleCell(source, all[0], 'meaning');
+  assert(!TableState.isHidden(TableState.uiOf(source), all[0], 'meaning')
+    && progressOf(all[0]).revealed.join() === 'meaning' && tableSession(),
+  'a tap on a hidden cell opens it and starts a session');
+
+  // Hiding the column closes what was opened, and the session ends.
+  TableState.toggleColumn(source, 'meaning', false);
+  assert(TableState.isHidden(TableState.uiOf(source), all[0], 'meaning') && !progressOf(all[0])
+    && !tableSession(), 'hiding a column takes the opened marks away');
+
+  // A tap on an opened cell hides it again, and the mark goes away.
+  TableState.toggleCell(source, all[1], 'meaning');
+  assert(!!progressOf(all[1])?.revealed, 'a tap on a hidden cell opens it');
+  TableState.toggleCell(source, all[1], 'meaning');
+  assert(TableState.isHidden(TableState.uiOf(source), all[1], 'meaning') && !progressOf(all[1])
+    && !tableSession(), 'a tap on an opened cell hides it and the mark goes away');
+  ViewState.resetEntries(source, 'table', all, TableState.defaultUi());
+
+  // Rows: the order is progress and is numbered over all shown rows.
+  TableState.moveRow(source, all[2], all[0]);
+  assert(idsOf(layoutOf().entries.slice(0, 3)) === [all[2], all[0], all[1]].join(), 'a row goes before another row');
+  assert(tableSession() && progressOf(all[3]).order === 4, 'a move numbers every shown row and makes a session');
+  TableState.moveRow(source, all[2], null);
+  assert(layoutOf().entries[all.length - 1].id === all[2], 'a row goes to the end');
+  TableState.moveRowToEdge(source, all[2], true);
+  assert(layoutOf().entries[0].id === all[2], 'a row goes to the top');
+  const stored = JSON.stringify(App.views[source].table.progress);
+  TableState.moveRow(source, all[2], layoutOf().entries[1].id);
+  assert(JSON.stringify(App.views[source].table.progress) === stored, 'a move that changes nothing writes nothing');
+
+  // Columns: the order is a setting.
+  ViewState.resetEntries(source, 'table', all, TableState.uiAfterReset(source));
+  assert(!tableSession(), 'reset ends the session');
+  const before = layoutOf().columns;
+  TableState.moveColumn(source, before[1], before[0]);
+  assert(layoutOf().columns[0] === before[1] && layoutOf().columns[1] === before[0], 'a column goes before another one');
+  assert(!tableSession(), 'the order of columns is not progress');
+  TableState.moveColumn(source, before[0], null);
+  assert(layoutOf().columns[layoutOf().columns.length - 1] === before[0], 'a column goes to the end');
+  assert(TableState.columnsOf(layoutOf().entries, ['nonsense', before[1], before[1]]).length === before.length,
+    'unknown and repeated roles of a saved order are ignored');
+
+  // Removal and reset.
+  TableState.removeEntry(source, all[0]);
+  assert(!layoutOf().entries.some(e => e.id === all[0]) && tableSession(), 'a removed row is hidden and is progress');
+  TableState.zoomBy(source, 1);
+  TableState.setHideOthers(source, false);
+  assert(TableState.uiOf(source).zoom === 1.1 && TableState.uiOf(source).hideOthers === false,
+    'toolbar settings are stored');
+  ViewState.resetEntries(source, 'table', all, TableState.uiAfterReset(source));
+  assert(layoutOf().entries.some(e => e.id === all[0]) && !tableSession(), 'reset restores removed rows');
+  assert(TableState.uiOf(source).zoom === 1.1 && TableState.uiOf(source).hideOthers === false
+    && !Object.keys(TableState.uiOf(source).hidden).length && !TableState.uiOf(source).colOrder.length,
+  'reset keeps the settings of the toolbar only');
+
+  // Zoom is limited and a step is rounded.
+  for(let i = 0; i < 40; i++) TableState.zoomBy(source, -1);
+  assert(TableState.uiOf(source).zoom === 0.3, 'zoom out stops at the minimum');
+  for(let i = 0; i < 40; i++) TableState.zoomBy(source, 1);
+  assert(TableState.uiOf(source).zoom === 2.5, 'zoom in stops at the maximum');
+
+  // Forgetting an entry drops its hidden cells.
+  TableState.toggleColumn(source, 'expression', true);
+  const ui = App.views[source].table.ui;
+  TableState.forgetEntryInUi(ui, all[0]);
+  assert(!(all[0] in ui.hidden), 'a forgotten entry leaves no hidden cells');
+  ViewState.resetEntries(source, 'table', all, TableState.defaultUi());
+}
+
 
 // ---- Reset of a selection keeps progress outside it ------------------------
 {

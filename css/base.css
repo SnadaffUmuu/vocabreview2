@@ -71,6 +71,11 @@
   --panelBox4Bg: #fff5fe;
   --panelFocusedBoxShadow: #c5b8d0;
   --panelFocusButtonBg: #e6deee;
+  --tableCellBorder: gray;
+  --tableHiddenContentBg: #d9d2dd;
+  --tableHiddenReadableContentBg: #ddd4d6;
+  --tableDraggingBg: rgba(135, 207, 235, 0.63);
+  --tableDropMark: #5d6fd6;
   /* Marks cards that are already in a custom list. Not used until custom
      lists exist (they replace the v1 global pool); kept for that styling. */
   /* --boardGlobalItemShadow: #1e20c07d; */
@@ -135,6 +140,10 @@ body.night {
   --panelBox4Bg: #553f4c;
   --panelFocusedBoxShadow: #300000;
   --panelFocusButtonBg: #5e1730;
+  --tableHiddenContentBg: #492037;
+  --tableHiddenReadableContentBg: #561723;
+  --tableDraggingBg: rgba(60, 90, 110, 0.9);
+  --tableDropMark: #e0a0d0;
   /* See the light theme: reserved for custom lists. */
   /* --boardGlobalItemShadow: #ffffff45; */
 }
