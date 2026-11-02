@@ -20,6 +20,11 @@
      showAll       - the user agreed to mount a result bigger than SHOW_LIMIT
      picked        - keys of the ticked results; they go to a list in one batch
      adjustOpen    - the "Adjust sources" dialog is open
+     emptyOpen     - the dialog also lists the sources without hits
+   The dialog lists only the sources that have hits under the current criteria:
+   a long list of zeros is noise. A source taken off stays off when it drops out
+   of the list: sourcesOff is the scope of the search, not a layout of ticks, so
+   refining the query inside a narrowed scope must not widen it.
    None of the search settings is persisted: what is worth keeping goes to a
    list. A result is dropped (showAll, picked) whenever what it was made of
    changes, so a big result always has to be confirmed anew.
@@ -78,6 +83,7 @@ const DataViewUI = {
       '#dataSourcesClose': 'closeSources',
       '#dataSourcesAll': 'takeAllSources',
       '#dataSourcesNone': 'takeNoSources',
+      '#dataSourcesList .dataSourcesToggle': 'toggleEmptySources',
       '#dataFilters .dataFilterClear': 'clearFilter',
       '#dataOutput .dataShow': 'showResult',
       '#dataOutput .dataEntryAdd': 'addToList',
@@ -97,6 +103,7 @@ const DataViewUI = {
   showAll: false,
   picked: new Set(),
   adjustOpen: false,
+  emptyOpen: false,
 
   // Memoized analysis(); dropped together with the result.
   cache: null,
@@ -193,11 +200,18 @@ const DataViewUI = {
 
   openSources() {
     this.adjustOpen = true;
+    this.emptyOpen = false;
     this.render();
   },
 
   closeSources() {
     this.adjustOpen = false;
+    this.emptyOpen = false;
+    this.render();
+  },
+
+  toggleEmptySources() {
+    this.emptyOpen = !this.emptyOpen;
     this.render();
   },
 
@@ -392,6 +406,9 @@ const DataViewUI = {
       adjustOpen: false,
       filters: this.filtersViewModel(null),
       sources: [],
+      emptySources: [],
+      notLoadedCount: 0,
+      emptyOpen: false,
       picker: this.pickerViewModel(null),
     };
     if(!visible) return vm;
@@ -402,7 +419,7 @@ const DataViewUI = {
     vm.filters = this.filtersViewModel(result.analysis);
     vm.narrowed = this.isNarrowedToSelection(sourceId);
     vm.adjustOpen = this.adjustOpen;
-    if(this.adjustOpen) vm.sources = this.sourcesViewModel(result.analysis);
+    if(this.adjustOpen) Object.assign(vm, this.sourcesViewModel(result.analysis));
     vm.picker = this.pickerViewModel(result);
     if(!result.mounted) {
       vm.hiddenCount = result.found.length;
@@ -461,15 +478,34 @@ const DataViewUI = {
     };
   },
 
-  // Every listed source: one that is not loaded cannot be searched in.
+  /*
+     The sources with hits are listed, most hits first. The loaded ones without
+     hits are kept behind a toggle. The ones that are not loaded are only
+     counted: they cannot be searched in, and that must stay visible, because
+     their zero is not "no hits" but "not searched".
+  */
   sourcesViewModel(result) {
     const loaded = new Set(Library.listIds());
-    return Library.knownIds().map(sourceId => ({
-      sourceId,
-      loaded: loaded.has(sourceId),
-      taken: !this.sourcesOff.has(sourceId),
-      count: result.sourceCounts[sourceId] || 0,
-    }));
+    const sources = [];
+    const emptySources = [];
+    let notLoadedCount = 0;
+    Library.knownIds().forEach(sourceId => {
+      if(!loaded.has(sourceId)) {
+        notLoadedCount += 1;
+        return;
+      }
+      const count = result.sourceCounts[sourceId] || 0;
+      const source = { sourceId, taken: !this.sourcesOff.has(sourceId), count };
+      (count ? sources : emptySources).push(source);
+    });
+    // The richest first; the sort is stable, so equal counts keep the order of the library.
+    sources.sort((a, b) => b.count - a.count);
+    return {
+      sources,
+      emptySources,
+      notLoadedCount,
+      emptyOpen: this.emptyOpen && emptySources.length > 0,
+    };
   },
 
   // Plain data for one entry; template() needs neither Library nor App.
@@ -646,23 +682,36 @@ const DataViewUI = {
       `;
   },
 
-  // A source that is not loaded has nothing to search in.
+  sourceTemplate(source) {
+    return `
+      <li class="dataSourcesItem ${source.count ? '' : 'empty'}">
+        <label>
+          <input class="dataSourceCheck" type="checkbox"
+            data-source-id="${Utils.escapeHtml(source.sourceId)}"
+            ${source.taken ? 'checked' : ''}
+            >
+          <span class="dataSourcesName">${Utils.escapeHtml(source.sourceId)}</span>
+        </label>
+        <span class="tag">${Utils.escapeHtml(source.count)}</span>
+      </li>
+      `;
+  },
+
   sourcesTemplate(vm) {
     return `
       <ul class="dataSourcesItems">
-        ${vm.sources.map(source => `
-        <li class="dataSourcesItem ${source.loaded ? '' : 'empty'}">
-          <label>
-            <input class="dataSourceCheck" type="checkbox"
-              data-source-id="${Utils.escapeHtml(source.sourceId)}"
-              ${source.taken && source.loaded ? 'checked' : ''}
-              ${source.loaded ? '' : 'disabled'}
-              >
-            <span class="dataSourcesName">${Utils.escapeHtml(source.sourceId)}</span>
-          </label>
-          <span class="tag">${source.loaded ? Utils.escapeHtml(source.count) : 'not loaded'}</span>
-        </li>`).join('')}
+        ${vm.sources.map(source => this.sourceTemplate(source)).join('')}
       </ul>
+      ${vm.emptySources.length ? `
+      <button class="dataSourcesToggle" type="button"
+        aria-expanded="${vm.emptyOpen ? 'true' : 'false'}"
+        >${vm.emptyOpen ? 'hide' : 'show'} ${Utils.escapeHtml(vm.emptySources.length)} without hits</button>` : ''}
+      ${vm.emptyOpen ? `
+      <ul class="dataSourcesItems">
+        ${vm.emptySources.map(source => this.sourceTemplate(source)).join('')}
+      </ul>` : ''}
+      ${vm.notLoadedCount ? `
+      <div class="dataSourcesNote">${Utils.escapeHtml(vm.notLoadedCount)} not loaded: not searched</div>` : ''}
       `;
   },
 

@@ -210,8 +210,37 @@ SearchingUI.resetResult();
 assert.strictEqual(SearchingUI.viewModel().entries.length, 2, 'a source taken off is not searched');
 SearchingUI.adjustOpen = true;
 dataVm = SearchingUI.viewModel();
-assert(dataVm.sources.length === 3 && dataVm.sources[1].count === 1 && !dataVm.sources[1].taken
-  && !dataVm.sources[2].loaded, 'sources: a count each even when taken off; unloaded ones are marked');
+assert(dataVm.sources.length === 2 && dataVm.sources[1].count === 1 && !dataVm.sources[1].taken
+  && dataVm.emptySources.length === 0 && dataVm.notLoadedCount === 1,
+'sources: only those with hits, counted even when taken off; unloaded ones are only counted');
+SearchingUI.searchValue = 'fire';
+SearchingUI.resetResult();
+dataVm = SearchingUI.viewModel();
+assert(dataVm.sources.length === 1 && dataVm.emptySources.length === 1 && !dataVm.emptyOpen
+  && !dataVm.emptySources[0].taken, 'a source without hits is set aside, and stays off');
+let sourcesHtml = SearchingUI.sourcesTemplate(dataVm);
+assert(sourcesHtml.includes('show 1 without hits') && !sourcesHtml.includes('data-source-id="other"')
+  && sourcesHtml.includes('1 not loaded'), 'the zeros are behind a toggle, unloaded ones are mentioned');
+SearchingUI.toggleEmptySources();
+dataVm = SearchingUI.viewModel();
+sourcesHtml = SearchingUI.sourcesTemplate(dataVm);
+assert(dataVm.emptyOpen && sourcesHtml.includes('hide 1 without hits') && sourcesHtml.includes('data-source-id="other"'),
+  'the toggle lists the sources without hits');
+SearchingUI.closeSources();
+assert(!SearchingUI.emptyOpen, 'the toggle is closed together with the dialog');
+SearchingUI.searchValue = 'water';
+// sorted by hits, the library order between equal counts
+const savedOther = searchSources.other;
+searchSources.other = [searchEntry(1, 'water a'), searchEntry(2, 'water b'), searchEntry(3, 'water c')];
+SearchingUI.adjustOpen = true;
+SearchingUI.resetResult();
+assert.deepStrictEqual(SearchingUI.viewModel().sources.map(source => `${source.sourceId}:${source.count}`),
+  ['other:3', 'file:2'], 'the source with more hits comes first');
+searchSources.other = [searchEntry(1, 'water a'), searchEntry(2, 'water b')];
+SearchingUI.resetResult();
+assert.deepStrictEqual(SearchingUI.viewModel().sources.map(source => source.sourceId),
+  ['file', 'other'], 'equal counts keep the order of the library');
+searchSources.other = savedOther;
 SearchingUI.adjustOpen = false;
 SearchingUI.sourcesOff = new Set();
 SearchingUI.resetResult();
