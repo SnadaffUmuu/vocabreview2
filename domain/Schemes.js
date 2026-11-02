@@ -12,6 +12,7 @@ const Schemes = {
   list: [
     { id: 'default', label: 'Wine' },
     { id: 'forest', label: 'Forest' },
+    { id: 'newsprint', label: 'Newsprint' },
   ],
 
   has(id) {

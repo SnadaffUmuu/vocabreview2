@@ -1,0 +1,225 @@
+/*
+  Color scheme "newsprint": a monochrome scheme in the manner of old newspaper
+  print. It is deliberately low in contrast: the day palette is a light gray
+  paper with dark gray ink, the night palette a dark gray with light gray ink,
+  not white on black. Text keeps roughly 6:1 (day) and 5:1 (night) against its
+  card, secondary text about 3:1. The only colors are a muted brick red, as a
+  second printing ink, and faintly tinted patterns of tags. A first draft to be
+  tuned by eye; the rules are those of default.css (every token explicit in
+  both palettes, same tokens in the same order, nothing derived).
+*/
+body[data-scheme="newsprint"] {
+  /* ---- page and text ---- */
+  --bg: #d5d3cd;
+  --text: #3f3e3b;
+  --text-reading: #4a4845b3;
+  --text-title: #2c2b29;
+
+  /* ---- surfaces ---- */
+  --surface-card: #e6e4de;
+  --surface-raised: #e6e4de;
+  --surface-prompt: #bfbdb7;
+  --text-prompt: #34332f;
+  --input-bg: #cfcdc7;
+  --checkbox-filter: none;
+
+  /* ---- controls: buttons, selects, dropdowns ---- */
+  --control-bg: #c2c0ba;
+  --control-text: #34332f;
+  --control-selected-bg: #d5d3cd96;
+
+  /* ---- menu ---- */
+  --menu-bg: #5c5b57;
+  --menu-text: #ecebe6;
+  --menu-active-bg: #8c4b3a;
+
+  /* ---- layers over the page ---- */
+  --scrim-menu: rgba(50, 50, 48, 0.24);
+  --scrim-dialog: rgba(40, 40, 38, 0.24);
+  --scrim-prompt: #d5d3cda3;
+  --busy-bg: #8a894444;
+  --busy-spinner: #55534f;
+
+  /* ---- borders ---- */
+  --border: #bdbbb5;
+  --border-input: #85847f;
+  --border-cell: #8f8e89;
+  --border-zone: #8f8e89;
+  --border-dropdown-item: #4a48448f;
+  --border-card: #b5b3ad;
+  --border-card-open: #9fa8a4;
+
+  /* ---- shadows ---- */
+  --shadow-dialog: rgba(40, 40, 38, 0.741);
+  --shadow-prompt: #2c2b2969;
+  --shadow-dropdown: #4f4e4b8f;
+  --shadow-focus: #b0aea8;
+  --shadow-card-info: #9a9993;
+  --shadow-card-reversed: #8c4b3a5e;
+
+  /* ---- feedback ---- */
+  --danger: #a8402e;
+  --negative: #9c3a2e;
+  --positive: #3f6e4d;
+
+  /* ---- review level of an entry ---- */
+  --level-1: #3f5a80;
+  --level-2: #6a4f80;
+  --level-3: #80532f;
+
+  /* ---- the small label chip (.tag) ---- */
+  --label-bg: #6a6965;
+  --label-text: #ecebe6;
+
+  /* ---- patterns of entry tags, they lie over the card color ---- */
+  --tag-yoji: #c3c9d8;
+  --tag-onoma: #bcd0cc;
+  --tag-grammar: #d3c4d6;
+  --tag-geo: #d0cbb8;
+  --tag-name: #c8d3b0;
+  --tag-term: #dbbfc6;
+  --tag-pattern: #dccfae;
+  --tag-counter: #bcd4c6;
+  --tag-suffix: #b4cdd0;
+  --tag-dialect: #b0b6d4;
+
+  /* ---- Slider ---- */
+  --slide-info-bg: #c2c0ba;
+  --slide-cover: #c2c0ba;
+  --slide-remove: #c2c0ba;
+
+  /* ---- Board: review columns ---- */
+  --zone-good: #a9b8ac;
+  --zone-failed: #bfa9a2;
+  --zone-learn: #a9b3bf;
+
+  /* ---- Panel: the four areas ---- */
+  --zone-bg-1: #eae4dc;
+  --zone-bg-2: #e1e6e0;
+  --zone-bg-3: #e4e6ea;
+  --zone-bg-4: #e8e2e6;
+  --zone-focus-button-bg: #cbc9c3;
+
+  /* ---- Table ---- */
+  --cell-hidden-bg: #c9c7c1;
+  --cell-hidden-readable-bg: #cfccbf;
+
+  /* ---- icons: the parts of the zoom magnifier ---- */
+  --icon-ink: #2c2b29;
+  --icon-rim: #8f8e89;
+  --icon-glass: #f2f1ed;
+  --icon-grip: #a8b8b8;
+
+  /* ---- drag and drop ---- */
+  --drop-mark: #55534f;
+  --drop-placeholder: rgba(100, 100, 95, 0.25);
+  --drag-ghost-bg: rgba(150, 150, 145, 0.63);
+}
+
+body[data-scheme="newsprint"].night {
+  /* ---- page and text ---- */
+  --bg: #262624;
+  --text: #b4b2ab;
+  --text-reading: #b4b2aba0;
+  --text-title: #c8c6bf;
+
+  /* ---- surfaces ---- */
+  --surface-card: #353532;
+  --surface-raised: #2e2e2c;
+  --surface-prompt: #4a4a46;
+  --text-prompt: #dcdad4;
+  --input-bg: #a9a8a2;
+  --checkbox-filter: grayscale(100%) brightness(65%) contrast(100%);
+
+  /* ---- controls: buttons, selects, dropdowns ---- */
+  --control-bg: #4a4a46;
+  --control-text: #dcdad4;
+  --control-selected-bg: #a9a8a280;
+
+  /* ---- menu ---- */
+  --menu-bg: #3a3a37;
+  --menu-text: #dcdad4;
+  --menu-active-bg: #7d4637;
+
+  /* ---- layers over the page ---- */
+  --scrim-menu: rgba(10, 10, 10, 0.4);
+  --scrim-dialog: rgba(5, 5, 5, 0.45);
+  --scrim-prompt: #26262494;
+  --busy-bg: #3a3a3766;
+  --busy-spinner: #b4b2ab;
+
+  /* ---- borders ---- */
+  --border: #444441;
+  --border-input: #77766f;
+  --border-cell: #55544f;
+  --border-zone: #55544f;
+  --border-dropdown-item: #2626248f;
+  --border-card: #1c1c1b;
+  --border-card-open: #5f6a66;
+
+  /* ---- shadows ---- */
+  --shadow-dialog: #0c0c0bb0;
+  --shadow-prompt: #0c0c0bb0;
+  --shadow-dropdown: #111110;
+  --shadow-focus: #0e0e0d;
+  --shadow-card-info: #131312;
+  --shadow-card-reversed: #1a0c08;
+
+  /* ---- feedback ---- */
+  --danger: #e08a76;
+  --negative: #d0786a;
+  --positive: #82b896;
+
+  /* ---- review level of an entry ---- */
+  --level-1: #a4b4d0;
+  --level-2: #c0aed0;
+  --level-3: #d2b48e;
+
+  /* ---- the small label chip (.tag) ---- */
+  --label-bg: #41413d;
+  --label-text: #b0aea8;
+
+  /* ---- patterns of entry tags, they lie over the card color ---- */
+  --tag-yoji: #474c5e;
+  --tag-onoma: #3f5552;
+  --tag-grammar: #54485a;
+  --tag-geo: #55503f;
+  --tag-name: #4c5640;
+  --tag-term: #5a444b;
+  --tag-pattern: #5a5340;
+  --tag-counter: #3f5549;
+  --tag-suffix: #3d5256;
+  --tag-dialect: #4a4f68;
+
+  /* ---- Slider ---- */
+  --slide-info-bg: #1f1f1e;
+  --slide-cover: #1f1f1e;
+  --slide-remove: #1f1f1e;
+
+  /* ---- Board: review columns ---- */
+  --zone-good: #4a5f50;
+  --zone-failed: #6a4d46;
+  --zone-learn: #4a5668;
+
+  /* ---- Panel: the four areas ---- */
+  --zone-bg-1: #3b3731;
+  --zone-bg-2: #323a33;
+  --zone-bg-3: #333840;
+  --zone-bg-4: #3a3339;
+  --zone-focus-button-bg: #4a4a46;
+
+  /* ---- Table ---- */
+  --cell-hidden-bg: #2c2c2a;
+  --cell-hidden-readable-bg: #36352c;
+
+  /* ---- icons: the parts of the zoom magnifier ---- */
+  --icon-ink: #b4b2ab;
+  --icon-rim: #6a6963;
+  --icon-glass: #262624;
+  --icon-grip: #7fa0a0;
+
+  /* ---- drag and drop ---- */
+  --drop-mark: #b4b2ab;
+  --drop-placeholder: rgba(180, 180, 170, 0.2);
+  --drag-ghost-bg: rgba(60, 60, 56, 0.9);
+}
