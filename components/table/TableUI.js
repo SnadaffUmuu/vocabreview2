@@ -49,6 +49,7 @@ const TableUI = {
     zoomInEl: '#tableZoomIn',
     zoomOutEl: '#tableZoomOut',
     resetEl: '#tableReset',
+    counterEl: '#tableRowCount',
     containerEl: '#tableContainer',
   },
 
@@ -102,6 +103,7 @@ const TableUI = {
           <label for="tableHideOthers">Hide others&nbsp;&nbsp;<input type="checkbox" id="tableHideOthers"></label>
           <button type="button" class="svgButton" id="tableZoomIn"></button>
           <button type="button" class="svgButton" id="tableZoomOut"></button>
+          <div id="tableRowCount" class="tag"></div>
           <button type="button" id="tableReset">Reset</button>
         </div>
         <div id="tableContainer" data-drag-scroll></div>
@@ -142,6 +144,7 @@ const TableUI = {
       zoom: 1,
       columns: [],
       rows: [],
+      rowCount: '0',
       legend: [],
     };
     if(!visible || !sourceId) return empty;
@@ -155,6 +158,7 @@ const TableUI = {
       zoom: ui.zoom,
       columns: columns.map(role => ({ role, label: this.labels[role] || role })),
       rows: entries.map(entry => this.rowViewModel(entry, columns, ui)),
+      rowCount: String(entries.length),
       legend: Object.values(Parser.ENTRY_TAG).filter(tag => tags.has(tag)),
     };
   },
@@ -323,6 +327,7 @@ const TableUI = {
 
     this.dom.root.classList.toggle('hidden', !vm.visible);
     this.dom.hideOthersEl.checked = vm.hideOthers;
+    this.dom.counterEl.textContent = vm.rowCount;
     container.innerHTML = this.template(vm);
     container.scrollLeft = left;
     container.scrollTop = top;

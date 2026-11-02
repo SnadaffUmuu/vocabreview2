@@ -613,6 +613,8 @@ let tableVm = TableUI.viewModel();
 assert.deepStrictEqual(tableVm.columns.map(c => c.label), ['expression', 'meaning', 'info', 'other'], 'columns have titles');
 assert.strictEqual(tableVm.zoom, 1.2);
 assert.strictEqual(tableVm.hideOthers, false);
+assert.strictEqual(tableVm.rowCount, '2', 'the counter shows the rows left in the table');
+
 assert.deepStrictEqual(tableVm.legend, ['geo'], 'only the tags of the shown rows');
 assert(tableVm.rows[1].cells[1].hidden && !tableVm.rows[0].cells[1].hidden, 'hidden comes from the state');
 assert(!tableVm.rows[1].cells[2].filled && tableVm.rows[1].cells[2].lines.length === 0, 'a row without info has an empty info cell');

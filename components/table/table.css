@@ -36,6 +36,12 @@
   box-shadow: inset 0px -3px 4px 0px var(--panelFocusedBoxShadow);
 }
 
+#tableRowCount {
+  min-width: 23px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
 #tableGrid {
   border-collapse: collapse;
   font-size: 15px;
