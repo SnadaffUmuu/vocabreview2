@@ -69,15 +69,22 @@ assert(html.includes('data-indeterminate') && html.includes('<details class="tre
 assert(html.includes('A&lt;b&gt;') && !html.includes('A<b>'));
 
 // InfobarUI.viewModel
-let App = { currentSource: 'src', night: true, selectedEntries: () => [1, 2, 3] };
+let App = { currentSource: 'src', night: true, scheme: 'forest', selectedEntries: () => [1, 2, 3] };
 let Library = { hasSource: id => id === 'src' || id === 'L:g', labelOf: id => id === 'L:g' ? 'L: G' : id };
 let InfobarUI = make('components/infobar/InfobarUI.js', 'InfobarUI', { App, Library });
-assert.deepStrictEqual(InfobarUI.viewModel(), { source: 'src', count: '3', night: true });
+assert.deepStrictEqual(InfobarUI.viewModel(), { source: 'src', count: '3', night: true, scheme: 'forest' });
 App.currentSource = 'L:g';
 assert.strictEqual(InfobarUI.viewModel().source, 'L: G', 'a list is shown by its label');
 App.currentSource = 'src';
 App.currentSource = 'missing';
-assert.deepStrictEqual(InfobarUI.viewModel(), { source: '', count: '', night: true });
+assert.deepStrictEqual(InfobarUI.viewModel(), { source: '', count: '', night: true, scheme: 'forest' });
+
+// ZoomIcons: the colors belong to the scheme, so no literal color is left in the markup
+const ZoomIcons = make('components/table/ZoomIcons.js', 'ZoomIcons');
+for(const icon of [ZoomIcons.zoomIn(), ZoomIcons.zoomOut()]) {
+  assert(icon.includes('class="zoomIcon"') && icon.includes('class="glass"'));
+  assert(!/#[0-9a-f]{3,8}\b|style=/i.test(icon), 'icon colors come from tokens');
+}
 
 // PromptUI.viewModel
 let Prompt = { state: { open: true, text: 't', notify: true, choice: null } };

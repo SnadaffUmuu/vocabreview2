@@ -81,6 +81,7 @@ loadRel('domain/parser/Parser.js');
 loadRel('core/Bus.js');
 loadRel('domain/Collections.js');
 loadRel('domain/Library.js');
+loadRel('domain/Schemes.js');
 loadRel('domain/App.js');
 loadRel('domain/ViewState.js');
 loadRel('domain/SliderState.js');
@@ -297,6 +298,20 @@ Library.setSource(thresholdId, sourceWithEntries(1, 100), 'http');
 assert(App.getSelection(thresholdId).join(',') === '0.0'
   && App.selectedEntries(thresholdId).length === 1,
   'guard applies at exactly 101 entries, based on source total');
+
+// ---- color scheme: independent of night mode ------------------------------
+{
+  const saved = { ...App.settings };
+  App.setScheme('forest');
+  assert(App.scheme === 'forest' && memStore['vocabreview2.settings'].includes('"scheme":"forest"'),
+    'the chosen scheme is stored at once');
+  App.setNight(true);
+  assert(App.scheme === 'forest' && App.night === true, 'night mode does not change the scheme');
+  App.setScheme('no-such-scheme');
+  assert(App.scheme === 'forest', 'an unknown scheme is not accepted');
+  assert(Schemes.resolve('gone') === Schemes.DEFAULT, 'a removed scheme reads as the default');
+  Object.assign(App.settings, saved);
+}
 
 // ---- Prompt: confirm / notify state ---------------------------------------
 loadRel('domain/Prompt.js');

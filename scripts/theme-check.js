@@ -1,7 +1,9 @@
 /*
   Static check of the color tokens (no browser needed):
   - every token of a palette exists in both the day and the night palette of
-    its scheme, so a night palette cannot silently keep a day color;
+    its scheme, in the same order, and in every scheme, so a night palette
+    cannot silently keep a day color;
+  - every scheme file is listed in domain/Schemes.js and linked in index.html;
   - every var(--x) in the stylesheets is defined somewhere;
   - there are no color literals outside css/themes/ (colors are tokens).
 
@@ -33,6 +35,7 @@ function report(msg) {
 
 /* ---- palettes of every scheme ---- */
 const defined = new Set();
+const schemes = {};
 for (const file of fs.readdirSync(themesDir).filter(f => f.endsWith('.css'))) {
   const text = strip(fs.readFileSync(path.join(themesDir, file), 'utf8'));
   const sets = {};
@@ -43,13 +46,28 @@ for (const file of fs.readdirSync(themesDir).filter(f => f.endsWith('.css'))) {
     const names = [...m[2].matchAll(/(--[\w-]+)\s*:/g)].map(x => x[1]);
     sets[selector] = (sets[selector] || []).concat(names);
   }
-  const day = new Set(sets[':root'] || []);
-  const night = new Set(sets['body.night'] || []);
+  const id = file.replace(/\.css$/, '');
+  const dayList = sets[`body[data-scheme="${id}"]`] || [];
+  const nightList = sets[`body[data-scheme="${id}"].night`] || [];
+  const day = new Set(dayList);
+  const night = new Set(nightList);
+  if (!day.size || !night.size) report(`${file}: needs body[data-scheme="${id}"] and body[data-scheme="${id}"].night`);
   for (const t of day) if (!night.has(t)) report(`${file}: ${t} is in the day palette only`);
   for (const t of night) if (!day.has(t)) report(`${file}: ${t} is in the night palette only`);
+  if (dayList.join() !== nightList.join()) report(`${file}: the palettes list their tokens in a different order`);
   day.forEach(t => defined.add(t));
   night.forEach(t => defined.add(t));
+  schemes[id] = day;
 }
+for (const [id, tokens] of Object.entries(schemes)) {
+  for (const t of defined) if (!tokens.has(t)) report(`${id}.css: lacks ${t}`);
+}
+const listed = (fs.readFileSync(path.join(root, 'domain', 'Schemes.js'), 'utf8').match(/id: '[\w-]+'/g) || [])
+  .map(x => x.slice(5, -1));
+for (const id of Object.keys(schemes)) if (!listed.includes(id)) report(`${id}.css is not listed in domain/Schemes.js`);
+for (const id of listed) if (!schemes[id]) report(`${id} is listed in domain/Schemes.js but has no css/themes/${id}.css`);
+const linked = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+for (const id of Object.keys(schemes)) if (!linked.includes(`css/themes/${id}.css`)) report(`${id}.css is not linked in index.html`);
 
 /* ---- usages and literals in the rest of the stylesheets ---- */
 const COLOR_LITERAL = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(|(?<![\w-])(?:white|black|red|green|blue|gray|grey|orange|yellow|plum|purple|pink)(?![\w-])/;

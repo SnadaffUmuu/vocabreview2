@@ -1,5 +1,6 @@
 /*
-  App: owns current selection state (current source, current view, theme),
+  App: owns current selection state (current source, current view, color
+  scheme and day/night mode),
   per-source selections (which sections are checked), and per-source/per-view
   progress. The single point that writes views/selections/settings to Storage.
   No DOM.
@@ -7,7 +8,11 @@
   Data model:
     views[sourceId][viewName] = { progress: { [entryId]: {...} }, ui: {...} }
     selections[sourceId] = [sectionIds]
-    settings = { currentSource, currentView, night, addTarget }
+    settings = { currentSource, currentView, night, scheme, addTarget }
+
+  night and scheme are two independent choices: night is the daily toggle, the
+  scheme (Schemes) a rarely changed one that brings its own day and night
+  palettes. A stored scheme that is not known any more reads as the default.
 
   addTarget is the listId last chosen in the "add to a list" prompt, offered
   there by default. It may point to a list that no longer exists: the reader
@@ -21,6 +26,7 @@ const App = {
     currentSource: null,
     currentView: 'data',
     night: false,
+    scheme: Schemes.DEFAULT,
     addTarget: null,
   },
 
@@ -57,6 +63,7 @@ const App = {
   // ---- settings ------------------------------------------------------------------
 
   get night() { return this.settings.night; },
+  get scheme() { return Schemes.resolve(this.settings.scheme); },
   get currentSource() { return this.settings.currentSource; },
   get currentView() { return this.settings.currentView; },
   get addTarget() { return this.settings.addTarget; },
@@ -69,6 +76,13 @@ const App = {
     this.settings.night = !!val;
     this._saveSettings();
     Bus.emit(Bus.events.settingsChanged, { night: this.settings.night });
+  },
+
+  setScheme(id) {
+    if(!Schemes.has(id) || this.settings.scheme === id) return;
+    this.settings.scheme = id;
+    this._saveSettings();
+    Bus.emit(Bus.events.settingsChanged, { scheme: id });
   },
 
   // No event: nothing shows the target; it is only read when the prompt opens.

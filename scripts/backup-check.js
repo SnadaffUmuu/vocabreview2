@@ -55,6 +55,14 @@ Storage.save(Storage.KEY.collections, { stale: true });
 Backup.apply(parsed.data);
 assert.deepEqual(Storage.exportAll(), before);
 
+// The color scheme of an imported file must be a string; which one exists is decided on reading.
+const withSettings = settings => JSON.stringify({
+  format: Backup.FORMAT, version: 1, data: { [Storage.KEY.settings]: settings },
+});
+assert.equal(Backup.parse(withSettings({ scheme: 'forest', night: true })).ok, true, 'a scheme is accepted');
+assert.equal(Backup.parse(withSettings({ night: true })).ok, true, 'a file from before schemes is accepted');
+assert.equal(Backup.parse(withSettings({ scheme: 5 })).ok, false, 'a scheme that is not a string is rejected');
+
 // A broken collections section is rejected like any other section.
 const badCollections = JSON.stringify({
   format: Backup.FORMAT, version: 1, data: { [Storage.KEY.collections]: [] },

@@ -21,6 +21,7 @@ function load(file) {
 
 load('core/Storage.js');
 load('domain/sources-list.js');
+load('domain/Schemes.js');
 load('domain/App.js');
 
 const listed = SOURCES_LIST[0];
@@ -51,6 +52,13 @@ assert.equal(App.currentSource, null);
 assert.equal(Storage.load(Storage.KEY.settings, {}).currentSource, null);
 assert.equal(App.currentView, 'slider');
 assert.equal(App.night, true);
+// Settings saved before color schemes existed read as the default scheme.
+assert.equal(App.scheme, Schemes.DEFAULT);
+App.settings.scheme = 'a-scheme-that-was-removed';
+assert.equal(App.scheme, Schemes.DEFAULT, 'an unknown scheme reads as the default');
+App.settings.scheme = 'forest';
+assert.equal(App.scheme, 'forest');
+App.settings.scheme = Schemes.DEFAULT;
 assert.equal(localStorage.getItem('vocabreview.src.legacy'), 'leave alone');
 assert.equal(localStorage.getItem('vocabreview2.collections'), 'leave alone');
 

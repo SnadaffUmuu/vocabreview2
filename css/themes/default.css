@@ -1,5 +1,7 @@
 /*
   Color tokens of the default color scheme: a day palette and a night palette.
+  A scheme is chosen by data-scheme on <body>, the night palette also needs the
+  class .night; the file of a scheme must be listed in domain/Schemes.js.
 
   - Tokens are named by the role a color plays, not by the place it is used in.
   - Every palette sets every token with an explicit value. Nothing is derived
@@ -11,7 +13,7 @@
   - Sizes, fonts and the variables a component sets for its own children
     (--cardBg, --cardFont*) are not colors of a scheme and do not belong here.
 */
-:root {
+body[data-scheme="default"] {
   /* ---- page and text ---- */
   --bg: #f1e6e8;
   --text: #141f76;
@@ -24,6 +26,7 @@
   --surface-prompt: #c4bfca;
   --text-prompt: #141f76;
   --input-bg: #dfd8e7;
+  --checkbox-filter: none;
 
   /* ---- controls: buttons, selects, dropdowns ---- */
   --control-bg: #c4bfca;
@@ -109,13 +112,19 @@
   --cell-hidden-bg: #d9d2dd;
   --cell-hidden-readable-bg: #ddd4d6;
 
+  /* ---- icons: the parts of the zoom magnifier ---- */
+  --icon-ink: #1E0478;
+  --icon-rim: #9B8CCC;
+  --icon-glass: #FFFFFF;
+  --icon-grip: #94E7EF;
+
   /* ---- drag and drop ---- */
   --drop-mark: #5d6fd6;
   --drop-placeholder: rgba(130, 200, 205, 0.3);
   --drag-ghost-bg: rgba(135, 207, 235, 0.63);
 }
 
-body.night {
+body[data-scheme="default"].night {
   /* ---- page and text ---- */
   --bg: #4d000e;
   --text: #a6cecf;
@@ -128,6 +137,7 @@ body.night {
   --surface-prompt: #7b848e;
   --text-prompt: #320008;
   --input-bg: #aebdcc;
+  --checkbox-filter: sepia(50%) brightness(60%) hue-rotate(170deg) saturate(70%) contrast(100%);
 
   /* ---- controls: buttons, selects, dropdowns ---- */
   --control-bg: #7b848e;
@@ -211,6 +221,12 @@ body.night {
   /* ---- Table ---- */
   --cell-hidden-bg: #492037;
   --cell-hidden-readable-bg: #561723;
+
+  /* ---- icons: the parts of the zoom magnifier ---- */
+  --icon-ink: #1E0478;
+  --icon-rim: #9B8CCC;
+  --icon-glass: #FFFFFF;
+  --icon-grip: #94E7EF;
 
   /* ---- drag and drop ---- */
   --drop-mark: #e0a0d0;

@@ -101,8 +101,8 @@ const TableUI = {
       <div id="tableView" class="appView hidden" data-drag-scope="table">
         <div id="tableActions">
           <label for="tableHideOthers">Hide others&nbsp;&nbsp;<input type="checkbox" id="tableHideOthers"></label>
-          <button type="button" class="svgButton" id="tableZoomIn"></button>
-          <button type="button" class="svgButton" id="tableZoomOut"></button>
+          <button type="button" class="svgButton" id="tableZoomIn" aria-label="Zoom in">${ZoomIcons.zoomIn()}</button>
+          <button type="button" class="svgButton" id="tableZoomOut" aria-label="Zoom out">${ZoomIcons.zoomOut()}</button>
           <div id="tableRowCount" class="tag"></div>
           <button type="button" id="tableReset">Reset</button>
         </div>

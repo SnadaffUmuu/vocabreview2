@@ -48,7 +48,7 @@ input[type="checkbox"] {
 }
 
 .night input[type="checkbox"] {
-  filter: sepia(50%) brightness(60%) hue-rotate(170deg) saturate(70%) contrast(100%);
+  filter: var(--checkbox-filter);
   accent-color: var(--input-bg);
 }
 

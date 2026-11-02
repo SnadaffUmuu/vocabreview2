@@ -133,11 +133,13 @@ Before considering a view converted to this model, check:
 ### Colors
 
 - All colors are tokens named by role (`--surface-card`, `--border`, `--level-1`), defined only in `css/themes/<scheme>.css`. Component CSS never contains color literals and never names a token after its place of use.
-- A scheme has a day palette (`:root`) and a night palette (`body.night`). Both set every token with an explicit value: nothing is derived or computed (`color-mix`, filters, inversion), because the night palette is a separately chosen range, not a transformation of the day one.
-- The night-mode toggle stays a top-level control; a scheme is a separate, rarely changed choice.
+- A scheme has a day palette (`body[data-scheme="<id>"]`) and a night palette (`body[data-scheme="<id>"].night`). Both set every token with an explicit value: nothing is derived or computed (`color-mix`, filters, inversion), because the night palette is a separately chosen range, not a transformation of the day one.
+- Scheme and night mode are two independent settings (`settings.scheme`, `settings.night`). The night-mode toggle stays a top-level control; a scheme is a rarely changed choice made in the menu. A scheme that is not known (an old import, a removed file) reads as the default.
+- A new scheme is a file `css/themes/<id>.css` with the same tokens in the same order as the others, an entry in `domain/Schemes.js` and a `<link>` in `index.html`; `scripts/theme-check.js` verifies all three.
+- Anything with a color that is not CSS, such as an icon, is inline markup whose parts get their color from tokens (`ZoomIcons`): an image loaded by `url()` cannot read the scheme.
 - Two tokens may hold equal values and still stay two tokens: they are separate roles that a scheme may want to tell apart.
 - Run `scripts/theme-check.js` after touching colors: it catches a token missing from one palette, an undefined `var()` and a color literal outside the themes. Use `scripts/theme-compare.js <ref>` to prove that a refactoring of tokens left every resolved value, day and night, unchanged.
-- Not yet tokenized: the fills inside `assets/img/zoom-*.svg` and the `filter` on checkboxes at night (`css/base.css`).
+- The night `filter` of checkboxes is the token `--checkbox-filter`, which is the one case where a token holds a filter instead of a color: native controls cannot be colored otherwise.
 
 ### Persistence and Source Reloading
 

@@ -16,7 +16,11 @@ const { execSync } = require('child_process');
 
 const ref = process.argv[2] || 'master';
 const root = path.join(__dirname, '..');
-const PALETTE_SELECTORS = { day: ':root', night: 'body.night' };
+/* The scheme compared is the default one: before schemes existed its palettes were :root and body.night. */
+const PALETTE_SELECTORS = {
+  day: [':root', 'body[data-scheme="default"]'],
+  night: ['body.night', 'body[data-scheme="default"].night'],
+};
 
 function git(cmd) {
   return execSync(`git ${cmd}`, { cwd: root, encoding: 'utf8', maxBuffer: 1 << 26 });
@@ -128,7 +132,8 @@ function collect(files, readFile) {
   const items = [];
   for (const file of files) {
     for (const rule of parseCss(readFile(file))) {
-      const mode = Object.keys(PALETTE_SELECTORS).find(m => PALETTE_SELECTORS[m] === rule.selector);
+      const mode = Object.keys(PALETTE_SELECTORS).find(m => PALETTE_SELECTORS[m].includes(rule.selector));
+      if (/^body\[data-scheme=/.test(rule.selector) && !mode) continue; // another scheme
       if (mode) {
         for (const [prop, value] of rule.decls) {
           if (prop.startsWith('--')) palettes[mode][prop] = value;

@@ -1,0 +1,225 @@
+/*
+  Color scheme "forest": sage greens with a terracotta accent. A first draft to
+  be tuned by eye; the rules are those of default.css (every token explicit in
+  both palettes, same tokens in the same order, nothing derived).
+*/
+body[data-scheme="forest"] {
+  /* ---- page and text ---- */
+  --bg: #e8eee4;
+  --text: #1f3a2a;
+  --text-reading: #2f6b4a99;
+  --text-title: #14532d;
+
+  /* ---- surfaces ---- */
+  --surface-card: #f6faf3;
+  --surface-raised: #f6faf3;
+  --surface-prompt: #c3d1bd;
+  --text-prompt: #1f3a2a;
+  --input-bg: #d9e4d3;
+  --checkbox-filter: none;
+
+  /* ---- controls: buttons, selects, dropdowns ---- */
+  --control-bg: #bccdb5;
+  --control-text: #1f3a2a;
+  --control-selected-bg: #e8eee496;
+
+  /* ---- menu ---- */
+  --menu-bg: #2f5d3f;
+  --menu-text: #f4f8f1;
+  --menu-active-bg: #b5532f;
+
+  /* ---- layers over the page ---- */
+  --scrim-menu: rgba(40, 70, 50, 0.24);
+  --scrim-dialog: rgba(30, 50, 38, 0.24);
+  --scrim-prompt: #e8eee4a3;
+  --busy-bg: #8fa88a44;
+  --busy-spinner: #2f6b4a;
+
+  /* ---- borders ---- */
+  --border: #c3d0bc;
+  --border-input: #7a8a76;
+  --border-cell: #8a9886;
+  --border-zone: #8a9886;
+  --border-dropdown-item: #2f4a3a8f;
+  --border-card: #bcc8b6;
+  --border-card-open: #9cc2a8;
+
+  /* ---- shadows ---- */
+  --shadow-dialog: rgba(30, 55, 40, 0.741);
+  --shadow-prompt: #1e3a2869;
+  --shadow-dropdown: #3d5e498f;
+  --shadow-focus: #b4c6ad;
+  --shadow-card-info: #9cc2a8;
+  --shadow-card-reversed: #b5532f5e;
+  /* Marks cards that are already in a custom list. Not used until custom
+     lists exist (they replace the v1 global pool); kept for that styling. */
+  /* --shadow-in-list: #2f6b4a7d; */
+
+  /* ---- feedback ---- */
+  --danger: #c2371d;
+  --negative: #b3261e;
+  --positive: #1f9d55;
+
+  /* ---- review level of an entry ---- */
+  --level-1: #1d5fb4;
+  --level-2: #6a2f9e;
+  --level-3: #a8501a;
+
+  /* ---- the small label chip (.tag) ---- */
+  --label-bg: #aebfa6;
+  --label-text: #f6faf3;
+
+  /* ---- patterns of entry tags, they lie over the card color ---- */
+  --tag-yoji: #cbd5f0;
+  --tag-onoma: #a9dcd6;
+  --tag-grammar: #e3c8e6;
+  --tag-geo: #dcd6c4;
+  --tag-name: #d3e2b2;
+  --tag-term: #e8b7c8;
+  --tag-pattern: #f3d9a8;
+  --tag-counter: #b4ead0;
+  --tag-suffix: #a9dcd6;
+  --tag-dialect: #8f9be0;
+
+  /* ---- Slider ---- */
+  --slide-info-bg: #bccdb5;
+  --slide-cover: #bccdb5;
+  --slide-remove: #bccdb5;
+
+  /* ---- Board: review columns ---- */
+  --zone-good: #7fc29a;
+  --zone-failed: #d98c7c;
+  --zone-learn: #8fb3d0;
+
+  /* ---- Panel: the four areas ---- */
+  --zone-bg-1: #f6ece4;
+  --zone-bg-2: #e8f6ee;
+  --zone-bg-3: #fbfdf8;
+  --zone-bg-4: #f4eef6;
+  --zone-focus-button-bg: #d3e0cc;
+
+  /* ---- Table ---- */
+  --cell-hidden-bg: #cfdac9;
+  --cell-hidden-readable-bg: #d6d6c4;
+
+  /* ---- icons: the parts of the zoom magnifier ---- */
+  --icon-ink: #14532d;
+  --icon-rim: #8fb59a;
+  --icon-glass: #ffffff;
+  --icon-grip: #a9dcd6;
+
+  /* ---- drag and drop ---- */
+  --drop-mark: #2f6b4a;
+  --drop-placeholder: rgba(120, 190, 150, 0.3);
+  --drag-ghost-bg: rgba(140, 200, 170, 0.63);
+}
+
+body[data-scheme="forest"].night {
+  /* ---- page and text ---- */
+  --bg: #0f1f17;
+  --text: #b9d6c1;
+  --text-reading: #cfe8d86e;
+  --text-title: #b9d6c1;
+
+  /* ---- surfaces ---- */
+  --surface-card: #16291f;
+  --surface-raised: #16291f;
+  --surface-prompt: #4a6354;
+  --text-prompt: #e6f1e8;
+  --input-bg: #a9bfae;
+  --checkbox-filter: sepia(50%) brightness(60%) hue-rotate(60deg) saturate(70%) contrast(100%);
+
+  /* ---- controls: buttons, selects, dropdowns ---- */
+  --control-bg: #4a6354;
+  --control-text: #e6f1e8;
+  --control-selected-bg: #a9bfae80;
+
+  /* ---- menu ---- */
+  --menu-bg: #1d3b2a;
+  --menu-text: #e6f1e8;
+  --menu-active-bg: #c0562c;
+
+  /* ---- layers over the page ---- */
+  --scrim-menu: rgba(10, 25, 16, 0.4);
+  --scrim-dialog: rgba(5, 15, 10, 0.45);
+  --scrim-prompt: #0f1f1794;
+  --busy-bg: #1f3a2c66;
+  --busy-spinner: #6fcf97;
+
+  /* ---- borders ---- */
+  --border: #2f4a3a;
+  --border-input: #6b7f70;
+  --border-cell: #4c6355;
+  --border-zone: #4c6355;
+  --border-dropdown-item: #0f1f178f;
+  --border-card: #0a1710;
+  --border-card-open: #4f7a62;
+
+  /* ---- shadows ---- */
+  --shadow-dialog: #040c08b0;
+  --shadow-prompt: #040c08b0;
+  --shadow-dropdown: #07120c;
+  --shadow-focus: #050e09;
+  --shadow-card-info: #06100a;
+  --shadow-card-reversed: #c0562c8f;
+  /* See the day palette: reserved for custom lists. */
+  /* --shadow-in-list: #ffffff45; */
+
+  /* ---- feedback ---- */
+  --danger: #ff6b57;
+  --negative: #e5584a;
+  --positive: #4cd68a;
+
+  /* ---- review level of an entry ---- */
+  --level-1: #9fd0ff;
+  --level-2: #e8efe9;
+  --level-3: #ffd9a3;
+
+  /* ---- the small label chip (.tag) ---- */
+  --label-bg: #2d4a3a;
+  --label-text: #9db5a4;
+
+  /* ---- patterns of entry tags, they lie over the card color ---- */
+  --tag-yoji: #1f2a6b;
+  --tag-onoma: #0d5a55;
+  --tag-grammar: #5b2a66;
+  --tag-geo: #5a4a2a;
+  --tag-name: #3f5a1f;
+  --tag-term: #7a2f55;
+  --tag-pattern: #6b4a12;
+  --tag-counter: #14584a;
+  --tag-suffix: #0f4a52;
+  --tag-dialect: #3d49c9;
+
+  /* ---- Slider ---- */
+  --slide-info-bg: #0a1710;
+  --slide-cover: #0a1710;
+  --slide-remove: #0a1710;
+
+  /* ---- Board: review columns ---- */
+  --zone-good: #2f7d5a;
+  --zone-failed: #8f3a2c;
+  --zone-learn: #5b84a8;
+
+  /* ---- Panel: the four areas ---- */
+  --zone-bg-1: #3a3328;
+  --zone-bg-2: #223b2d;
+  --zone-bg-3: #2a3a40;
+  --zone-bg-4: #3d2f3f;
+  --zone-focus-button-bg: #2f4a3a;
+
+  /* ---- Table ---- */
+  --cell-hidden-bg: #1d3a2b;
+  --cell-hidden-readable-bg: #2a3320;
+
+  /* ---- icons: the parts of the zoom magnifier ---- */
+  --icon-ink: #b9d6c1;
+  --icon-rim: #4f7a62;
+  --icon-glass: #0f1f17;
+  --icon-grip: #6fcf97;
+
+  /* ---- drag and drop ---- */
+  --drop-mark: #6fcf97;
+  --drop-placeholder: rgba(111, 207, 151, 0.25);
+  --drag-ghost-bg: rgba(30, 60, 45, 0.9);
+}

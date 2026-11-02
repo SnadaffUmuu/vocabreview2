@@ -24,6 +24,7 @@ const MenuUI = {
   actions: [
     { value: 'loadAllSources', label: 'Load all', run: menu => menu.loadAllSources() },
     { value: 'updateSource', label: 'update source', run: menu => menu.updateCurrent() },
+    { value: 'colorScheme', label: 'color scheme', run: menu => menu.chooseScheme() },
     { value: 'resetSpeech', label: 'reset speech', run: () => Utils.cancelSpeech() },
     { value: 'resetApp', label: 'reset App', run: menu => menu.resetApp() },
     { value: 'exportState', label: 'export state', run: menu => menu.exportState() },
@@ -306,6 +307,15 @@ const MenuUI = {
   installAll(items, origin) {
     Busy.beginAndRun(() => {
       items.forEach(({ id, raw }) => Library.setSource(id, raw, origin));
+    });
+  },
+
+  // Day/night stays on the infobar: it is used daily, the scheme is not.
+  chooseScheme() {
+    Prompt.ask({
+      text: 'Color scheme',
+      choice: { items: Schemes.choices(), value: App.scheme },
+      onConfirm: id => App.setScheme(id),
     });
   },
 
