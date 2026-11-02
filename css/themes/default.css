@@ -61,9 +61,6 @@ body[data-scheme="default"] {
   --shadow-focus: #c5b8d0;
   --shadow-card-info: #a6cecf;
   --shadow-card-reversed: #cb00ff5e;
-  /* Marks cards that are already in a custom list. Not used until custom
-     lists exist (they replace the v1 global pool); kept for that styling. */
-  /* --shadow-in-list: #1e20c07d; */
 
   /* ---- feedback ---- */
   --danger: #e6004d;
@@ -172,8 +169,6 @@ body[data-scheme="default"].night {
   --shadow-focus: #300000;
   --shadow-card-info: rgb(22 0 36);
   --shadow-card-reversed: #0003ff8f;
-  /* See the day palette: reserved for custom lists. */
-  /* --shadow-in-list: #ffffff45; */
 
   /* ---- feedback ---- */
   --danger: #e6004d;

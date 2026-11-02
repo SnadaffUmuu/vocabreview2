@@ -51,9 +51,6 @@ body[data-scheme="forest"] {
   --shadow-focus: #b4c6ad;
   --shadow-card-info: #9cc2a8;
   --shadow-card-reversed: #b5532f5e;
-  /* Marks cards that are already in a custom list. Not used until custom
-     lists exist (they replace the v1 global pool); kept for that styling. */
-  /* --shadow-in-list: #2f6b4a7d; */
 
   /* ---- feedback ---- */
   --danger: #c2371d;
@@ -122,7 +119,7 @@ body[data-scheme="forest"].night {
   --text-title: #b9d6c1;
 
   /* ---- surfaces ---- */
-  --surface-card: #16291f;
+  --surface-card: #1b3225;
   --surface-raised: #16291f;
   --surface-prompt: #4a6354;
   --text-prompt: #e6f1e8;
@@ -161,9 +158,7 @@ body[data-scheme="forest"].night {
   --shadow-dropdown: #07120c;
   --shadow-focus: #050e09;
   --shadow-card-info: #06100a;
-  --shadow-card-reversed: #c0562c8f;
-  /* See the day palette: reserved for custom lists. */
-  /* --shadow-in-list: #ffffff45; */
+  --shadow-card-reversed: #040047;
 
   /* ---- feedback ---- */
   --danger: #ff6b57;
@@ -180,13 +175,13 @@ body[data-scheme="forest"].night {
   --label-text: #9db5a4;
 
   /* ---- patterns of entry tags, they lie over the card color ---- */
-  --tag-yoji: #1f2a6b;
-  --tag-onoma: #0d5a55;
-  --tag-grammar: #5b2a66;
+  --tag-yoji: #000b4d;
+  --tag-onoma: #006b64;
+  --tag-grammar: #6f247f;
   --tag-geo: #5a4a2a;
   --tag-name: #3f5a1f;
   --tag-term: #7a2f55;
-  --tag-pattern: #6b4a12;
+  --tag-pattern: #126b5c;
   --tag-counter: #14584a;
   --tag-suffix: #0f4a52;
   --tag-dialect: #3d49c9;
