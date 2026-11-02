@@ -110,7 +110,9 @@
 /* A tick before an entry of a search result. */
 #dataView .dataEntry .dataPick {
   flex: 0 0 auto;
-  align-self: flex-start;
+  align-self: anchor-center;
+  width: 18px;
+  height: 18px;
 }
 
 #dataView .dataEntry {

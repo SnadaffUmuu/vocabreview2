@@ -772,6 +772,24 @@ loadRel('domain/EntrySearch.js');
   assert(tagged.tagCounts.geo === 1, 'the counts of tags are for the sources that are on');
   assert(EntrySearch.analyze(pair, { tag: 'geo', kind: 'regular' }).kindCounts.regular === 2,
     'the counts of kinds ignore the kind itself');
+
+  // review level: an exact value; its counts ignore the level itself
+  const leveled = [{ sourceId: 'z', entries: [
+    Object.assign({}, geo, { id: 4, reviewLevel: '2' }),
+    Object.assign({}, geo, { id: 5, reviewLevel: '200' }),
+    Object.assign({}, plain, { id: 6, reviewLevel: '2' }),
+    Object.assign({}, plain, { id: 7 }),
+  ] }];
+  assert(EntrySearch.isActive({ level: '2' }), 'a level is a criterion');
+  const byLevel = EntrySearch.analyze(leveled, { level: '2' });
+  assert(byLevel.items.map(item => item.entry.id).join() === '4,6', 'the level is matched exactly, "200" is not "2"');
+  assert(byLevel.levelCounts['2'] === 2 && byLevel.levelCounts['200'] === 1 && !('' in byLevel.levelCounts),
+    'counts of levels ignore the level itself and skip entries without one');
+  const geoLevels = EntrySearch.analyze(leveled, { tag: 'geo', level: '2' });
+  assert(geoLevels.items.length === 1 && geoLevels.levelCounts['2'] === 1 && geoLevels.levelCounts['200'] === 1,
+    'counts of levels respect the other criteria');
+  assert(EntrySearch.analyze(leveled, { level: '200' }).tagCounts.geo === 1,
+    'counts of tags respect the level');
 }
 
 // ---- Collections.addMany: one write for a batch -----------------------------

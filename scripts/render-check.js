@@ -245,6 +245,18 @@ SearchingUI.clearFilter({ dataset: { filter: 'tag' } });
 assert(SearchingUI.tag === '' && SearchingUI.kind === 'reminder', 'the tag is reset, the kind is not');
 SearchingUI.clearFilter({ dataset: { filter: 'kind' } });
 assert(SearchingUI.kind === '' && !SearchingUI.viewModel().searching, 'both reset: no criterion, no search');
+// the review level filter
+searchSources.file = [searchEntry(1, 'Water', { reviewLevel: '2' }), searchEntry(2, 'fire', { reviewLevel: '200' }), searchEntry(3, 'x')];
+SearchingUI.searchValue = '';
+SearchingUI.resetResult();
+SearchingUI.chooseLevel('200');
+dataVm = SearchingUI.viewModel();
+assert(dataVm.searching && dataVm.entries.length === 1, 'a level alone starts a search');
+assert(dataVm.filters.levelItems.map(item => item.label).join() === 'any level,2 (1),200 (1)', 'levels are counted and sorted as numbers');
+assert(SearchingUI.filtersTemplate(dataVm.filters).includes('data-filter="level"'), 'a chosen level has its own reset button');
+SearchingUI.clearFilter({ dataset: { filter: 'level' } });
+assert(SearchingUI.level === '' && !SearchingUI.viewModel().searching, 'the level is reset');
+searchSources.file = [searchEntry(1, 'Water', { tag: 'geo' }), searchEntry(2, 'fire'), searchEntry(3, 'water too', { info: 'x' })];
 SearchingUI.searchValue = '';
 SearchingUI.kind = '';
 searchSources.file = [searchEntry(1, 'Water', { tag: 'geo' }), searchEntry(2, 'fire'), searchEntry(3, 'water too', { info: 'x' })];

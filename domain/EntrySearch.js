@@ -2,10 +2,12 @@
    EntrySearch: selects entries of the sources by criteria. Pure domain logic;
    no DOM, no storage.
 
-   Criteria: { query, tag, kind }, all combined with "and".
+   Criteria: { query, tag, kind, level }, all combined with "and".
      query - text, without regard to case; looked for in the lines and in the
              info (the comment after the second "::" of a mark)
      tag   - entry.tag
+     level - entry.reviewLevel as the parser writes it ("2", "300"): an exact
+             value, not a range
      kind  - what the card is for, guessed from the roles of its lines, like
              the roles themselves. Never stored: it is computed on demand, so
              the heuristics can change without a migration.
@@ -20,8 +22,8 @@
      examples - has a line with the role "example"
 
    analyze() does everything in one pass: the entries found and, for the
-   dropdowns of the UI, how many entries each tag, each kind and each source
-   would give with the other criteria applied.
+   dropdowns of the UI, how many entries each tag, each kind, each review level
+   and each source would give with the other criteria applied.
 */
 const EntrySearch = {
 
@@ -40,8 +42,13 @@ const EntrySearch = {
   haystacks: new WeakMap(),
 
   isActive(criteria) {
-    return !!(criteria.query || criteria.tag
+    return !!(criteria.query || criteria.tag || criteria.level
       || (criteria.kind && criteria.kind !== this.ANY_KIND));
+  },
+
+  // '' for an entry without a review level.
+  levelOf(entry) {
+    return entry.reviewLevel ? String(entry.reviewLevel) : '';
   },
 
   kindFlags(entry) {
@@ -81,13 +88,14 @@ const EntrySearch = {
     sources: [{ sourceId, entries }]; isChosen(sourceId) tells whether the entries
     of a source are taken: the others are only counted in sourceCounts, so that
     the user sees what a source would give before taking it.
-    -> { items: [{ sourceId, entry }], tagCounts, kindCounts, sourceCounts }
+    -> { items: [{ sourceId, entry }], tagCounts, kindCounts, levelCounts, sourceCounts }
     Counts of a facet ignore the criterion of that facet itself.
   */
   analyze(sources, criteria, isChosen = () => true) {
     const needle = String(criteria.query || '').toLowerCase();
     const tagCounts = {};
     const kindCounts = {};
+    const levelCounts = {};
     const sourceCounts = {};
     const items = [];
     this.KINDS.forEach(kind => { kindCounts[kind.value] = 0; });
@@ -100,17 +108,20 @@ const EntrySearch = {
         const textOk = !needle || this.haystackOf(entry).includes(needle);
         const tagOk = !criteria.tag || entry.tag === criteria.tag;
         const kindOk = this.matchesKind(flags, criteria.kind);
+        const level = this.levelOf(entry);
+        const levelOk = !criteria.level || level === criteria.level;
         if(!textOk) return;
-        if(tagOk && kindOk) sourceCounts[sourceId] += 1;
+        if(tagOk && kindOk && levelOk) sourceCounts[sourceId] += 1;
         if(!chosen) return;
-        if(kindOk && entry.tag) tagCounts[entry.tag] = (tagCounts[entry.tag] || 0) + 1;
-        if(tagOk) {
+        if(kindOk && levelOk && entry.tag) tagCounts[entry.tag] = (tagCounts[entry.tag] || 0) + 1;
+        if(tagOk && kindOk && level) levelCounts[level] = (levelCounts[level] || 0) + 1;
+        if(tagOk && levelOk) {
           kindCounts[this.ANY_KIND] += 1;
           Object.keys(flags).forEach(kind => { if(flags[kind]) kindCounts[kind] += 1; });
         }
-        if(tagOk && kindOk) items.push({ sourceId, entry });
+        if(tagOk && kindOk && levelOk) items.push({ sourceId, entry });
       });
     });
-    return { items, tagCounts, kindCounts, sourceCounts };
+    return { items, tagCounts, kindCounts, levelCounts, sourceCounts };
   },
 };

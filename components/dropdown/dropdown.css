@@ -59,6 +59,10 @@
   color:var(--burgerButtonLine);
 }
 
+.select-button.is-active {
+  border-radius: 5px 5px 5px 0;
+}
+
 .dropdown-menu {
   position: absolute;
   top: 0;
@@ -69,6 +73,7 @@
   z-index: 1000;
   font-size: 16px;
   color: var(--viewActionDropdownText);
+  margin-top: -4px;
 }
 
 .dropdown-list {

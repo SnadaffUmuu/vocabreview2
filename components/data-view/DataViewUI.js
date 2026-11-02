@@ -7,7 +7,7 @@
    Two modes. Without criteria it shows the selection of the current source (a
    list: the whole list) with no limit: that is what is reviewed before another
    pass through a book. As soon as one criterion is set (text, tag, kind of
-   the card; see EntrySearch) it searches the loaded files: all of them by
+   the card, review level; see EntrySearch) it searches the loaded files: all of them by
    default, narrowed by "only selection" (the selection of the current source)
    or by the sources the user took off in the "Adjust sources" dialog. Lists
    are never searched: they hold no content of their own.
@@ -15,7 +15,7 @@
    Component state:
      onlySelection - the "only selection" checkbox; counts only while searching
      searchValue   - the applied text of the search
-     tag, kind     - the other criteria
+     tag, kind, level - the other criteria
      sourcesOff    - ids of the sources taken off the search
      showAll       - the user agreed to mount a result bigger than SHOW_LIMIT
      picked        - keys of the ticked results; they go to a list in one batch
@@ -47,6 +47,7 @@ const DataViewUI = {
   SHOW_LIMIT: 100,
   TAG_ID: 'dataTagSelect',
   KIND_ID: 'dataKindSelect',
+  LEVEL_ID: 'dataLevelSelect',
 
   selectors: {
     root: '#dataView',
@@ -91,6 +92,7 @@ const DataViewUI = {
   searchValue: '',
   tag: '',
   kind: EntrySearch.ANY_KIND,
+  level: '',
   sourcesOff: new Set(),
   showAll: false,
   picked: new Set(),
@@ -114,6 +116,7 @@ const DataViewUI = {
     Bus.on(Bus.events.collectionsChanged, () => this.render());
     DropdownUI.on(this.TAG_ID, value => this.chooseTag(value));
     DropdownUI.on(this.KIND_ID, value => this.chooseKind(value));
+    DropdownUI.on(this.LEVEL_ID, value => this.chooseLevel(value));
   },
 
   ensureMarkup() {
@@ -176,10 +179,16 @@ const DataViewUI = {
     this.resetResult();
   },
 
+  chooseLevel(value) {
+    this.level = value;
+    this.resetResult();
+  },
+
   // The reset button of a chosen filter: the same as choosing its "any ..." item.
   clearFilter(el) {
     if(el.dataset.filter === 'tag') this.chooseTag('');
     else if(el.dataset.filter === 'kind') this.chooseKind(EntrySearch.ANY_KIND);
+    else if(el.dataset.filter === 'level') this.chooseLevel('');
   },
 
   openSources() {
@@ -298,7 +307,7 @@ const DataViewUI = {
   },
 
   criteria() {
-    return { query: this.searchValue, tag: this.tag, kind: this.kind };
+    return { query: this.searchValue, tag: this.tag, kind: this.kind, level: this.level };
   },
 
   // The selection narrows the search only for a file: a list has no selection.
@@ -423,15 +432,24 @@ const DataViewUI = {
     };
   },
 
-  // Items of the two dropdowns, counted for the other criteria and the scope.
+  // Items of the dropdowns, counted for the other criteria and the scope.
   filtersViewModel(result) {
     const tagCounts = result ? result.tagCounts : {};
     const tags = Object.keys(tagCounts);
     if(this.tag && !tags.includes(this.tag)) tags.push(this.tag);
     tags.sort((a, b) => a.localeCompare(b));
+    const levelCounts = result ? result.levelCounts : {};
+    const levels = Object.keys(levelCounts);
+    if(this.level && !levels.includes(this.level)) levels.push(this.level);
+    levels.sort((a, b) => Number(a) - Number(b));
     return {
       tag: this.tag,
       kind: this.kind,
+      level: this.level,
+      levelItems: [{ value: '', label: 'any level' }].concat(levels.map(level => ({
+        value: level,
+        label: `${level} (${levelCounts[level] || 0})`,
+      }))),
       tagItems: [{ value: '', label: 'any tag' }].concat(tags.map(tag => ({
         value: tag,
         label: `${tag} (${tagCounts[tag] || 0})`,
@@ -601,6 +619,10 @@ const DataViewUI = {
         ${DropdownUI.select({ id: this.KIND_ID, items: filters.kindItems, placeholder: 'any kind' })}
         ${filters.kind ? this.clearTemplate('kind') : ''}
       </div>
+      <div class="dataFilter">
+        ${DropdownUI.select({ id: this.LEVEL_ID, items: filters.levelItems, placeholder: 'any level' })}
+        ${filters.level ? this.clearTemplate('level') : ''}
+      </div>
       `;
   },
 
@@ -651,6 +673,7 @@ const DataViewUI = {
     // The label and the highlight of a dropdown are written after its markup.
     DropdownUI.setValue(this.TAG_ID, vm.filters.tag);
     DropdownUI.setValue(this.KIND_ID, vm.filters.kind);
+    DropdownUI.setValue(this.LEVEL_ID, vm.filters.level);
     // The scope matters only while searching; a list has no selection to narrow to.
     this.dom.scopeEl.classList.toggle('hidden', !vm.searching);
     this.dom.filteredBoxEl.classList.toggle('hidden', vm.isList);
