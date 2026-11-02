@@ -281,6 +281,20 @@ SearchingUI.clearFilter({ dataset: { filter: 'tag' } });
 assert(SearchingUI.tag === '' && SearchingUI.kind === 'reminder', 'the tag is reset, the kind is not');
 SearchingUI.clearFilter({ dataset: { filter: 'kind' } });
 assert(SearchingUI.kind === '' && !SearchingUI.viewModel().searching, 'both reset: no criterion, no search');
+// the scope ends with the search: its controls are hidden, so it must not narrow the counts
+dataApp.currentSource = 'file';
+SearchingUI.chooseTag('geo');
+SearchingUI.onlySelection = true;
+SearchingUI.sourcesOff = new Set(['other']);
+SearchingUI.adjustOpen = true;
+SearchingUI.resetResult();
+assert(SearchingUI.onlySelection && SearchingUI.sourcesOff.size === 1, 'the scope is kept while a criterion is set');
+SearchingUI.clearFilter({ dataset: { filter: 'tag' } });
+assert(!SearchingUI.onlySelection && SearchingUI.sourcesOff.size === 0 && !SearchingUI.adjustOpen,
+  'the last criterion reset: the scope is reset too');
+assert(SearchingUI.viewModel().filters.kindItems.find(item => item.value === '').label.endsWith('(151)'),
+  'the counts are over all the sources again');
+dataApp.currentSource = 'L:g';
 // the review level filter
 searchSources.file = [searchEntry(1, 'Water', { reviewLevel: '2' }), searchEntry(2, 'fire', { reviewLevel: '200' }), searchEntry(3, 'x')];
 SearchingUI.searchValue = '';

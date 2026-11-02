@@ -24,7 +24,9 @@
    The dialog lists only the sources that have hits under the current criteria:
    a long list of zeros is noise. A source taken off stays off when it drops out
    of the list: sourcesOff is the scope of the search, not a layout of ticks, so
-   refining the query inside a narrowed scope must not widen it.
+   refining the query inside a narrowed scope must not widen it. The scope lives
+   only as long as the search: when the last criterion is reset, "only selection"
+   and sourcesOff are reset with it, because their controls disappear.
    None of the search settings is persisted: what is worth keeping goes to a
    list. A result is dropped (showAll, picked) whenever what it was made of
    changes, so a big result always has to be confirmed anew.
@@ -162,13 +164,26 @@ const DataViewUI = {
 
   // ---- handlers (clean: change component state, then render) ------------------------
 
-  // The result is not valid any more: the next one has to be confirmed and ticked anew.
+  /*
+     The result is not valid any more: the next one has to be confirmed and ticked anew.
+     Once the last criterion is gone the search is over, and its scope goes with it:
+     the controls of the scope are hidden then, and a scope that cannot be seen or
+     changed must not keep narrowing the counts of the filters.
+  */
   resetResult() {
+    if(!EntrySearch.isActive(this.criteria())) this.resetScope();
     this.cache = null;
     this.scrollToTop = true;
     this.showAll = false;
     this.picked = new Set();
     this.render();
+  },
+
+  resetScope() {
+    this.onlySelection = false;
+    this.sourcesOff = new Set();
+    this.adjustOpen = false;
+    this.emptyOpen = false;
   },
 
   changeFiltered(el) {
