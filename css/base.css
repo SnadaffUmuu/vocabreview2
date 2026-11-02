@@ -229,6 +229,15 @@ button.iconButton {
   color: inherit;
 }
 
+button.svgButton {
+  background-color: transparent;
+  width:25px;
+  height:25px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: 50%;
+}
+
 .hidden {
   display: none !important;
 }

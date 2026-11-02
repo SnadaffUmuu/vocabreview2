@@ -25,13 +25,14 @@
 
 #tableActions {
   box-sizing: border-box;
-  padding: 0 7px 10px;
+  padding: 5px 7px 15px;
   width: 100%;
   display: flex;
   flex-flow: row wrap;
-  font-size: 13px;
   gap: 10px;
   align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
   box-shadow: inset 0px -3px 4px 0px var(--panelFocusedBoxShadow);
 }
 
@@ -416,4 +417,16 @@
 
 #tableGrid th.dropAfter {
   box-shadow: inset -4px 0 0 0 var(--tableDropMark);
+}
+
+#tableView .svgButton {
+  width:35px;
+}
+
+#tableZoomIn {
+  background-image: url(../../assets/img/zoom-in.svg)
+}
+
+#tableZoomOut {
+  background-image: url(../../assets/img/zoom-out.svg)
 }

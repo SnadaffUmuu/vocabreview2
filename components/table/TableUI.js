@@ -99,10 +99,9 @@ const TableUI = {
     const html = `
       <div id="tableView" class="appView hidden" data-drag-scope="table">
         <div id="tableActions">
-          <label for="tableHideOthers">Hide others</label>
-          <input type="checkbox" id="tableHideOthers">
-          <button type="button" id="tableZoomIn">Zoom in</button>
-          <button type="button" id="tableZoomOut">Zoom out</button>
+          <label for="tableHideOthers">Hide others&nbsp;&nbsp;<input type="checkbox" id="tableHideOthers"></label>
+          <button type="button" class="svgButton" id="tableZoomIn"></button>
+          <button type="button" class="svgButton" id="tableZoomOut"></button>
           <button type="button" id="tableReset">Reset</button>
         </div>
         <div id="tableContainer" data-drag-scroll></div>
