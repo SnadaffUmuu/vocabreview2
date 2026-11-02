@@ -50,6 +50,7 @@ const SliderUI = {
       '@hitEl': 'toggleHit',
       '@removeEl': 'removeCurrent',
       '#sliderView .js-slide-inner': 'rotateSide',
+      '#sliderView .js-slide-back': 'rotateBack',
       '#sliderView .js-slide-side, #sliderView .js-slide-side span': 'speakSide',
       '#sliderView .slideReading, #sliderView .slideReading span': 'readReading',
       '#sliderView .entry-info > summary': 'toggleInfo',
@@ -271,13 +272,21 @@ const SliderUI = {
       </details>` : ''}
       <div class="sides-count">${slide.sides.length}</div>
       <div class="current-side">${Utils.escapeHtml(slide.currentSide)}</div>
-      <div class="slide-inner js-slide-inner">${slide.sides.map(side => this.sideTemplate(side)).join('')}</div>
+      <div class="slide-inner js-slide-inner">
+        ${slide.sides.map(side => this.sideTemplate(side)).join('')}
+      </div>
       ${slide.reading ? `
       <div class="slideReading ${slide.reading.state}"
         data-reading="${Utils.escapeHtml(slide.reading.text)}"
         role="button"
         tabindex="0"
         >${Utils.escapeHtml(slide.reading.text)}</div>` : ''}
+      ${slide.sides.length > 1 ? `
+      <div class="slide-back js-slide-back"
+        aria-label="previous side"
+        role="button"
+        tabindex="0"
+        >←</div>` : ''}
       `;
   },
 
@@ -396,13 +405,23 @@ const SliderUI = {
   },
 
   rotateSide(el, e) {
+    this.rotate(el, e, Cards.nextSideIndex);
+  },
+
+  // The tap zone at the bottom left turns the card the other way round.
+  rotateBack(el, e) {
+    this.rotate(el, e, Cards.prevSideIndex);
+  },
+
+  // pickSide(indexes, current) -> the side index to show.
+  rotate(el, e, pickSide) {
     if(!el.closest('.js-slide')) return;
     e.preventDefault();
     const entryId = this.slideIdOf(el);
     const indexes = (this.sideOrders[entryId] || []).map(line => line.originalIndex);
     if(indexes.length < 2) return;
     const ui = this.persistedUi();
-    const next = Cards.nextSideIndex(indexes, this.currentSideIndex(entryId, ui));
+    const next = pickSide(indexes, this.currentSideIndex(entryId, ui));
     SliderState.setSideIndex(App.currentSource, entryId, next);
     this.renderSlide(entryId);
     this.renderControls();

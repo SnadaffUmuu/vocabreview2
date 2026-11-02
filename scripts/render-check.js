@@ -435,6 +435,9 @@ slideHtml = SliderUI.template({ slides: [SliderUI.slideViewModel(entry, { sideIn
 assert(!/<details class="entry-info"\s+open/.test(slideHtml), 'info is closed by default');
 assert(slideHtml.includes('class="slideReading "'), 'reading is hidden by default');
 assert.strictEqual(SliderUI.template({ slides: [] }), '');
+assert(slideHtml.includes('js-slide-back'), 'a card with several sides has the back tap zone');
+const oneSide = Object.assign({}, slide, { sides: slide.sides.slice(0, 1) });
+assert(!SliderUI.template({ slides: [oneSide] }).includes('js-slide-back'), 'no back zone for one side');
 
 // CardUI: card markup
 const CardUI = make('components/card/CardUI.js', 'CardUI');
