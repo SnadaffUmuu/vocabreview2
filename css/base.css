@@ -1,153 +1,3 @@
-:root {
-  --bg: #f1e6e8;
-  --text-color: #141f76;
-  --table-text-color-reading: #2525c293;
-  --appheader-title-text-color: #1e20c0;
-
-  --button-primary: #fbf2f2;
-  --button-secondary: #c4bfca;
-
-  --menuOpenedBg: rgba(85, 74, 123, 0.24);
-  --menuBg: #8a2134;
-  --menuTextColor: white;
-
-  --input-bg: #dfd8e7;
-  --overlay: rgba(42, 36, 61, 0.24);
-  --dialogShadow: rgba(45, 35, 65, 0.741);
-
-  --tagBg: #bab1c7;
-  --tagTextColor: white;
-  --paleBorder: #c9c9dc;
-  --dataItemBorder: var(--paleBorder);
-
-  --revLevelTextColor: #5800bc;
-  --revLevelMinorTextColor: #142CE6;
-  --revLevelExtraTextColor: #8A009B;
-
-  --preloader-color: #2525c2;
-  --preloader-bg: #9899c244;
-
-  --promptOverlay: #f1e6e8a3;
-  --promptShadow: #2d234169;
-  --promptText: var(--text-color);
-
-  --slideInfoBg: #c4bfca;
-  --slideInfoColor: var(--text-color);
-  --slideSpeakableLineBg: #c4bfca;
-  --currentSlideIndexTextColor: var(--text-color);
-  --batsuActiveText: #bb0c0c;
-  --maruActiveText: #0cbb4f;
-
-  --tagBgYoji: #d0cbff;
-  --tagBgOnoma: #a7e3ec;
-  --tagBgGrammar: #e5c1e9;
-  --tagBgGeo: #ddd4d6;
-  --tagBgName: #cde0bb;
-  --tagBgTerm: plum;
-  --tagBgPattern: #f6ceff;
-  --tagBgCounter: #afeed4;
-  --tagBgSuffix: #a7e3ec;
-  --tagBgDialect: #8274ff;
-
-  --viewActionsDropdownShadow: #4546838f;
-  --viewActionDropdownText: var(--text-color);
-  --viewActionDropdownItemBorder: #3e36558f;
-  --viewActionDropdownItemSelected: #f1e6e896;
-  --burgerButtonLine: var(--text-color);
-
-  --boardGoodColBorder: #92ccb3;
-  --boardFailedColBorder: #db9292;
-  --boardLearnColBorder: #92b4db;
-  --boardItem: var(--button-primary);
-  --boardItemBorder: #bfbfbf;
-  --boardItemPlaceholder: rgba(130, 200, 205, 0.3);
-  --boardRemoveItemTextColor: #e6004d;
-  --boardItemMenuExpandedBorder: #a6cecf;
-  --boardInfoShadow: #a6cecf;
-  --reversedItemBoxShadow: #cb00ff5e;
-  --panelBox1Bg: #ffefef;
-  --panelBox2Bg: #ecfffb;
-  --panelBox3Bg: #fff;
-  --panelBox4Bg: #fff5fe;
-  --panelFocusedBoxShadow: #c5b8d0;
-  --panelFocusButtonBg: #e6deee;
-  --tableCellBorder: gray;
-  --tableHiddenContentBg: #d9d2dd;
-  --tableHiddenReadableContentBg: #ddd4d6;
-  --tableDraggingBg: rgba(135, 207, 235, 0.63);
-  --tableDropMark: #5d6fd6;
-  /* Marks cards that are already in a custom list. Not used until custom
-     lists exist (they replace the v1 global pool); kept for that styling. */
-  /* --boardGlobalItemShadow: #1e20c07d; */
-}
-
-body.night {
-  --bg: #4d000e;
-  --text-color: #a6cecf;
-  --table-text-color-reading: #f7d4ff6e;
-  --appheader-title-text-color: var(--text-color);
-
-  --button-primary: #320008;
-  --button-secondary: #7b848e;
-  --input-bg: #aebdcc;
-
-  --promptOverlay: #4d000e94;
-  --promptShadow: #1e0000b0;
-  --dialogShadow: #1e0000b0;
-  --promptText: var(--button-primary);
-
-  --slideInfoBg: #3b0000;
-  --slideInfoColor: var(--text-color);
-  --slideSpeakableLineBg: #3b0000;
-  --currentSlideIndexTextColor: var(--text-color);
-
-  --tagBgYoji: #06096b;
-  --tagBgOnoma: #00687d;
-  --tagBgGrammar: #6c0079;
-  --tagBgGeo: #6d202f;
-  --tagBgName: #760000;
-  --tagBgTerm: #8e008e;
-  --tagBgPattern: #590280;
-  --tagBgCounter: #17597a;
-  --tagBgSuffix: #064d5b;
-  --tagBgDialect: #3e43ea;
-
-  --revLevelMinorTextColor: #B8D8D9;
-  --revLevelTextColor: #E9E9E9;
-  --revLevelExtraTextColor: #ffe7bf;
-
-  --tagBg: #64203c;
-  --tagTextColor: #9a9797;
-  --paleBorder: #5f4951;
-  --dataItemBorder: var(--paleBorder);
-
-  --viewActionsDropdownShadow: #250106;
-  --viewActionDropdownText: var(--button-primary);
-  --viewActionDropdownItemSelected: #aca9b780;
-  --burgerButtonLine: var(--button-primary);
-
-  --boardGoodColBorder: #338d86;
-  --boardFailedColBorder: #9f0000;
-  --boardLearnColBorder: #adb8c5;
-  --boardItem: var(--button-primary);
-  --boardItemBorder: #00031b;
-  --boardItemMenuExpandedBorder: #6b526d;
-  --boardInfoShadow: rgb(22 0 36);
-  --reversedItemBoxShadow: #0003ff8f;
-  --panelBox1Bg: #4a4435;
-  --panelBox2Bg: #35493e;
-  --panelBox3Bg: #3d4551;
-  --panelBox4Bg: #553f4c;
-  --panelFocusedBoxShadow: #300000;
-  --panelFocusButtonBg: #5e1730;
-  --tableHiddenContentBg: #492037;
-  --tableHiddenReadableContentBg: #561723;
-  --tableDraggingBg: rgba(60, 90, 110, 0.9);
-  --tableDropMark: #e0a0d0;
-  /* See the light theme: reserved for custom lists. */
-  /* --boardGlobalItemShadow: #ffffff45; */
-}
-
 html {
   min-height: 100vh;
   min-height: 100dvh;
@@ -168,7 +18,7 @@ body {
   font-size: 30px;
   background: var(--bg);
   font-family: sans-serif;
-  color: var(--text-color);
+  color: var(--text);
 }
 
 #appBody {
@@ -208,7 +58,7 @@ input[type="search"] {
   box-sizing: border-box;
   background: var(--input-bg);
   border-radius: 5px;
-  border: 1px solid #767676;
+  border: 1px solid var(--border-input);
 }
 
 button {
@@ -216,7 +66,7 @@ button {
   line-height: 19px;
   border: 0;
   border-radius: 5px;
-  background: var(--button-secondary);
+  background: var(--control-bg);
   white-space: nowrap;
   box-sizing: border-box;
   padding: 3px 10px;
@@ -245,8 +95,8 @@ button.svgButton {
 .tag {
   font-size: 12px;
   border-radius: 5px;
-  background: var(--tagBg);
-  color: var(--tagTextColor);
+  background: var(--label-bg);
+  color: var(--label-text);
   width: fit-content;
   padding: 1px 4px;
 }

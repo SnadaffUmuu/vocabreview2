@@ -21,7 +21,7 @@
 .dragPlaceholder {
   box-sizing: border-box;
   border-radius: 5px;
-  background: var(--boardItemPlaceholder);
+  background: var(--drop-placeholder);
   /* Shrinks like a card (the basis is set inline by DragDrop) and must not
      widen its zone. */
   flex: 0 1 auto;
@@ -35,8 +35,8 @@
   max-width: 60vw;
   padding: 6px 10px;
   border-radius: 5px;
-  background: var(--tableDraggingBg);
-  color: var(--text-color);
+  background: var(--drag-ghost-bg);
+  color: var(--text);
   font-size: 15px;
   opacity: 0.9;
   white-space: nowrap;

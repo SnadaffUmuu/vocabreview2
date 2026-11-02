@@ -1,5 +1,5 @@
 /* Preloader overlay and spinner. Fixed position covers the entire viewport.
-   Colors come from --preloader-* in base.css. */
+   Colors are tokens of the color scheme (css/themes). */
 #preloaderView {
   position: fixed;
   top: 0;
@@ -7,7 +7,7 @@
   bottom: 0;
   left: 0;
   z-index: 9000;
-  background: var(--preloader-bg);
+  background: var(--busy-bg);
 }
 
 #preloaderView.hidden {
@@ -31,8 +31,8 @@
   height: 64px;
   margin: 8px;
   border-radius: 50%;
-  border: 6.4px solid var(--preloader-color);
-  border-color: var(--preloader-color) transparent var(--preloader-color) transparent;
+  border: 6.4px solid var(--busy-spinner);
+  border-color: var(--busy-spinner) transparent var(--busy-spinner) transparent;
   animation: review-ring 1.2s linear infinite;
   box-sizing: border-box;
 }

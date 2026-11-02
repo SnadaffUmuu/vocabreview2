@@ -1,0 +1,219 @@
+/*
+  Color tokens of the default color scheme: a day palette and a night palette.
+
+  - Tokens are named by the role a color plays, not by the place it is used in.
+  - Every palette sets every token with an explicit value. Nothing is derived
+    from another token and nothing is computed: each color is chosen by eye,
+    and the night palette is a separate range, not an inversion of the day one.
+  - Both blocks keep the same tokens in the same order. A token that the night
+    palette forgets silently keeps its day value, which is a wrong color at
+    night; scripts/theme-check.js reports it.
+  - Sizes, fonts and the variables a component sets for its own children
+    (--cardBg, --cardFont*) are not colors of a scheme and do not belong here.
+*/
+:root {
+  /* ---- page and text ---- */
+  --bg: #f1e6e8;
+  --text: #141f76;
+  --text-reading: #2525c293;
+  --text-title: #1e20c0;
+
+  /* ---- surfaces ---- */
+  --surface-card: #fbf2f2;
+  --surface-raised: #fbf2f2;
+  --surface-prompt: #c4bfca;
+  --text-prompt: #141f76;
+  --input-bg: #dfd8e7;
+
+  /* ---- controls: buttons, selects, dropdowns ---- */
+  --control-bg: #c4bfca;
+  --control-text: #141f76;
+  --control-selected-bg: #f1e6e896;
+
+  /* ---- menu ---- */
+  --menu-bg: #8a2134;
+  --menu-text: white;
+  --menu-active-bg: red;
+
+  /* ---- layers over the page ---- */
+  --scrim-menu: rgba(85, 74, 123, 0.24);
+  --scrim-dialog: rgba(42, 36, 61, 0.24);
+  --scrim-prompt: #f1e6e8a3;
+  --busy-bg: #9899c244;
+  --busy-spinner: #2525c2;
+
+  /* ---- borders ---- */
+  --border: #c9c9dc;
+  --border-input: #767676;
+  --border-cell: gray;
+  --border-zone: gray;
+  --border-dropdown-item: #3e36558f;
+  --border-card: #bfbfbf;
+  --border-card-open: #a6cecf;
+
+  /* ---- shadows ---- */
+  --shadow-dialog: rgba(45, 35, 65, 0.741);
+  --shadow-prompt: #2d234169;
+  --shadow-dropdown: #4546838f;
+  --shadow-focus: #c5b8d0;
+  --shadow-card-info: #a6cecf;
+  --shadow-card-reversed: #cb00ff5e;
+  /* Marks cards that are already in a custom list. Not used until custom
+     lists exist (they replace the v1 global pool); kept for that styling. */
+  /* --shadow-in-list: #1e20c07d; */
+
+  /* ---- feedback ---- */
+  --danger: #e6004d;
+  --negative: #bb0c0c;
+  --positive: #0cbb4f;
+
+  /* ---- review level of an entry ---- */
+  --level-1: #142CE6;
+  --level-2: #5800bc;
+  --level-3: #8A009B;
+
+  /* ---- the small label chip (.tag) ---- */
+  --label-bg: #bab1c7;
+  --label-text: white;
+
+  /* ---- patterns of entry tags, they lie over the card color ---- */
+  --tag-yoji: #d0cbff;
+  --tag-onoma: #a7e3ec;
+  --tag-grammar: #e5c1e9;
+  --tag-geo: #ddd4d6;
+  --tag-name: #cde0bb;
+  --tag-term: plum;
+  --tag-pattern: #f6ceff;
+  --tag-counter: #afeed4;
+  --tag-suffix: #a7e3ec;
+  --tag-dialect: #8274ff;
+
+  /* ---- Slider ---- */
+  --slide-info-bg: #c4bfca;
+  --slide-cover: #c4bfca;
+  --slide-remove: #c4bfca;
+
+  /* ---- Board: review columns ---- */
+  --zone-good: #92ccb3;
+  --zone-failed: #db9292;
+  --zone-learn: #92b4db;
+
+  /* ---- Panel: the four areas ---- */
+  --zone-bg-1: #ffefef;
+  --zone-bg-2: #ecfffb;
+  --zone-bg-3: #fff;
+  --zone-bg-4: #fff5fe;
+  --zone-focus-button-bg: #e6deee;
+
+  /* ---- Table ---- */
+  --cell-hidden-bg: #d9d2dd;
+  --cell-hidden-readable-bg: #ddd4d6;
+
+  /* ---- drag and drop ---- */
+  --drop-mark: #5d6fd6;
+  --drop-placeholder: rgba(130, 200, 205, 0.3);
+  --drag-ghost-bg: rgba(135, 207, 235, 0.63);
+}
+
+body.night {
+  /* ---- page and text ---- */
+  --bg: #4d000e;
+  --text: #a6cecf;
+  --text-reading: #f7d4ff6e;
+  --text-title: #a6cecf;
+
+  /* ---- surfaces ---- */
+  --surface-card: #320008;
+  --surface-raised: #320008;
+  --surface-prompt: #7b848e;
+  --text-prompt: #320008;
+  --input-bg: #aebdcc;
+
+  /* ---- controls: buttons, selects, dropdowns ---- */
+  --control-bg: #7b848e;
+  --control-text: #320008;
+  --control-selected-bg: #aca9b780;
+
+  /* ---- menu ---- */
+  --menu-bg: #8a2134;
+  --menu-text: white;
+  --menu-active-bg: red;
+
+  /* ---- layers over the page ---- */
+  --scrim-menu: rgba(85, 74, 123, 0.24);
+  --scrim-dialog: rgba(42, 36, 61, 0.24);
+  --scrim-prompt: #4d000e94;
+  --busy-bg: #9899c244;
+  --busy-spinner: #2525c2;
+
+  /* ---- borders ---- */
+  --border: #5f4951;
+  --border-input: #767676;
+  --border-cell: gray;
+  --border-zone: gray;
+  --border-dropdown-item: #3e36558f;
+  --border-card: #00031b;
+  --border-card-open: #6b526d;
+
+  /* ---- shadows ---- */
+  --shadow-dialog: #1e0000b0;
+  --shadow-prompt: #1e0000b0;
+  --shadow-dropdown: #250106;
+  --shadow-focus: #300000;
+  --shadow-card-info: rgb(22 0 36);
+  --shadow-card-reversed: #0003ff8f;
+  /* See the day palette: reserved for custom lists. */
+  /* --shadow-in-list: #ffffff45; */
+
+  /* ---- feedback ---- */
+  --danger: #e6004d;
+  --negative: #bb0c0c;
+  --positive: #0cbb4f;
+
+  /* ---- review level of an entry ---- */
+  --level-1: #B8D8D9;
+  --level-2: #E9E9E9;
+  --level-3: #ffe7bf;
+
+  /* ---- the small label chip (.tag) ---- */
+  --label-bg: #64203c;
+  --label-text: #9a9797;
+
+  /* ---- patterns of entry tags, they lie over the card color ---- */
+  --tag-yoji: #06096b;
+  --tag-onoma: #00687d;
+  --tag-grammar: #6c0079;
+  --tag-geo: #6d202f;
+  --tag-name: #760000;
+  --tag-term: #8e008e;
+  --tag-pattern: #590280;
+  --tag-counter: #17597a;
+  --tag-suffix: #064d5b;
+  --tag-dialect: #3e43ea;
+
+  /* ---- Slider ---- */
+  --slide-info-bg: #3b0000;
+  --slide-cover: #3b0000;
+  --slide-remove: #3b0000;
+
+  /* ---- Board: review columns ---- */
+  --zone-good: #338d86;
+  --zone-failed: #9f0000;
+  --zone-learn: #adb8c5;
+
+  /* ---- Panel: the four areas ---- */
+  --zone-bg-1: #4a4435;
+  --zone-bg-2: #35493e;
+  --zone-bg-3: #3d4551;
+  --zone-bg-4: #553f4c;
+  --zone-focus-button-bg: #5e1730;
+
+  /* ---- Table ---- */
+  --cell-hidden-bg: #492037;
+  --cell-hidden-readable-bg: #561723;
+
+  /* ---- drag and drop ---- */
+  --drop-mark: #e0a0d0;
+  --drop-placeholder: rgba(130, 200, 205, 0.3);
+  --drag-ghost-bg: rgba(60, 90, 110, 0.9);
+}

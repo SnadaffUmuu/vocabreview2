@@ -9,7 +9,7 @@
   box-sizing: border-box;
   overflow: auto;
   padding: 45px 30px;
-  background: var(--overlay);
+  background: var(--scrim-dialog);
 }
 
 #listsDialog {
@@ -17,9 +17,9 @@
   box-sizing: border-box;
   padding: 30px 25px;
   border-radius: 5px;
-  box-shadow: 8px 8px 0 var(--dialogShadow);
+  box-shadow: 8px 8px 0 var(--shadow-dialog);
   background: var(--bg);
-  color: var(--text-color);
+  color: var(--text);
   font-size: 15px;
 }
 
@@ -51,7 +51,7 @@
   align-items: center;
   gap: 8px;
   padding: 5px 0;
-  border-bottom: 1px solid var(--paleBorder);
+  border-bottom: 1px solid var(--border);
 }
 
 .listsItem.current .listsName {

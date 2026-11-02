@@ -130,6 +130,15 @@ Before considering a view converted to this model, check:
 - Every change of a list is written at once; if the write fails, the change is taken back and the user is told. Records of lists that could not be recognized on load are kept and written back with the rest, never dropped silently; import validates the structure of every list.
 - A View rebuilds only when the content of the current list changes (`Collections.isContentChange`); a rename must not rebuild a View.
 
+### Colors
+
+- All colors are tokens named by role (`--surface-card`, `--border`, `--level-1`), defined only in `css/themes/<scheme>.css`. Component CSS never contains color literals and never names a token after its place of use.
+- A scheme has a day palette (`:root`) and a night palette (`body.night`). Both set every token with an explicit value: nothing is derived or computed (`color-mix`, filters, inversion), because the night palette is a separately chosen range, not a transformation of the day one.
+- The night-mode toggle stays a top-level control; a scheme is a separate, rarely changed choice.
+- Two tokens may hold equal values and still stay two tokens: they are separate roles that a scheme may want to tell apart.
+- Run `scripts/theme-check.js` after touching colors: it catches a token missing from one palette, an undefined `var()` and a color literal outside the themes. Use `scripts/theme-compare.js <ref>` to prove that a refactoring of tokens left every resolved value, day and night, unchanged.
+- Not yet tokenized: the fills inside `assets/img/zoom-*.svg` and the `filter` on checkboxes at night (`css/base.css`).
+
 ### Persistence and Source Reloading
 
 - Persist only raw source text, custom lists, per-source selections, per-view progress/UI state, and application settings.

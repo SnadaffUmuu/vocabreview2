@@ -33,7 +33,7 @@
   align-items: center;
   justify-content: space-between;
   font-size: 13px;
-  box-shadow: inset 0px -3px 4px 0px var(--panelFocusedBoxShadow);
+  box-shadow: inset 0px -3px 4px 0px var(--shadow-focus);
 }
 
 #tableRowCount {
@@ -62,7 +62,7 @@
 
 #tableGrid td,
 #tableGrid th {
-  border: 1px solid var(--tableCellBorder);
+  border: 1px solid var(--border-cell);
 }
 
 #tableGrid td:first-child {
@@ -107,7 +107,7 @@
   width: 100%;
   box-sizing: border-box;
   padding: 3px 5px 7px;
-  border-bottom: 1px solid var(--tableCellBorder);
+  border-bottom: 1px solid var(--border-cell);
 }
 
 /* ---- the controls of a row ---- */
@@ -135,11 +135,11 @@
   display: inline-flex;
   flex-flow: column nowrap;
   justify-content: center;
-  border-top: 1px solid var(--paleBorder);
+  border-top: 1px solid var(--border);
 }
 
 #tableGrid .moveToBottom {
-  border-left: 1px solid var(--paleBorder);
+  border-left: 1px solid var(--border);
 }
 
 /* The narrow last column with the red cross; its head is empty. */
@@ -155,7 +155,7 @@
   flex-flow: column nowrap;
   justify-content: center;
   align-items: center;
-  color: var(--boardRemoveItemTextColor);
+  color: var(--danger);
   font-weight: bold;
   cursor: pointer;
 }
@@ -189,17 +189,17 @@
 }
 
 #tableGrid td .cellLine + .cellLine {
-  border-top: 1px solid var(--paleBorder);
+  border-top: 1px solid var(--border);
 }
 
 /* A hidden cell: dimmed background, blurred text. A cell that has a reading
    is tinted differently. */
 .tableCell.cellHidden:has(.cellLine) {
-  background: var(--tableHiddenContentBg);
+  background: var(--cell-hidden-bg);
 }
 
 .tableCell.cellHidden:has([data-reading]) {
-  background: var(--tableHiddenReadableContentBg);
+  background: var(--cell-hidden-readable-bg);
 }
 
 #tableGrid td.cellHidden .line-text {
@@ -228,7 +228,7 @@
 }
 
 .cellHidden .speakme {
-  border: 1px dotted var(--paleBorder);
+  border: 1px dotted var(--border);
 }
 
 #tableGrid .line-text {
@@ -258,14 +258,14 @@
 #tableGrid [data-review-level="100"] .line-text,
 #tableGrid [data-review-level="200"] .line-text,
 #tableGrid [data-review-level="300"] .line-text {
-  color: var(--revLevelTextColor);
+  color: var(--level-2);
   font-size: 25px !important;
 }
 
 #tableGrid [data-review-level="1"] .line-text,
 #tableGrid [data-review-level="2"] .line-text,
 #tableGrid [data-review-level="3"] .line-text {
-  color: var(--revLevelMinorTextColor);
+  color: var(--level-1);
   font-size: 22px !important;
 }
 
@@ -297,8 +297,8 @@
 #tableGrid tr[data-tag="grammar"] {
   background: repeating-linear-gradient(
     30deg,
-    var(--tagBgGrammar),
-    var(--tagBgGrammar) 1px,
+    var(--tag-grammar),
+    var(--tag-grammar) 1px,
     transparent 1px,
     transparent 10px
   );
@@ -307,8 +307,8 @@
 #tableGrid tr[data-tag="onomatopoeia"] {
   background: repeating-linear-gradient(
     150deg,
-    var(--tagBgOnoma),
-    var(--tagBgOnoma) 1px,
+    var(--tag-onoma),
+    var(--tag-onoma) 1px,
     transparent 1px,
     transparent 10px
   );
@@ -317,8 +317,8 @@
 #tableGrid tr[data-tag="geo"] {
   background: repeating-linear-gradient(
     0deg,
-    var(--tagBgGeo),
-    var(--tagBgGeo) 1px,
+    var(--tag-geo),
+    var(--tag-geo) 1px,
     transparent 1px,
     transparent 10px
   );
@@ -327,36 +327,36 @@
 #tableGrid tr[data-tag="name"] {
   background: repeating-linear-gradient(
     90deg,
-    var(--tagBgName),
-    var(--tagBgName) 1px,
+    var(--tag-name),
+    var(--tag-name) 1px,
     transparent 1px,
     transparent 7px
   );
 }
 
 #tableGrid tr[data-tag="term"] {
-  background-image: radial-gradient(var(--tagBgTerm) 1px, transparent 0px);
+  background-image: radial-gradient(var(--tag-term) 1px, transparent 0px);
   background-repeat: repeat;
   background-size: 10px 10px;
   background-position: center;
 }
 
 #tableGrid tr[data-tag="dialect"] {
-  background-image: radial-gradient(var(--tagBgDialect) 1px, transparent 0px);
+  background-image: radial-gradient(var(--tag-dialect) 1px, transparent 0px);
   background-repeat: repeat;
   background-size: 10px 10px;
   background-position: center;
 }
 
 #tableGrid tr[data-tag="pattern"] {
-  background-image: radial-gradient(var(--tagBgPattern) 3px, transparent 0px);
+  background-image: radial-gradient(var(--tag-pattern) 3px, transparent 0px);
   background-repeat: repeat;
   background-size: 15px 15px;
   background-position: center;
 }
 
 #tableGrid tr[data-tag="counter"] {
-  background-image: radial-gradient(var(--tagBgCounter) 2px, transparent 0px);
+  background-image: radial-gradient(var(--tag-counter) 2px, transparent 0px);
   background-repeat: repeat;
   background-size: 13px 13px;
   background-position: center;
@@ -365,8 +365,8 @@
 #tableGrid tr[data-tag="suffix"] {
   background: repeating-linear-gradient(
     0deg,
-    var(--tagBgSuffix),
-    var(--tagBgSuffix) 1px,
+    var(--tag-suffix),
+    var(--tag-suffix) 1px,
     transparent 1px,
     transparent 7px
   );
@@ -375,15 +375,15 @@
 #tableGrid tr[data-tag="yojijukugo"] {
   background: repeating-linear-gradient(
     30deg,
-    var(--tagBgYoji),
-    var(--tagBgYoji) 1px,
+    var(--tag-yoji),
+    var(--tag-yoji) 1px,
     transparent 1px,
     transparent 10px
   ),
   repeating-linear-gradient(
     150deg,
-    var(--tagBgYoji),
-    var(--tagBgYoji) 1px,
+    var(--tag-yoji),
+    var(--tag-yoji) 1px,
     transparent 1px,
     transparent 10px
   );
@@ -391,15 +391,15 @@
 
 /* The legend sits under the table and uses the borders of the table. */
 #tableView .tagsLegend {
-  border-left: 1px solid var(--tableCellBorder);
-  border-top: 1px solid var(--tableCellBorder);
+  border-left: 1px solid var(--border-cell);
+  border-top: 1px solid var(--border-cell);
 }
 
 #tableView .tagsLegend [data-tag] {
   /* In the table the swatches lie on the page, not on a card. */
   --cardBg: transparent;
-  border-right: 1px solid var(--tableCellBorder);
-  border-bottom: 1px solid var(--tableCellBorder);
+  border-right: 1px solid var(--border-cell);
+  border-bottom: 1px solid var(--border-cell);
 }
 
 /* ---- a drag in progress (the visuals themselves are made by DragDrop) ---- */
@@ -410,19 +410,19 @@
 }
 
 #tableGrid tr.dropBefore > td {
-  box-shadow: inset 0 4px 0 0 var(--tableDropMark);
+  box-shadow: inset 0 4px 0 0 var(--drop-mark);
 }
 
 #tableGrid tr.dropAfter > td {
-  box-shadow: inset 0 -4px 0 0 var(--tableDropMark);
+  box-shadow: inset 0 -4px 0 0 var(--drop-mark);
 }
 
 #tableGrid th.dropBefore {
-  box-shadow: inset 4px 0 0 0 var(--tableDropMark);
+  box-shadow: inset 4px 0 0 0 var(--drop-mark);
 }
 
 #tableGrid th.dropAfter {
-  box-shadow: inset -4px 0 0 0 var(--tableDropMark);
+  box-shadow: inset -4px 0 0 0 var(--drop-mark);
 }
 
 #tableView .svgButton {

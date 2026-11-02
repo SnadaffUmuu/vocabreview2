@@ -15,7 +15,7 @@
   flex-flow: column nowrap;
   gap: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--paleBorder);
+  border-bottom: 1px solid var(--border);
 }
 
 #dataViewActions label {
@@ -117,7 +117,7 @@
 
 #dataView .dataEntry {
   padding: 10px 0;
-  border-bottom: 1px dashed var(--dataItemBorder);
+  border-bottom: 1px dashed var(--border);
   position: relative;
 }
 
@@ -165,11 +165,11 @@
 #dataView .dataEntry .lineRole {
   opacity: 0.5;
   font-size: 13px;
-  color: var(--text-color);
+  color: var(--text);
 }
 
 #dataView .dataEntry [data-role="reading"] {
-  color: var(--table-text-color-reading);
+  color: var(--text-reading);
   font-size: 15px;
 }
 
@@ -198,7 +198,7 @@
 #dataView .dataEntry .entryInfo {
   font-size: 13px;
   padding: 2px 5px 5px;
-  border: 1px dotted var(--paleBorder);
+  border: 1px dotted var(--border);
   border-radius: 5px;
   width: fit-content;
   margin-top: 5px;
@@ -227,7 +227,7 @@
   box-sizing: border-box;
   overflow: auto;
   padding: 45px 30px;
-  background: var(--overlay);
+  background: var(--scrim-dialog);
 }
 
 #dataSourcesDialog {
@@ -235,9 +235,9 @@
   box-sizing: border-box;
   padding: 30px 25px;
   border-radius: 5px;
-  box-shadow: 8px 8px 0 var(--dialogShadow);
+  box-shadow: 8px 8px 0 var(--shadow-dialog);
   background: var(--bg);
-  color: var(--text-color);
+  color: var(--text);
   font-size: 15px;
 }
 
@@ -277,7 +277,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 5px 0;
-  border-bottom: 1px solid var(--paleBorder);
+  border-bottom: 1px solid var(--border);
 }
 
 .dataSourcesItem.empty {

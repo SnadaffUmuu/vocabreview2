@@ -50,7 +50,7 @@
 
 #sliderCurrentIndex {
   font-size: 20px;
-  color: var(--currentSlideIndexTextColor);
+  color: var(--text);
 }
 
 #sliderCounterSep {
@@ -61,7 +61,7 @@
 
 #sliderDataCount {
   opacity: 0.5;
-  color: var(--currentSlideIndexTextColor);
+  color: var(--text);
 }
 
 #sliderOuter {
@@ -104,12 +104,12 @@
 
 #sliderLapse.active {
   opacity: 1;
-  color: var(--batsuActiveText);
+  color: var(--negative);
 }
 
 #sliderHit.active {
   opacity: 1;
-  color: var(--maruActiveText);
+  color: var(--positive);
 }
 
 #sliderRemove {
@@ -119,7 +119,7 @@
   top: 0;
   right: 20px;
   z-index: 3;
-  color: var(--slideSpeakableLineBg);
+  color: var(--slide-remove);
   background: transparent;
   font-size: 30px;
 }
@@ -155,8 +155,8 @@
 
 .keen-slider__slide .entry-info {
   font-size: 15px;
-  background: var(--slideInfoBg);
-  color: var(--slideInfoColor);
+  background: var(--slide-info-bg);
+  color: var(--text);
   box-sizing: border-box;
   position: absolute;
   top: 5px;
@@ -164,7 +164,7 @@
   left: 5px;
   border-radius: 5px;
   padding: 10px 10px 15px;
-  border: 1px dashed var(--paleBorder);
+  border: 1px dashed var(--border);
   width: fit-content;
   z-index: 4;
 }
@@ -244,7 +244,7 @@
 }
 
 .slide-side[data-reading] {
-  border-bottom: 2px dashed var(--paleBorder);
+  border-bottom: 2px dashed var(--border);
 }
 
 .slideReading {
@@ -252,7 +252,7 @@
   font-size: 15px;
   padding: 10px;
   position:relative;
-  /* background: var(--slideSpeakableLineBg); */
+  /* background: var(--slide-cover); */
   position: relative;
   box-sizing: border-box;
   display: flex;
@@ -265,7 +265,7 @@
   content: '';
   position: absolute;
   top:0;left:0;right:0;bottom:0;
-  background: var(--slideSpeakableLineBg);
+  background: var(--slide-cover);
   cursor:pointer;
 }
 
@@ -290,62 +290,62 @@
 }
 
 .keen-slider__slide[data-tag="grammar"] {
-  background: repeating-linear-gradient(30deg, var(--tagBgGrammar), var(--tagBgGrammar) 1px, transparent 1px, transparent 10px);
+  background: repeating-linear-gradient(30deg, var(--tag-grammar), var(--tag-grammar) 1px, transparent 1px, transparent 10px);
 }
 
 .keen-slider__slide[data-tag="onomatopoeia"] {
-  background: repeating-linear-gradient(150deg, var(--tagBgOnoma), var(--tagBgOnoma) 1px, transparent 1px, transparent 10px);
+  background: repeating-linear-gradient(150deg, var(--tag-onoma), var(--tag-onoma) 1px, transparent 1px, transparent 10px);
 }
 
 .keen-slider__slide[data-tag="geo"] {
-  background: repeating-linear-gradient(0deg, var(--tagBgGeo), var(--tagBgGeo) 1px, transparent 1px, transparent 10px);
+  background: repeating-linear-gradient(0deg, var(--tag-geo), var(--tag-geo) 1px, transparent 1px, transparent 10px);
 }
 
 .keen-slider__slide[data-tag="name"] {
-  background: repeating-linear-gradient(90deg, var(--tagBgName), var(--tagBgName) 1px, transparent 1px, transparent 7px);
+  background: repeating-linear-gradient(90deg, var(--tag-name), var(--tag-name) 1px, transparent 1px, transparent 7px);
 }
 
 .keen-slider__slide[data-tag="term"] {
-  background-image: radial-gradient(var(--tagBgTerm) 1px, transparent 0);
+  background-image: radial-gradient(var(--tag-term) 1px, transparent 0);
   background-size: 10px 10px;
 }
 
 .keen-slider__slide[data-tag="dialect"] {
-  background-image: radial-gradient(var(--tagBgDialect) 1px, transparent 0);
+  background-image: radial-gradient(var(--tag-dialect) 1px, transparent 0);
   background-size: 10px 10px;
 }
 
 .keen-slider__slide[data-tag="pattern"] {
-  background-image: radial-gradient(var(--tagBgPattern) 3px, transparent 0);
+  background-image: radial-gradient(var(--tag-pattern) 3px, transparent 0);
   background-size: 15px 15px;
 }
 
 .keen-slider__slide[data-tag="counter"] {
-  background-image: radial-gradient(var(--tagBgCounter) 2px, transparent 0);
+  background-image: radial-gradient(var(--tag-counter) 2px, transparent 0);
   background-size: 13px 13px;
 }
 
 .keen-slider__slide[data-tag="suffix"] {
-  background: repeating-linear-gradient(0deg, var(--tagBgSuffix), var(--tagBgSuffix) 1px, transparent 1px, transparent 7px);
+  background: repeating-linear-gradient(0deg, var(--tag-suffix), var(--tag-suffix) 1px, transparent 1px, transparent 7px);
 }
 
 .keen-slider__slide[data-tag="yojijukugo"] {
   background:
-    repeating-linear-gradient(30deg, var(--tagBgYoji), var(--tagBgYoji) 1px, transparent 1px, transparent 10px),
-    repeating-linear-gradient(150deg, var(--tagBgYoji), var(--tagBgYoji) 1px, transparent 1px, transparent 10px);
+    repeating-linear-gradient(30deg, var(--tag-yoji), var(--tag-yoji) 1px, transparent 1px, transparent 10px),
+    repeating-linear-gradient(150deg, var(--tag-yoji), var(--tag-yoji) 1px, transparent 1px, transparent 10px);
 }
 
 .keen-slider__slide[data-review-level="1"] .slide-side[data-role="expression"] span,
 .keen-slider__slide[data-review-level="100"] .slide-side[data-role="expression"] span {
-  color: var(--revLevelMinorTextColor);
+  color: var(--level-1);
 }
 
 .keen-slider__slide[data-review-level="2"] .slide-side[data-role="expression"] span,
 .keen-slider__slide[data-review-level="200"] .slide-side[data-role="expression"] span {
-  color: var(--revLevelTextColor);
+  color: var(--level-2);
 }
 
 .keen-slider__slide[data-review-level="3"] .slide-side[data-role="expression"] span,
 .keen-slider__slide[data-review-level="300"] .slide-side[data-role="expression"] span {
-  color: var(--revLevelExtraTextColor);
+  color: var(--level-3);
 }

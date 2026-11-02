@@ -8,7 +8,7 @@
 #menuContainer:has(#menu.isOpened) {
   right: 0;
   bottom: 0;
-  background: var(--menuOpenedBg);
+  background: var(--scrim-menu);
 }
 
 #menuTrigger {
@@ -29,8 +29,8 @@
   z-index: 300;
   width: 75vw;
   padding: 8px 10px 5px;
-  background: var(--menuBg);
-  color: var(--menuTextColor);
+  background: var(--menu-bg);
+  color: var(--menu-text);
   font-size: 13px;
   display: flex;
   flex-flow: column nowrap;
@@ -67,7 +67,7 @@
   line-height: 30px;
   white-space: nowrap;  
   background:none;
-  color: var(--menuTextColor);
+  color: var(--menu-text);
 }
 
 #menuActions {
@@ -97,7 +97,7 @@
   width: 45px;
   height: 35px;
   background: none;
-  color: var(--text-color);
+  color: var(--text);
   font-size:18px;
 }
 
@@ -106,8 +106,8 @@
   flex: 0 0 auto;
   padding: 3px 9px;
   background: none;
-  border: 1px solid var(--menuTextColor);
-  color: var(--menuTextColor);
+  border: 1px solid var(--menu-text);
+  color: var(--menu-text);
 }
 
 #menuViewSwitcher {
@@ -126,7 +126,7 @@
 }
 
 #menuViewSwitcher .switchView.active {
-  background: red;
+  background: var(--menu-active-bg);
 }
 
 #menuStructureSlot {

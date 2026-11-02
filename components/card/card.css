@@ -9,16 +9,16 @@
   max-width: var(--cardMaxWidth, calc(100vw - 20px));
   border: 1px solid transparent;
   border-radius: 5px;
-  background: var(--cardBg, var(--boardItem));
+  background: var(--cardBg, var(--surface-card));
   font-size: var(--cardFont, 17px);
 }
 
 .entryCard[data-tag] {
-  border-color: var(--boardItemBorder);
+  border-color: var(--border-card);
 }
 
 .entryCard.reversedShown {
-  box-shadow: 2px 2px 0 0 var(--reversedItemBoxShadow);
+  box-shadow: 2px 2px 0 0 var(--shadow-card-reversed);
 }
 
 /* The place of a card that is shown expanded: it keeps the layout. Its size is
@@ -66,17 +66,17 @@
 
 .cardSide[data-review-level="1"],
 .cardSide[data-review-level="100"] {
-  color: var(--revLevelMinorTextColor);
+  color: var(--level-1);
 }
 
 .cardSide[data-review-level="2"],
 .cardSide[data-review-level="200"] {
-  color: var(--revLevelTextColor);
+  color: var(--level-2);
 }
 
 .cardSide[data-review-level="3"],
 .cardSide[data-review-level="300"] {
-  color: var(--revLevelExtraTextColor);
+  color: var(--level-3);
 }
 
 .cardCounter,
@@ -115,7 +115,7 @@
   right: 20px;
   max-width: none;
   padding: 7px 10px 0;
-  border-color: var(--boardItemMenuExpandedBorder);
+  border-color: var(--border-card-open);
 }
 
 .entryCard.expanded .cardSide {
@@ -144,7 +144,7 @@
 }
 
 .cardAction.cardRemove {
-  color: var(--boardRemoveItemTextColor);
+  color: var(--danger);
   font-weight: bold;
 }
 
@@ -162,72 +162,72 @@
 .entryCard[data-tag="grammar"],
 .tagsLegend [data-tag="grammar"] {
   background:
-    repeating-linear-gradient(30deg, var(--tagBgGrammar), var(--tagBgGrammar) 1px, transparent 1px, transparent 10px),
-    var(--cardBg, var(--boardItem));
+    repeating-linear-gradient(30deg, var(--tag-grammar), var(--tag-grammar) 1px, transparent 1px, transparent 10px),
+    var(--cardBg, var(--surface-card));
 }
 
 .entryCard[data-tag="onomatopoeia"],
 .tagsLegend [data-tag="onomatopoeia"] {
   background:
-    repeating-linear-gradient(150deg, var(--tagBgOnoma), var(--tagBgOnoma) 1px, transparent 1px, transparent 10px),
-    var(--cardBg, var(--boardItem));
+    repeating-linear-gradient(150deg, var(--tag-onoma), var(--tag-onoma) 1px, transparent 1px, transparent 10px),
+    var(--cardBg, var(--surface-card));
 }
 
 .entryCard[data-tag="geo"],
 .tagsLegend [data-tag="geo"] {
   background:
-    repeating-linear-gradient(0deg, var(--tagBgGeo), var(--tagBgGeo) 1px, transparent 1px, transparent 8px),
-    var(--cardBg, var(--boardItem));
+    repeating-linear-gradient(0deg, var(--tag-geo), var(--tag-geo) 1px, transparent 1px, transparent 8px),
+    var(--cardBg, var(--surface-card));
 }
 
 .entryCard[data-tag="name"],
 .tagsLegend [data-tag="name"] {
   background:
-    repeating-linear-gradient(90deg, var(--tagBgName), var(--tagBgName) 1px, transparent 1px, transparent 7px),
-    var(--cardBg, var(--boardItem));
+    repeating-linear-gradient(90deg, var(--tag-name), var(--tag-name) 1px, transparent 1px, transparent 7px),
+    var(--cardBg, var(--surface-card));
 }
 
 .entryCard[data-tag="suffix"],
 .tagsLegend [data-tag="suffix"] {
   background:
-    repeating-linear-gradient(0deg, var(--tagBgSuffix), var(--tagBgSuffix) 1px, transparent 1px, transparent 8px),
-    var(--cardBg, var(--boardItem));
+    repeating-linear-gradient(0deg, var(--tag-suffix), var(--tag-suffix) 1px, transparent 1px, transparent 8px),
+    var(--cardBg, var(--surface-card));
 }
 
 .entryCard[data-tag="yojijukugo"],
 .tagsLegend [data-tag="yojijukugo"] {
   background:
-    repeating-linear-gradient(30deg, var(--tagBgYoji), var(--tagBgYoji) 1px, transparent 1px, transparent 10px),
-    repeating-linear-gradient(150deg, var(--tagBgYoji), var(--tagBgYoji) 1px, transparent 1px, transparent 10px),
-    var(--cardBg, var(--boardItem));
+    repeating-linear-gradient(30deg, var(--tag-yoji), var(--tag-yoji) 1px, transparent 1px, transparent 10px),
+    repeating-linear-gradient(150deg, var(--tag-yoji), var(--tag-yoji) 1px, transparent 1px, transparent 10px),
+    var(--cardBg, var(--surface-card));
 }
 
 .entryCard[data-tag="term"],
 .tagsLegend [data-tag="term"] {
   background:
-    radial-gradient(var(--tagBgTerm) 1px, transparent 0px) center / 10px 10px repeat,
-    var(--cardBg, var(--boardItem));
+    radial-gradient(var(--tag-term) 1px, transparent 0px) center / 10px 10px repeat,
+    var(--cardBg, var(--surface-card));
 }
 
 .entryCard[data-tag="dialect"],
 .tagsLegend [data-tag="dialect"] {
   background:
-    radial-gradient(var(--tagBgDialect) 1px, transparent 0px) center / 10px 10px repeat,
-    var(--cardBg, var(--boardItem));
+    radial-gradient(var(--tag-dialect) 1px, transparent 0px) center / 10px 10px repeat,
+    var(--cardBg, var(--surface-card));
 }
 
 .entryCard[data-tag="pattern"],
 .tagsLegend [data-tag="pattern"] {
   background:
-    radial-gradient(var(--tagBgPattern) 3px, transparent 0px) center / 13px 13px repeat,
-    var(--cardBg, var(--boardItem));
+    radial-gradient(var(--tag-pattern) 3px, transparent 0px) center / 13px 13px repeat,
+    var(--cardBg, var(--surface-card));
 }
 
 .entryCard[data-tag="counter"],
 .tagsLegend [data-tag="counter"] {
   background:
-    radial-gradient(var(--tagBgCounter) 2px, transparent 0px) center / 13px 13px repeat,
-    var(--cardBg, var(--boardItem));
+    radial-gradient(var(--tag-counter) 2px, transparent 0px) center / 13px 13px repeat,
+    var(--cardBg, var(--surface-card));
 }
 
 .tagsLegend {
@@ -236,16 +236,16 @@
   align-items: stretch;
   margin-top: 10px;
   font-size: 14px;
-  border-left: 1px solid var(--paleBorder);
-  border-top: 1px solid var(--paleBorder);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .tagsLegend [data-tag] {
   flex: 1 1 auto;
   padding: 5px;
   text-align: center;
-  border-right: 1px solid var(--paleBorder);
-  border-bottom: 1px solid var(--paleBorder);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .tagsLegend [data-tag] > span {
@@ -262,11 +262,11 @@
   max-width: calc(100% + 2px);
   padding: 5px 10px 10px;
   font-size: 15px;
-  background: var(--boardItem);
-  border: 1px solid var(--boardItemMenuExpandedBorder);
+  background: var(--surface-card);
+  border: 1px solid var(--border-card-open);
   border-top: 0;
   border-radius: 0 0 5px 5px;
-  box-shadow: 4px 5px 7px -2px var(--boardInfoShadow);
+  box-shadow: 4px 5px 7px -2px var(--shadow-card-info);
 }
 
 .cardAction.cardAddToList,

@@ -98,18 +98,18 @@
 #boardCols .boardZone[data-drop-zone="failed"] {
   flex-basis: 60vw;
   justify-content: flex-end;
-  border-color: var(--boardFailedColBorder);
+  border-color: var(--zone-failed);
 }
 
 #boardCols .boardZone[data-drop-zone="learn"] {
   justify-content: center;
-  border-color: var(--boardLearnColBorder);
+  border-color: var(--zone-learn);
 }
 
 #boardCols .boardZone[data-drop-zone="good"] {
   flex-basis: 60vw;
   justify-content: flex-start;
-  border-color: var(--boardGoodColBorder);
+  border-color: var(--zone-good);
 }
 
 /* Card sizes of the board are the defaults of card.css. */
@@ -143,7 +143,7 @@
 /* Cards that are already in a custom list get a shadow. Custom lists replace
    the v1 global pool; the rule is kept for them and is not used until then.
 .entryCard[data-global] {
-  box-shadow: 3px 3px 0 -1px var(--boardGlobalItemShadow);
+  box-shadow: 3px 3px 0 -1px var(--shadow-in-list);
 }
 */
 
