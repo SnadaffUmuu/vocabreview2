@@ -18,7 +18,7 @@
 #sessionsDialog {
   position: relative;
   box-sizing: border-box;
-  padding: 30px 25px;
+  padding: 30px 10px;
   border-radius: 5px;
   box-shadow: 8px 8px 0 var(--shadow-dialog);
   background: var(--bg);
@@ -27,7 +27,7 @@
 }
 
 #sessionsDialog h3 {
-  margin: 0 0 15px;
+  margin: 0 10px 15px;
   font-size: 18px;
 }
 
@@ -47,15 +47,17 @@
 }
 
 .sessionsData td {
-  padding: 5px 10px 0;
+  padding: 5px 7px 0;
   border: 1px solid var(--border);
 }
 
 .sessionsData td .tag {
   display: inline-block;
-  margin-right: 5px;
   margin-bottom: 5px;
   padding: 5px 10px;
+}
+.sessionsData td .tag:not(:last-child) {
+  margin-right: 2px;
 }
 
 .sessionsEmpty {
