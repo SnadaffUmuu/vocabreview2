@@ -118,13 +118,15 @@ body[data-scheme="newsprint"] {
 
 body[data-scheme="newsprint"].night {
   /* ---- page and text ---- */
-  --bg: #262624;
+  /* --bg: #262624; */
+  --bg: #2d2d2a;
   --text: #b4b2ab;
   --text-reading: #b4b2aba0;
   --text-title: #c8c6bf;
 
   /* ---- surfaces ---- */
-  --surface-card: #353532;
+  /* --surface-card: #353532; */
+  --surface-card: #121211;
   --surface-raised: #2e2e2c;
   --surface-prompt: #4a4a46;
   --text-prompt: #dcdad4;
@@ -132,7 +134,7 @@ body[data-scheme="newsprint"].night {
   --checkbox-filter: grayscale(100%) brightness(65%) contrast(100%);
 
   /* ---- controls: buttons, selects, dropdowns ---- */
-  --control-bg: #4a4a46;
+  --control-bg: #51514d;
   --control-text: #dcdad4;
   --control-selected-bg: #a9a8a280;
 
@@ -180,15 +182,15 @@ body[data-scheme="newsprint"].night {
   --label-text: #b0aea8;
 
   /* ---- patterns of entry tags, they lie over the card color ---- */
-  --tag-yoji: #474c5e;
-  --tag-onoma: #3f5552;
-  --tag-grammar: #54485a;
-  --tag-geo: #55503f;
-  --tag-name: #4c5640;
+  --tag-yoji: #3b3f4e;
+  --tag-onoma: #244742;
+  --tag-grammar: #3f224e;
+  --tag-geo: #403512;
+  --tag-name: #32441d;
   --tag-term: #5a444b;
-  --tag-pattern: #5a5340;
-  --tag-counter: #3f5549;
-  --tag-suffix: #3d5256;
+  --tag-pattern: #423100;
+  --tag-counter: #3f554985;
+  --tag-suffix: #24454c;
   --tag-dialect: #4a4f68;
 
   /* ---- Slider ---- */
