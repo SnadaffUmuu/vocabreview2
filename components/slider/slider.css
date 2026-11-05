@@ -91,15 +91,26 @@
   z-index: auto;
 }
 
+/* The symbols are generated content, not text nodes: a dictionary plugin
+   (Yomitan) scans text under the finger, and a tap on a mark must not open
+   a popup. */
 #sliderLapse {
   right: 0;
   font-size: 40px;
+}
+
+#sliderLapse::before {
+  content: '✗';
 }
 
 #sliderHit {
   left: 0;
   font-size: 30px;
   font-weight: bold;
+}
+
+#sliderHit::before {
+  content: '〇';
 }
 
 #sliderLapse.active {
@@ -122,6 +133,11 @@
   color: var(--slide-remove);
   background: transparent;
   font-size: 30px;
+}
+
+/* Generated content for the same reason as the marks above. */
+#sliderRemove::before {
+  content: '消';
 }
 
 .keen-slider:not([data-keen-slider-disabled]) {
@@ -269,16 +285,10 @@
   cursor:pointer;
 }
 
+/* The text is in the markup only when revealed (see SliderUI): a cover over
+   real text does not hide it from a dictionary plugin. */
 .slideReading.revealed::after {
   opacity:0;
-}
-
-.slideReading span {
-  visibility: hidden;
-}
-
-.slideReading.revealed span {
-  visibility: visible;
 }
 
 .slideReading.revealed {

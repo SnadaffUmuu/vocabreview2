@@ -52,7 +52,7 @@ const SliderUI = {
       '#sliderView .js-slide-inner': 'rotateSide',
       '#sliderView .js-slide-back': 'rotateBack',
       '#sliderView .js-slide-side, #sliderView .js-slide-side span': 'speakSide',
-      '#sliderView .slideReading, #sliderView .slideReading span': 'readReading',
+      '#sliderView .slideReading': 'readReading',
       '#sliderView .entry-info > summary': 'toggleInfo',
     },
   },
@@ -111,9 +111,9 @@ const SliderUI = {
           </div>
         </div>
         <div id="sliderOuter">
-          <div id="sliderLapse" class="sliderMark" aria-label="lapse" role="button" tabindex="0">✗</div>
-          <div id="sliderHit" class="sliderMark" aria-label="hit" role="button" tabindex="0">〇</div>
-          <button id="sliderRemove" aria-label="remove">消</button>
+          <div id="sliderLapse" class="sliderMark" aria-label="lapse" role="button" tabindex="0"></div>
+          <div id="sliderHit" class="sliderMark" aria-label="hit" role="button" tabindex="0"></div>
+          <button id="sliderRemove" aria-label="remove"></button>
           <div id="sliderContainer" class="keen-slider"></div>
         </div>
       </div>
@@ -280,7 +280,7 @@ const SliderUI = {
         data-reading="${Utils.escapeHtml(slide.reading.text)}"
         role="button"
         tabindex="0"
-        >${Utils.escapeHtml(slide.reading.text)}</div>` : ''}
+        >${slide.reading.state === 'revealed' ? Utils.escapeHtml(slide.reading.text) : ''}</div>` : ''}
       ${slide.sides.length > 1 ? `
       <div class="slide-back js-slide-back"
         aria-label="previous side"
