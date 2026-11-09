@@ -33,6 +33,7 @@ const BoardUI = {
   name: 'BoardUI',
   viewName: 'board',
   viewLabel: 'B',
+  viewTitle: 'Board',
   kind: BoardState,
   canAddToList: true,
 
@@ -99,14 +100,7 @@ const BoardUI = {
         <div id="boardToolbar">
           ${DropdownUI.select({
             id: 'boardCardMode',
-            items: [
-              { value: 'original', label: 'original' },
-              { value: 'random', label: 'random' },
-              { value: 'expression', label: 'expression' },
-              { value: 'meaning', label: 'meaning' },
-              { value: 'example', label: 'examples' },
-              { value: 'example_translation', label: "examples' translations" },
-            ],
+            items: CardZones.cardModes,
             cls: 'boardCardModeButton',
           })}
           <label>R <input type="checkbox" id="boardReversed"></label>
@@ -206,56 +200,10 @@ const BoardUI = {
 
   // ---- handlers (clean: change state or domain, then render) -----------------------
 
-  changeMode(mode) {
-    const sourceId = this.loadedSource();
-    if(!sourceId) return;
-    BoardState.setMode(sourceId, mode);
-    this.rebuild();
-  },
-
   changeReversed(el) {
     const sourceId = this.loadedSource();
     if(!sourceId) return;
     ViewState.setUi(sourceId, this.viewName, { markReversed: el.checked }, true);
-  },
-
-  /*
-     The card stays open. The list is chosen in the prompt (Global by default, or
-     a new list); the entry is copied, so the card keeps its place in the source.
-     A copy that the list already has is not added again.
-  */
-  addToList() {
-    const entry = this.expanded ? this.entries[this.expanded.id] : null;
-    if(entry) ListPrompts.addEntry(entry);
-  },
-
-  /*
-     Only in a list, and unlike the removal of a card (which only hides it in this
-     View) it is final. The Board rebuilds when the list announces the change.
-  */
-  removeFromList() {
-    const sourceId = this.loadedSource();
-    if(!sourceId || !this.expanded || !Collections.isListId(sourceId)) return;
-    ListPrompts.removeEntry(Collections.listIdOf(sourceId), this.expanded.id);
-  },
-
-  reset() {
-    const sourceId = this.loadedSource();
-    if(!sourceId) return;
-    const ids = App.selectedEntries(sourceId).map(entry => entry.id);
-    const kept = ViewState.countInProgressOutside(sourceId, this.viewName, ids);
-    Prompt.ask({
-      text: `Really reset the Board?${kept ? ` ${kept} entries in other sections keep their progress.` : ''}`,
-      onConfirm: () => this.doReset(),
-    });
-  },
-
-  doReset() {
-    const sourceId = this.loadedSource();
-    if(!sourceId) return;
-    const ids = App.selectedEntries(sourceId).map(entry => entry.id);
-    ViewState.resetEntries(sourceId, this.viewName, ids, BoardState.defaultUi());
-    this.rebuild();
   },
 
   /*

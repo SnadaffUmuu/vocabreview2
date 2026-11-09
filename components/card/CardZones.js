@@ -7,7 +7,8 @@
 
    What the View must provide (this is where the Views differ):
      viewName, kind     - the name and the domain state object (BoardState ...)
-                          with uiOf/defaultUi/layout/removeEntry
+                          with uiOf/defaultUi/layout/removeEntry/setMode
+     viewTitle          - the name of the View in messages to the user ("Board")
      dom.expandedEl     - the overlay of the open card
      sideOrders, entries, expanded, lineExpanded, infoOpen, layout
                         - component state, own to each View
@@ -24,6 +25,16 @@
                           (.cardRemoveFromList), handled by the View as well.
 */
 const CardZones = {
+
+  // Items of the card mode dropdown: one list for every View.
+  cardModes: [
+    { value: 'original', label: 'original' },
+    { value: 'random', label: 'random' },
+    { value: 'expression', label: 'expression' },
+    { value: 'meaning', label: 'meaning' },
+    { value: 'example', label: 'examples' },
+    { value: 'example_translation', label: "examples' translations" },
+  ],
 
   // Click map of the open card's overlay: one list for every View.
   overlayClicks(overlaySelector) {
@@ -259,6 +270,52 @@ const CardZones = {
 
     speakReading(el) {
       Utils.speak(el.textContent.trim());
+    },
+
+    changeMode(mode) {
+      const sourceId = this.loadedSource();
+      if(!sourceId) return;
+      this.kind.setMode(sourceId, mode);
+      this.rebuild();
+    },
+
+    /*
+      The card stays open. The list is chosen in the prompt (Global by default, or
+      a new list); the entry is copied, so the card keeps its place in the source.
+      A copy that the list already has is not added again.
+    */
+    addToList() {
+      const entry = this.expanded ? this.entries[this.expanded.id] : null;
+      if(entry) ListPrompts.addEntry(entry);
+    },
+
+    /*
+      Only in a list, and unlike the removal of a card (which only hides it in this
+      View) it is final. The View rebuilds when the list announces the change.
+    */
+    removeFromList() {
+      const sourceId = this.loadedSource();
+      if(!sourceId || !this.expanded || !Collections.isListId(sourceId)) return;
+      ListPrompts.removeEntry(Collections.listIdOf(sourceId), this.expanded.id);
+    },
+
+    reset() {
+      const sourceId = this.loadedSource();
+      if(!sourceId) return;
+      const ids = App.selectedEntries(sourceId).map(entry => entry.id);
+      const kept = ViewState.countInProgressOutside(sourceId, this.viewName, ids);
+      Prompt.ask({
+        text: `Really reset the ${this.viewTitle}?${kept ? ` ${kept} entries in other sections keep their progress.` : ''}`,
+        onConfirm: () => this.doReset(),
+      });
+    },
+
+    doReset() {
+      const sourceId = this.loadedSource();
+      if(!sourceId) return;
+      const ids = App.selectedEntries(sourceId).map(entry => entry.id);
+      ViewState.resetEntries(sourceId, this.viewName, ids, this.kind.defaultUi());
+      this.rebuild();
     },
   },
 };

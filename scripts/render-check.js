@@ -556,7 +556,7 @@ assert(CardUI.template(BoardUI.viewModel(boardUi).expanded).includes('cardRemove
 assert(!CardUI.template(boardVm.expanded).includes('cardRemoveFromList'));
 boardApp.currentSource = 'src';
 
-// BoardUI.addToList / removeFromList only hand the card over to ListPrompts
+// CardZones.addToList / removeFromList only hand the card over to ListPrompts
 const listCalls = [];
 const boardListPrompts = {
   addEntry: entry => listCalls.push(['add', entry.id]),
@@ -564,9 +564,13 @@ const boardListPrompts = {
 };
 const boardCollections = { isListId, listIdOf: id => id.slice(2) };
 const boardLibrary = { hasSource: () => true };
-const ListBoardUI = make('components/board/BoardUI.js', 'BoardUI', {
-  App: boardApp, BoardState, Cards, CardUI, CardZones, Parser: { ENTRY_TAG },
+// The handlers live in CardZones, so the stand-ins go to it.
+const ListCardZones = make('components/card/CardZones.js', 'CardZones', {
+  App: boardApp, Cards, Parser: { ENTRY_TAG },
   ListPrompts: boardListPrompts, Collections: boardCollections, Library: boardLibrary });
+const ListBoardUI = make('components/board/BoardUI.js', 'BoardUI', {
+  App: boardApp, BoardState, Cards, CardUI, CardZones: ListCardZones, Parser: { ENTRY_TAG },
+  Collections: boardCollections, Library: boardLibrary });
 ListBoardUI.entries = BoardUI.entries;
 ListBoardUI.expanded = null;
 ListBoardUI.addToList();

@@ -40,6 +40,7 @@ const PanelUI = {
   name: 'PanelUI',
   viewName: 'panel',
   viewLabel: 'P',
+  viewTitle: 'Panel',
   kind: PanelState,
   canAddToList: true,
 
@@ -110,14 +111,7 @@ const PanelUI = {
         <div id="panelToolbar">
           ${DropdownUI.select({
             id: 'panelCardMode',
-            items: [
-              { value: 'original', label: 'original' },
-              { value: 'random', label: 'random' },
-              { value: 'expression', label: 'expression' },
-              { value: 'meaning', label: 'meaning' },
-              { value: 'example', label: 'examples' },
-              { value: 'example_translation', label: "examples' translations" },
-            ],
+            items: CardZones.cardModes,
             cls: 'panelCardModeButton',
           })}
           <div id="panelSourceCount" class="tag"></div>
@@ -307,53 +301,11 @@ const PanelUI = {
 
   // ---- handlers (clean: change state or domain, then render) -----------------------
 
-  changeMode(mode) {
-    const sourceId = this.loadedSource();
-    if(!sourceId) return;
-    PanelState.setMode(sourceId, mode);
-    this.rebuild();
-  },
-
   // Every card goes back into the flow of its area; the areas are not changed.
   arrange() {
     this.resetLayoutState();
     this.closeCard();
     this.render();
-  },
-
-  /*
-     The card stays open. The list is chosen in the prompt; the entry is copied,
-     so the card keeps its place in the source.
-  */
-  addToList() {
-    const entry = this.expanded ? this.entries[this.expanded.id] : null;
-    if(entry) ListPrompts.addEntry(entry);
-  },
-
-  // Only in a list; final, unlike the removal of a card in this View.
-  removeFromList() {
-    const sourceId = this.loadedSource();
-    if(!sourceId || !this.expanded || !Collections.isListId(sourceId)) return;
-    ListPrompts.removeEntry(Collections.listIdOf(sourceId), this.expanded.id);
-  },
-
-  reset() {
-    const sourceId = this.loadedSource();
-    if(!sourceId) return;
-    const ids = App.selectedEntries(sourceId).map(entry => entry.id);
-    const kept = ViewState.countInProgressOutside(sourceId, this.viewName, ids);
-    Prompt.ask({
-      text: `Really reset the Panel?${kept ? ` ${kept} entries in other sections keep their progress.` : ''}`,
-      onConfirm: () => this.doReset(),
-    });
-  },
-
-  doReset() {
-    const sourceId = this.loadedSource();
-    if(!sourceId) return;
-    const ids = App.selectedEntries(sourceId).map(entry => entry.id);
-    ViewState.resetEntries(sourceId, this.viewName, ids, PanelState.defaultUi());
-    this.rebuild();
   },
 
   /*
