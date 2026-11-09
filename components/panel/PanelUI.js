@@ -59,6 +59,8 @@ const PanelUI = {
       '#panelView .cardTapZone': 'expandCard',
       '@expandedEl': 'collapseCard',
       ...CardZones.overlayClicks('#panelExpanded'),
+      '#panelExpanded .cardAddToList': 'addToList',
+      '#panelExpanded .cardRemoveFromList': 'removeFromList',
       '@arrangeEl': 'arrange',
       '#panelView .zoneClear': 'clearZone',
       '#panelView .zoneFocus': 'toggleFocus',
@@ -317,6 +319,22 @@ const PanelUI = {
     this.resetLayoutState();
     this.closeCard();
     this.render();
+  },
+
+  /*
+     The card stays open. The list is chosen in the prompt; the entry is copied,
+     so the card keeps its place in the source.
+  */
+  addToList() {
+    const entry = this.expanded ? this.entries[this.expanded.id] : null;
+    if(entry) ListPrompts.addEntry(entry);
+  },
+
+  // Only in a list; final, unlike the removal of a card in this View.
+  removeFromList() {
+    const sourceId = this.loadedSource();
+    if(!sourceId || !this.expanded || !Collections.isListId(sourceId)) return;
+    ListPrompts.removeEntry(Collections.listIdOf(sourceId), this.expanded.id);
   },
 
   reset() {
